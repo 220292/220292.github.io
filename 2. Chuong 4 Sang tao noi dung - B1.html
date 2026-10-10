@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sơ đồ tư duy – Chương 4: Sáng tạo nội dung số</title>
+<style>
+:root{--ink:#20334a;--muted:#60758b;--bg:#f4f7fb;--line:#b8c9d9;--blue:#2767a8;--teal:#178a83;--purple:#7962b5;--orange:#c78336;--green:#43865e}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
+header{height:76px;background:#fff;border-bottom:1px solid #dbe4ed;display:flex;align-items:center;gap:18px;padding:12px 22px;position:relative;z-index:3}
+.brand{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#2369ad,#27a69a);display:grid;place-items:center;color:white;font-size:22px;font-weight:800}
+h1{font-size:18px;margin:0 0 4px;font-weight:750}header p{margin:0;color:var(--muted);font-size:12px}
+.controls{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{border:1px solid #d5e0eb;background:#fff;color:#28435e;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:650;cursor:pointer;transition:.15s}
+button:hover{background:#eaf3fb;border-color:#9ebbd5}button.primary{background:#2469a8;color:#fff;border-color:#2469a8}
+#viewport{position:relative;width:100vw;height:calc(100vh - 76px);overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;background-color:#f4f7fb;background-image:radial-gradient(#d5e0eb 1px,transparent 1px);background-size:22px 22px}
+#viewport.dragging{cursor:grabbing}svg{display:block;transform-origin:0 0;position:absolute;left:0;top:0;overflow:visible;user-select:none;-webkit-user-select:none;touch-action:none}
+.edge{fill:none;stroke-width:2.2;opacity:.75;stroke-linecap:round}
+.node{cursor:pointer;filter:drop-shadow(0 3px 4px rgba(34,63,91,.08))}
+.node rect{stroke-width:1.4;transition:stroke-width .15s,filter .15s}
+.node:hover rect{stroke-width:2.5;filter:brightness(1.02)}
+.node .heading{font-size:15px;font-weight:750;fill:#20334a;pointer-events:none}
+.node .summary{font-size:11.5px;fill:#5d7185;pointer-events:none}
+.node .hint{font-size:10px;fill:#fff;pointer-events:none}
+.root .heading{font-size:18px;fill:#fff}.root .summary{fill:#e9f5ff}
+.node.root rect{fill:#215e91;stroke:#174c78}.node.root .hint{fill:#d5ecff}
+.legend{position:absolute;left:16px;bottom:14px;background:#ffffffed;border:1px solid #dce5ee;border-radius:11px;padding:10px 13px;font-size:11px;color:#61758a;box-shadow:0 4px 18px #24486b12;pointer-events:none}
+.status{position:absolute;right:16px;bottom:14px;background:#ffffffed;border:1px solid #dce5ee;border-radius:11px;padding:9px 12px;font-size:11px;color:#61758a}
+@media(max-width:760px){header{height:auto;min-height:88px;align-items:flex-start;padding:10px}.brand{display:none}h1{font-size:15px}.controls{max-width:48%;justify-content:flex-end}button{padding:7px;font-size:11px}#viewport{height:calc(100vh - 88px)}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">M</div><div><h1>CHƯƠNG 4 · SÁNG TẠO NỘI DUNG SỐ</h1><p>Bài 12: Biên soạn văn bản · Sơ đồ tư duy tương tác từ bài giảng</p></div>
+ <div class="controls">
+  <button id="expand">Mở rộng tất cả</button><button id="collapse">Thu gọn</button><button id="fit" class="primary">Vừa màn hình</button><button id="minus">−</button><button id="plus">+</button>
+ </div>
+</header>
+<div id="viewport" aria-label="Sơ đồ tư duy. Kéo để di chuyển, lăn chuột để phóng to thu nhỏ.">
+<svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+<div class="legend">✋ Kéo nền để di chuyển · Con lăn chuột để zoom<br>Nhấn nút chủ đề để xem/ẩn nội dung chi tiết · Các nhánh mở rộng xuống dưới</div>
+<div class="status" id="status">100% · Nhấn “Vừa màn hình” để căn sơ đồ</div>
+</div>
+<script>
+const data={id:'root',title:'CHƯƠNG 4',summary:'SÁNG TẠO NỘI DUNG SỐ',detail:'Học phần: Công nghệ số và Ứng dụng\\nBài 12: Biên soạn văn bản',color:'#215e91',children:[
+{id:'env',title:'12.1. Thiết lập môi trường làm việc',summary:'Khởi động · giao diện · thao tác · chế độ xem',color:'#2767a8',children:[
+{id:'start',title:'12.1.1. Khởi động chương trình',summary:'3 cách mở Microsoft Word',detail:'• Nhấn biểu tượng MS Word trên màn hình Desktop.\\n• Chọn Start > Microsoft Office > Word.\\n• Nhấn Windows + R, gõ Winword rồi nhấn Enter.'},
+{id:'interface',title:'12.1.2. Giao diện chương trình',summary:'Nhận biết vùng làm việc Word',detail:'Bài giảng có mục nhận diện giao diện chương trình Microsoft Word. Quan sát các khu vực và nhóm lệnh trên màn hình Word để xác định vị trí thao tác.'},
+{id:'exit',title:'12.1.3. Thoát khỏi chương trình',summary:'Close · nháy đúp biểu tượng · Alt + F4',detail:'• Nhấn Close ở góc phải thanh tiêu đề.\\n• Nháy đúp biểu tượng Word ở góc trái thanh tiêu đề.\\n• Nhấn tổ hợp phím Alt + F4.'},
+{id:'basic',title:'12.1.4. Các thao tác cơ bản',summary:'Tạo mới · lưu · lưu thành bản khác · mở',color:'#3b83bd',children:[
+{id:'new',title:'Tạo mới tập tin',summary:'Ctrl + N',detail:'• Nhấn New trên Quick Access Toolbar.\\n• Nhấn Ctrl + N.\\n• Chọn File > New > Blank document.'},
+{id:'save',title:'Lưu tập tin',summary:'Ctrl + S · File > Save',detail:'• Nhấn Save trên Quick Access Toolbar.\\n• Nhấn Ctrl + S.\\n• Chọn File > Save.\\nHộp thoại Save As cho phép chọn vị trí lưu và đặt tên tập tin.'},
+{id:'saveas',title:'Lưu với tên/vị trí khác',summary:'Save As · F12',detail:'Chọn File > Save As hoặc nhấn F12 để lưu văn bản đang soạn thảo với tên khác hoặc sang vị trí khác.'},
+{id:'open',title:'Mở văn bản đã lưu',summary:'Ctrl + O · File > Open',detail:'• Nhấn Open trên Quick Access Toolbar.\\n• Nhấn Ctrl + O.\\n• Chọn File > Open.'}]},
+{id:'views',title:'12.1.5. Các chế độ xem tài liệu',summary:'View > Views · nhóm Zoom',color:'#3b83bd',children:[
+{id:'viewtypes',title:'Kiểu hiển thị',summary:'Read Mode · Print Layout · Web Layout…',detail:'Vào View > Views và chọn kiểu phù hợp:\\n• Read Mode: hiển thị dạng đọc sách.\\n• Print Layout: xem gần giống bản in.\\n• Web Layout: xem dưới dạng trang web.\\n• Outline: xem theo bố cục.\\n• Draft: hiển thị dạng bản thảo.'},
+{id:'zoom',title:'Phóng to / thu nhỏ',summary:'Zoom · 100% · One Page · Multiple Pages',detail:'Các nút trong View > Zoom:\\n• Zoom: chọn mức phóng to/thu nhỏ tùy ý.\\n• 100%: hiển thị kích thước 100%.\\n• One Page: hiển thị một trang.\\n• Multiple Pages: hiển thị nhiều trang.\\n• Page Width: chiều rộng trang bằng chiều rộng màn hình.'}]},
+{id:'windows',title:'12.1.6. Hiển thị nhiều cửa sổ',summary:'Nhóm Window trong thẻ View',detail:'Dùng khi làm việc với nhiều tài liệu hoặc mở cùng một tập tin trong hai cửa sổ.\\n• New Window: tạo cửa sổ bản sao để xem văn bản hiện tại.\\n• Arrange All: sắp xếp các cửa sổ Word đang mở trên cùng màn hình.\\n• Split: chia văn bản thành hai khung nhìn riêng biệt.'}
+]},
+{id:'page',title:'12.2. Định dạng trang giấy và căn lề',summary:'Khổ giấy · hướng in · lề trang',color:'#178a83',children:[
+{id:'paper',title:'12.2.1. Định dạng trang giấy',summary:'Page Layout > Page Setup',detail:'• Margins: chọn lề theo mẫu có sẵn.\\n• Orientation: chọn hướng in — Portrait (hướng đứng), Landscape (hướng ngang).\\n• Size: chọn kích cỡ trang giấy theo mẫu có sẵn.'},
+{id:'margins',title:'12.2.2. Căn lề trang giấy',summary:'Top · Bottom · Left · Right',detail:'Mở hộp thoại Page Setup bằng nút mũi tên ở góc phải nhóm Page Setup.\\n• Top: lề trên.\\n• Bottom: lề dưới.\\n• Left: lề trái.\\n• Right: lề phải.\\nLưu ý về đơn vị đo: Paper > Print Options > Advanced > Display > Show measurements in units of, rồi chọn đơn vị mong muốn.'}
+]},
+{id:'manual',title:'12.3. Định dạng văn bản thủ công',summary:'Định dạng ký tự · đoạn văn',color:'#7962b5',children:[
+{id:'font',title:'12.3.1. Định dạng ký tự',summary:'Nhóm Font · hộp thoại Font · Advanced',color:'#8c78c7',children:[
+{id:'fontbasic',title:'Định dạng bằng nhóm Font',summary:'Chọn nội dung rồi dùng Home > Font',detail:'Chọn ký tự hoặc phần văn bản cần định dạng, sau đó sử dụng các nút lệnh trong nhóm Font của thẻ Home.'},
+{id:'fontdialog',title:'Mở hộp thoại Font',summary:'Ctrl + D',detail:'Nhấn Ctrl + D hoặc nhấn mũi tên ở góc dưới bên phải nhóm Font để mở hộp thoại Font.'},
+{id:'advanced',title:'Thẻ Advanced',summary:'Scale · Spacing · Position',detail:'• Scale: co giãn chiều ngang toàn chuỗi ký tự.\\n• Spacing: điều chỉnh khoảng cách ký tự. Expanded tăng khoảng cách (chọn độ lớn ở By); Condensed giảm khoảng cách (chọn độ giảm ở By).\\n• Position: điều chỉnh vị trí theo chiều dọc. Raised đưa ký tự lên; Lowered đưa ký tự xuống theo khoảng cách đặt tại By.'}]},
+{id:'paragraph',title:'12.3.2. Định dạng đoạn',summary:'Canh lề · thụt đầu dòng · giãn cách · viền/nền',color:'#8c78c7',children:[
+{id:'align',title:'Canh chỉnh đoạn',summary:'Trái · giữa · phải · đều',detail:'Xác lập hình thức canh ngang của đoạn văn bản trong trang in. Word cung cấp bốn kiểu: canh trái, canh giữa, canh phải và canh đều; các nút lệnh nằm trong nhóm Paragraph.'},
+{id:'indent',title:'Thụt đầu dòng',summary:'Điều chỉnh khoảng cách đoạn với lề',detail:'Tính năng thụt đầu dòng cho phép đặt khoảng cách đoạn văn bản so với lề trang. Word cung cấp bốn chế độ điều chỉnh độ thụt đầu dòng.'},
+{id:'spacing',title:'Khoảng cách đoạn và dòng',summary:'Before · After · Line spacing',detail:'• Before: khoảng cách giữa đoạn hiện tại và đoạn trước.\\n• After: khoảng cách giữa đoạn hiện tại và đoạn tiếp theo.\\n• Single: giãn dòng đơn.\\n• 1.5 lines: giãn dòng 1,5 lần.\\n• Double: giãn dòng kép.\\n• At least: khoảng cách tối thiểu theo giá trị At.\\n• Exactly: khoảng cách chính xác theo giá trị At.\\n• Multiple: giãn dòng theo bội số đặt trong At.'},
+{id:'borders',title:'Tạo viền cho đoạn',summary:'Borders · Borders and Shading',detail:'Chọn nội dung cần tạo viền, sau đó chọn Borders hoặc Borders and Shading trong nhóm Paragraph để chọn kiểu viền văn bản.'},
+{id:'shading',title:'Tạo nền cho đoạn',summary:'Shading · Fill · Pattern',detail:'Chọn Shading trong nhóm Paragraph hoặc thẻ Shading của hộp thoại Borders and Shading.\\n• Fill: chọn màu nền cho đoạn.\\n• Pattern: chọn nền dạng mẫu hình.\\nCó thể dùng Line and Paragraph Spacing để điều chỉnh khoảng cách dòng và đoạn.'}]}
+]},
+{id:'styles',title:'12.4. Định dạng văn bản bằng Styles',summary:'Định dạng đồng nhất · tiết kiệm thời gian',color:'#c78336',children:[
+{id:'stylesintro',title:'Vai trò của Styles',summary:'Kiểu định dạng thiết kế sẵn',detail:'Styles là tập hợp định dạng được thiết kế sẵn, giúp áp dụng đồng nhất cho toàn bộ tài liệu. Lợi ích: tiết kiệm thời gian, hỗ trợ tạo mục lục tự động và duy trì tính nhất quán.'},
+{id:'apply',title:'12.4.1. Áp dụng Style có sẵn',summary:'Home > Styles',detail:'• Chọn đoạn văn cần định dạng.\\n• Vào thẻ Home, chọn Style mong muốn trong nhóm Styles, ví dụ Normal, Heading 1, Heading 2.'},
+{id:'modify',title:'12.4.2. Tùy chỉnh Style',summary:'Nhấn phải Style > Modify',detail:'• Nhấn chuột phải vào Style cần sửa, chọn Modify.\\n• Điều chỉnh font chữ, cỡ chữ, màu sắc, căn chỉnh, giãn dòng…\\n• Chọn New documents based on this template nếu muốn áp dụng cho tài liệu mới.'},
+{id:'newstyle',title:'12.4.3. Tạo Style mới',summary:'New Style',detail:'• Nhấn mũi tên xuống ở góc phải nhóm Styles.\\n• Chọn New Style và nhập tên cho Style mới.\\n• Thiết lập định dạng mong muốn.'}
+]},
+{id:'table',title:'12.5. Tạo và định dạng bảng (Table)',summary:'Tạo bảng · chỉnh sửa cấu trúc · trình bày dữ liệu',color:'#43865e',children:[
+{id:'createtable',title:'12.5.1. Tạo bảng',summary:'Insert > Table',color:'#5b9b73',children:[
+{id:'grid',title:'Tạo bằng lưới bảng',summary:'Insert > Tables > Table',detail:'Đặt con trỏ tại vị trí cần tạo bảng, vào Insert > nhóm Tables > Table, rồi kéo chuột trên lưới để chọn số hàng và cột.'},
+{id:'insertTable',title:'Insert Table…',summary:'Thiết lập hàng, cột và tự động co giãn',detail:'Chọn Insert > Table > Insert Table…\\n• Number of columns: số cột.\\n• Number of rows: số hàng.\\n• Fixed column width: chiều rộng cột; chọn Auto để Word tự điều chỉnh.\\n• AutoFit to contents: độ rộng bảng theo nội dung trong ô.\\n• AutoFit to window: độ rộng bảng theo chiều rộng trang văn bản.\\n• Remember dimensions for new tables: lưu thông số cho lần tạo bảng sau.'}]},
+{id:'formatTable',title:'12.5.2. Định dạng bảng',summary:'Thao tác trên thẻ Table Layout',color:'#5b9b73',children:[
+{id:'width',title:'Thay đổi độ rộng cột',summary:'Kéo cạnh cột · Distribute Columns',detail:'Di chuyển con trỏ đến cạnh trái cột cần thay đổi; khi con trỏ thành mũi tên hai chiều, kéo sang trái hoặc phải. Để chia đều cột, chọn các cột rồi nhấn Distribute Columns trên thẻ Table Layout.'},
+{id:'insertrows',title:'Chèn dòng, cột',summary:'Above · Below · Left · Right',detail:'Trong thẻ Table Layout:\\n• Insert Row Above: chèn dòng phía trên.\\n• Insert Row Below: chèn dòng phía dưới.\\n• Insert Column Left: chèn cột bên trái.\\n• Insert Column Right: chèn cột bên phải.'},
+{id:'merge',title:'Gộp ô, tách ô, tách bảng',summary:'Merge Cells · Split Cells · Split Table',detail:'• Gộp ô: chọn các ô > Table Layout > Merge Cells; hoặc nhấn chuột phải > Merge Cells.\\n• Tách ô: chọn ô > Split Cells, sau đó chọn số dòng và cột; hoặc nhấn chuột phải > Split Cells.\\n• Tách bảng: đặt con trỏ tại dòng muốn tách sang bảng mới > Table Layout > Split Table.'},
+{id:'delete',title:'Xóa ô, dòng, cột, bảng',summary:'Table Layout > Delete',detail:'Chọn ô, dòng, cột hoặc bảng cần xóa, sau đó vào Table Layout > Delete:\\n• Delete Cells: xóa ô.\\n• Delete Columns: xóa cột hiện hành.\\n• Delete Rows: xóa dòng hiện hành.\\n• Delete Table: xóa bảng.'},
+{id:'alignment',title:'Định dạng dữ liệu trong ô',summary:'Nhóm Alignment',detail:'Định dạng gồm canh lề dữ liệu so với ô và xoay hướng chữ trong ô. Chọn ô cần định dạng > thẻ Table Layout > chọn nút tương ứng trong nhóm Alignment.'},
+{id:'repeat',title:'Lặp dòng tiêu đề',summary:'Repeat Header Rows',detail:'Khi bảng kéo dài qua nhiều trang, chọn dòng đầu tiên của bảng > Table Layout > Repeat Header Rows. Tiêu đề được lặp ở trang sau khi nội dung bảng kéo dài sang trang mới.'}]}
+]}
+]};
+const svg=document.getElementById('map'), vp=document.getElementById('viewport');
+let scale=1,tx=30,ty=30,expanded=new Set(),nodes=[],edges=[],drag=null;
+function allIds(n){let a=[n.id];(n.children||[]).forEach(c=>a=a.concat(allIds(c)));return a}
+function flatten(n,depth=0,parent=null){nodes.push({n,depth,parent});(n.children||[]).forEach(c=>flatten(c,depth+1,n))}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function wrapped(text,maxChars){let words=String(text||'').split(/\s+/),lines=[],line='';for(const word of words){if((line+' '+word).trim().length>maxChars&&line){lines.push(line);line=word}else line=(line+' '+word).trim()}if(line)lines.push(line);return lines}
+function contentLayout(n){
+ const root=n.id==='root';
+ const head=wrapped(n.title,root?27:31);
+ const sums=wrapped(n.summary||'Nhấn để xem chi tiết',root?33:36);
+ const detail=expanded.has(n.id)&&n.detail?n.detail.split('\\n').flatMap(line=>wrapped(line,43)):[];
+ let y=20+head.length*16;
+ y+=sums.length*14;
+ const sep=detail.length?y+6:null;
+ const height=detail.length?Math.max(96,sep+17+detail.length*14+30):Math.max(66,y+24);
+ return {head,sums,detail,sep,height};
+}
+function nodeHeight(n){return contentLayout(n).height}
+function visibleTree(n){return {n,children:expanded.has(n.id)?(n.children||[]).map(visibleTree):[]}}
+function draw(){
+ nodes=[];edges=[];
+ const tree=visibleTree(data);const slot=340,margin=60,levelGap=54;let leafCount=0,maxDepth=0;const levelHeights=[];
+ function measure(t,depth=0){
+  t.depth=depth;maxDepth=Math.max(maxDepth,depth);t.w=depth===0?300:280;t.layout=contentLayout(t.n);t.h=t.layout.height;
+  levelHeights[depth]=Math.max(levelHeights[depth]||0,t.h);
+  if(!t.children.length){t.slotX=leafCount*slot;leafCount++;}
+  else {t.children.forEach(c=>measure(c,depth+1));t.slotX=(t.children[0].slotX+t.children[t.children.length-1].slotX)/2;}
+  t.x=t.slotX+margin-t.w/2;
+ }
+ measure(tree);
+ const levelY=[];levelY[0]=margin;
+ for(let d=1;d<=maxDepth;d++)levelY[d]=levelY[d-1]+(levelHeights[d-1]||66)+levelGap;
+ function assignY(t){t.y=levelY[t.depth];t.cy=t.y+t.h/2;t.children.forEach(assignY)}
+ assignY(tree);
+ function place(t){nodes.push(t);t.children.forEach(c=>{edges.push({a:t,b:c,color:c.n.color||t.n.color||'#91a9bd'});place(c)});}
+ place(tree);
+ const maxX=Math.max(700,leafCount*slot+margin*2),maxY=levelY[maxDepth]+(levelHeights[maxDepth]||66)+margin+40;
+ svg.setAttribute('width',maxX);svg.setAttribute('height',maxY);svg.setAttribute('viewBox',`0 0 ${maxX} ${maxY}`);
+ let out='';
+ edges.forEach(e=>{
+  const x1=e.a.x+e.a.w/2,y1=e.a.y+e.a.h,x2=e.b.x+e.b.w/2,y2=e.b.y;
+  const mid=y1+Math.max(18,(y2-y1)*0.48);
+  out+=`<path class="edge" stroke="${e.color}" d="M ${x1} ${y1} V ${mid} H ${x2} V ${y2}"/>`;
+ });
+ nodes.forEach(t=>{
+  let n=t.n,layout=t.layout,detail=layout.detail,h=t.h,root=n.id==='root';
+  let fill=n.color?n.color:(t.depth===2?'#eaf2fb':'#ffffff'),stroke=n.color|| (t.depth===2?'#c3d6e8':'#d2dfeb');
+  out+=`<g class="node ${root?'root':''}" data-id="${n.id}" transform="translate(${t.x},${t.y})"><rect width="${t.w}" height="${h}" rx="${root?17:12}" fill="${fill}" stroke="${stroke}"/>`;
+  if(!root&&n.color)out+=`<rect x="0" y="0" width="5" height="${h}" rx="2.5" fill="${n.color}" stroke="none"/>`;
+  let titleColor=root?'#fff':n.color?'#fff':'#20334a',sumColor=root?'#e9f5ff':n.color?'#f3f7ff':'#60758b';
+  let yy=20;layout.head.forEach(line=>{out+=`<text class="heading" x="14" y="${yy}" style="fill:${titleColor};font-size:${root?17:13.5}px">${esc(line)}</text>`;yy+=16});
+  layout.sums.forEach(line=>{out+=`<text class="summary" x="14" y="${yy+1}" style="fill:${sumColor};font-size:11px">${esc(line)}</text>`;yy+=14});
+  if(detail.length){const sep=layout.sep;out+=`<line x1="12" y1="${sep}" x2="${t.w-12}" y2="${sep}" stroke="${root?'#6b9ac0':'#d6e2ec'}"/>`;let dy=sep+17;detail.forEach(line=>{out+=`<text x="14" y="${dy}" style="font-size:10.5px;fill:${root?'#fff':'#334c63'}">${esc(line)}</text>`;dy+=14})}
+  if(n.children&&n.children.length){let label=expanded.has(n.id)?'− Thu nhánh':'＋ Mở nhánh';out+=`<rect x="${t.w-78}" y="${h-21}" width="68" height="15" rx="7" fill="${root?'#477aa4':'#e3edf6'}" stroke="none"/><text x="${t.w-44}" y="${h-10}" text-anchor="middle" style="font-size:9px;fill:${root?'#fff':'#41617d'};pointer-events:none">${label}</text>`}
+  else if(n.detail)out+=`<text x="${t.w-12}" y="${h-9}" text-anchor="end" style="font-size:9px;fill:${root?'#d5ecff':'#7390a8'};pointer-events:none">${expanded.has(n.id)?'− Thu gọn':'＋ Chi tiết'}</text>`;
+  out+='</g>';
+ });
+ svg.innerHTML=out;
+ svg.querySelectorAll('.node').forEach(el=>el.addEventListener('click',ev=>{ev.stopPropagation();const id=el.dataset.id;const item=nodes.find(x=>x.n.id===id);if(item&&(item.n.children?.length||item.n.detail)){if(expanded.has(id))expanded.delete(id);else expanded.add(id);draw();applyTransform()}}));
+ document.getElementById('status').textContent=Math.round(scale*100)+'% · '+nodes.length+' nút đang hiển thị';
+}
+function applyTransform(){svg.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;document.getElementById('status').textContent=Math.round(scale*100)+'% · Kéo để di chuyển'}
+function fit(){let w=+svg.getAttribute('width'),h=+svg.getAttribute('height'),vw=vp.clientWidth,vh=vp.clientHeight;scale=Math.min(vw/(w+60),vh/(h+50),1);scale=Math.max(.15,scale);tx=Math.max(12,(vw-w*scale)/2);ty=Math.max(12,(vh-h*scale)/2);applyTransform()}
+vp.addEventListener('pointerdown',e=>{if(e.button!==0)return;if(e.target.closest&&e.target.closest('.node'))return;drag={x:e.clientX,y:e.clientY,tx,ty};vp.classList.add('dragging');vp.setPointerCapture(e.pointerId)});
+vp.addEventListener('pointermove',e=>{if(!drag)return;tx=drag.tx+(e.clientX-drag.x);ty=drag.ty+(e.clientY-drag.y);applyTransform()});
+vp.addEventListener('pointerup',()=>{drag=null;vp.classList.remove('dragging')});vp.addEventListener('pointercancel',()=>{drag=null;vp.classList.remove('dragging')});
+vp.addEventListener('wheel',e=>{e.preventDefault();let old=scale,rect=vp.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;scale=Math.max(.15,Math.min(2.5,scale*(e.deltaY<0?1.1:.9)));tx=mx-(mx-tx)*(scale/old);ty=my-(my-ty)*(scale/old);applyTransform()},{passive:false});
+document.getElementById('plus').onclick=()=>{scale=Math.min(2.5,scale*1.15);applyTransform()};
+document.getElementById('minus').onclick=()=>{scale=Math.max(.15,scale/1.15);applyTransform()};
+document.getElementById('fit').onclick=fit;
+document.getElementById('collapse').onclick=()=>{expanded.clear();draw();fit()};
+document.getElementById('expand').onclick=()=>{allIds(data).forEach(id=>expanded.add(id));draw();fit()};
+window.addEventListener('resize',fit);
+draw();fit();
+</script>
+</body>
+</html>
