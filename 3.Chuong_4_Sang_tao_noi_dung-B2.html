@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sơ đồ tư duy – Chương 4: Sáng tạo nội dung số – Bài 12 (phần 2)</title>
+<style>
+:root{--ink:#20334a;--muted:#60758b;--bg:#f4f7fb;--line:#b8c9d9;--blue:#2767a8;--teal:#178a83;--purple:#7962b5;--orange:#c78336;--green:#43865e}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--ink);overflow:hidden}
+header{height:76px;background:#fff;border-bottom:1px solid #dbe4ed;display:flex;align-items:center;gap:18px;padding:12px 22px;position:relative;z-index:3}
+.brand{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#2369ad,#27a69a);display:grid;place-items:center;color:white;font-size:22px;font-weight:800}
+h1{font-size:18px;margin:0 0 4px;font-weight:750}header p{margin:0;color:var(--muted);font-size:12px}
+.controls{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+button{border:1px solid #d5e0eb;background:#fff;color:#28435e;border-radius:9px;padding:8px 11px;font-size:12px;font-weight:650;cursor:pointer;transition:.15s}
+button:hover{background:#eaf3fb;border-color:#9ebbd5}button.primary{background:#2469a8;color:#fff;border-color:#2469a8}
+#viewport{position:relative;width:100vw;height:calc(100vh - 76px);overflow:hidden;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:none;background-color:#f4f7fb;background-image:radial-gradient(#d5e0eb 1px,transparent 1px);background-size:22px 22px}
+#viewport.dragging{cursor:grabbing}svg{display:block;transform-origin:0 0;position:absolute;left:0;top:0;overflow:visible;user-select:none;-webkit-user-select:none;touch-action:none}
+.edge{fill:none;stroke-width:2.2;opacity:.75;stroke-linecap:round}
+.node{cursor:pointer;filter:drop-shadow(0 3px 4px rgba(34,63,91,.08))}
+.node rect{stroke-width:1.4;transition:stroke-width .15s,filter .15s}
+.node:hover rect{stroke-width:2.5;filter:brightness(1.02)}
+.node .heading{font-size:15px;font-weight:750;fill:#20334a;pointer-events:none}
+.node .summary{font-size:11.5px;fill:#5d7185;pointer-events:none}
+.node .hint{font-size:10px;fill:#fff;pointer-events:none}
+.root .heading{font-size:18px;fill:#fff}.root .summary{fill:#e9f5ff}
+.node.root rect{fill:#215e91;stroke:#174c78}.node.root .hint{fill:#d5ecff}
+.legend{position:absolute;left:16px;bottom:14px;background:#ffffffed;border:1px solid #dce5ee;border-radius:11px;padding:10px 13px;font-size:11px;color:#61758a;box-shadow:0 4px 18px #24486b12;pointer-events:none}
+.status{position:absolute;right:16px;bottom:14px;background:#ffffffed;border:1px solid #dce5ee;border-radius:11px;padding:9px 12px;font-size:11px;color:#61758a}
+@media(max-width:760px){header{height:auto;min-height:88px;align-items:flex-start;padding:10px}.brand{display:none}h1{font-size:15px}.controls{max-width:48%;justify-content:flex-end}button{padding:7px;font-size:11px}#viewport{height:calc(100vh - 88px)}}
+</style>
+</head>
+<body>
+<header>
+ <div class="brand">M</div><div><h1>CHƯƠNG 4 · SÁNG TẠO NỘI DUNG SỐ</h1><p>Bài 12: Biên soạn văn bản · Nội dung 12.6–12.11 · Sơ đồ tư duy tương tác</p></div>
+ <div class="controls">
+  <button id="expand">Mở rộng tất cả</button><button id="collapse">Thu gọn</button><button id="fit" class="primary">Vừa màn hình</button><button id="minus">−</button><button id="plus">+</button>
+ </div>
+</header>
+<div id="viewport" aria-label="Sơ đồ tư duy. Kéo để di chuyển, lăn chuột để phóng to thu nhỏ.">
+<svg id="map" xmlns="http://www.w3.org/2000/svg"></svg>
+<div class="legend">✋ Kéo nền để di chuyển · Con lăn chuột để zoom<br>Nhấn nút chủ đề để xem/ẩn nội dung chi tiết · Các nhánh mở rộng xuống dưới</div>
+<div class="status" id="status">100% · Nhấn “Vừa màn hình” để căn sơ đồ</div>
+</div>
+<script>
+const data={"id":"root","title":"CHƯƠNG 4","summary":"SÁNG TẠO NỘI DUNG SỐ","detail":"Học phần: Công nghệ số và Ứng dụng\nBài 12: Biên soạn văn bản — nội dung 12.6 đến 12.11","color":"#215e91","children":[{"id":"headerfooter","title":"12.6. Tiêu đề đầu và cuối trang","summary":"Header · Footer · chỉnh sửa và xóa","color":"#2767a8","children":[{"id":"header","title":"Tạo Header / Footer","summary":"Insert > Header hoặc Footer","detail":"• Chọn thẻ Insert, sau đó chọn Header hoặc Footer.\n• Chọn một mẫu tiêu đề phù hợp trong danh mục mẫu hiển thị.\n• Thao tác tương tự để tạo tiêu đề đầu trang hoặc cuối trang."},{"id":"editheader","title":"Chỉnh sửa tiêu đề","summary":"Edit Header","detail":"• Chọn Edit Header để mở khung nhập liệu khi không dùng mẫu tạo sẵn.\n• Có thể nhập hoặc chỉnh sửa nội dung tiêu đề trong khung này."},{"id":"removeheader","title":"Xóa tiêu đề","summary":"Remove Header","detail":"• Chọn Remove Header để loại bỏ tiêu đề đầu trang đã tạo.\n• Thực hiện tương tự với Footer nếu cần xóa tiêu đề cuối trang."},{"id":"closeheader","title":"Kết thúc chỉnh sửa","summary":"Close Header and Footer","detail":"Sau khi hoàn tất, nhấn Close Header and Footer để trở về vùng soạn thảo văn bản."}]},{"id":"images","title":"12.7. Chèn hình ảnh và sơ đồ","summary":"Shape · Picture · Picture Format · SmartArt","color":"#178a83","children":[{"id":"shape","title":"Chèn và hiệu chỉnh hình vẽ (Shape)","summary":"Insert > Illustrations > Shapes","color":"#279b91","children":[{"id":"insertshape","title":"Chèn Shape","summary":"Chọn hình rồi kéo chuột để vẽ","detail":"• Vào Insert > nhóm Illustrations > Shapes.\n• Chọn hình cần dùng, nhấn giữ chuột trái và kéo trong vùng soạn thảo để vẽ.\n• Giữ Shift khi vẽ nếu muốn tạo đối tượng đều từ tâm."},{"id":"shapestyles","title":"Định dạng hình vẽ","summary":"Shape Format > Shape Styles","detail":"• Shape Fill: chọn màu nền cho hình.\n• Shape Outline: chọn viền và kiểu viền.\n• Shape Effects: tạo hiệu ứng như đổ bóng hoặc 3D."}]},{"id":"picture","title":"Chèn hình ảnh từ máy tính","summary":"Insert > Pictures > This Device","color":"#279b91","children":[{"id":"insertpicture","title":"Chèn Picture","summary":"Insert Picture","detail":"Chọn Insert > Picture > This Device trong nhóm Illustrations, sau đó dùng hộp thoại Insert Picture để tìm và chọn hình ảnh cần chèn."},{"id":"pictureformat","title":"Hiệu chỉnh hình ảnh","summary":"Picture Format","detail":"• Adjust: loại bỏ nền, điều chỉnh độ sáng, tông màu và nén hình.\n• Picture Styles: áp dụng khung viền hoặc bố cục có sẵn.\n• Picture Border: thêm hoặc chỉnh sửa viền.\n• Picture Effects: thêm hiệu ứng phản chiếu, phát quang…\n• Picture Layout: chuyển hình ảnh thành sơ đồ SmartArt."}]},{"id":"smartart","title":"Chèn sơ đồ SmartArt","summary":"Insert > SmartArt","detail":"SmartArt hỗ trợ tạo biểu đồ trực quan, sơ đồ tư duy hoặc danh sách có thứ tự. Chọn Insert > SmartArt trong nhóm Illustrations, rồi chọn loại phù hợp tại cửa sổ Choose a SmartArt Graphic."}]},{"id":"charts","title":"12.8. Chèn biểu đồ","summary":"Tạo biểu đồ · nhập dữ liệu · tùy chỉnh","color":"#7962b5","children":[{"id":"createchart","title":"12.8.1. Tạo biểu đồ","summary":"Insert > Chart","color":"#8c78c7","children":[{"id":"chartsteps","title":"Các bước tạo biểu đồ","summary":"Đặt con trỏ · chọn loại · nhập dữ liệu","detail":"• Đặt con trỏ tại vị trí muốn chèn biểu đồ.\n• Vào Insert > Chart và chọn loại biểu đồ.\n• Trong Insert Chart, chọn loại phù hợp: Column (cột), Line (đường), Pie (tròn), Bar (thanh ngang), Area (diện tích)…\n• Nhấn OK; bảng dữ liệu mẫu Excel xuất hiện để nhập hoặc chỉnh sửa số liệu."}]},{"id":"customchart","title":"12.8.2. Tùy chỉnh biểu đồ","summary":"Chart Design","color":"#8c78c7","children":[{"id":"chartstyle","title":"Kiểu dáng biểu đồ","summary":"Chart Styles","detail":"Dùng nhóm Chart Styles để thay đổi kiểu dáng biểu đồ."},{"id":"chartlabels","title":"Tiêu đề và nhãn dữ liệu","summary":"Add Chart Element","detail":"Dùng Add Chart Element để thêm nhãn dữ liệu, tiêu đề trục và tiêu đề biểu đồ."},{"id":"chartcolors","title":"Màu sắc biểu đồ","summary":"Change Colors","detail":"Dùng Change Colors để điều chỉnh màu sắc và hiệu ứng của biểu đồ."}]}]},{"id":"special","title":"12.9. Drop Cap, Watermark và Symbol","summary":"Chữ cái lớn · dấu bản quyền · ký tự đặc biệt","color":"#c78336","children":[{"id":"dropcap","title":"12.9.1. Chèn Drop Cap","summary":"Insert > Drop Cap","color":"#d49345","children":[{"id":"dropcapinsert","title":"Chèn Drop Cap","summary":"Đặt con trỏ tại đoạn cần tạo","detail":"Đặt con trỏ vào đoạn cần tạo Drop Cap, chọn thẻ Insert > Drop Cap, sau đó chọn một mẫu trong danh sách."},{"id":"dropcaptypes","title":"Kiểu Drop Cap","summary":"None · Dropped · In margin","detail":"• None: loại bỏ Drop Cap đang áp dụng.\n• Dropped và In margin: hai dạng Drop Cap được cung cấp trong MS Word."},{"id":"dropcapoptions","title":"Tùy chỉnh Drop Cap","summary":"Drop Cap Options","detail":"• Position: chọn kiểu Drop Cap.\n• Font: định dạng kiểu chữ.\n• Lines to drop: xác định số dòng mà ký tự Drop Cap chiếm.\n• Distance from text: xác định khoảng cách giữa ký tự Drop Cap và ký tự tiếp theo."}]},{"id":"watermark","title":"12.9.2. Chèn Watermark","summary":"Design > Watermark","color":"#d49345","children":[{"id":"watermarkpurpose","title":"Mục đích Watermark","summary":"Bản quyền · nhận diện tài liệu","detail":"Watermark giúp đánh dấu bản quyền hoặc thông tin nhận diện trên tài liệu mà không làm ảnh hưởng đến nội dung chính."},{"id":"watermarkinsert","title":"Chèn và tùy chỉnh","summary":"Watermark · Custom Watermark · Picture watermark","detail":"• Vào thẻ Design > Watermark và chọn mẫu thích hợp.\n• Chọn Custom Watermark để tạo watermark với nội dung tùy chỉnh.\n• Chọn Picture watermark để tạo watermark dạng hình ảnh."}]},{"id":"symbol","title":"12.9.3. Chèn Symbol","summary":"Insert > Symbols > Symbol","color":"#d49345","children":[{"id":"symbolinsert","title":"Chèn ký tự đặc biệt","summary":"Symbol","detail":"Vào thẻ Insert > nhóm Symbols > Symbol để chèn ký tự đặc biệt vào văn bản."},{"id":"moresymbols","title":"Tìm thêm ký tự","summary":"More Symbols · Wingdings","detail":"Chọn More Symbols để xem thêm ký tự. Có thể chọn Wingdings tại mục Font để tìm các ký tự quen thuộc."}]}]},{"id":"breaks","title":"12.10. Ngắt trang và Section","summary":"Page Break · Section Break","color":"#43865e","children":[{"id":"breakpurpose","title":"Mục đích","summary":"Phân chia tài liệu thành các phần","detail":"Ngắt trang và ngắt section giúp chia tài liệu thành các phần riêng biệt, cho phép áp dụng định dạng khác nhau cho từng phần như số trang, lề hoặc hướng giấy."},{"id":"breaksteps","title":"Các bước thực hiện","summary":"Layout > Breaks","detail":"• Đặt con trỏ tại vị trí cần chèn ngắt.\n• Chọn thẻ Layout > Breaks.\n• Page Break: ngắt trang.\n• Section Break (Next Page, Continuous…): tạo section mới."}]},{"id":"references","title":"12.11. Chú thích, trích dẫn và công thức toán học","summary":"Footnote · Citation · Equation","color":"#557ca8","children":[{"id":"footnote","title":"12.11.1. Tạo chú thích","summary":"References > Footnote / Endnote","color":"#7295ba","children":[{"id":"footnotesteps","title":"Các bước tạo chú thích","summary":"Đặt con trỏ · References","detail":"• Đặt con trỏ tại vị trí cần tạo chú thích.\n• Chọn References > Insert Footnote để chú thích ở cuối trang.\n• Chọn Insert Endnote để chú thích ở cuối tài liệu."}]},{"id":"citation","title":"12.11.2. Tạo trích dẫn","summary":"References > Insert Citation","color":"#7295ba","children":[{"id":"citationsteps","title":"Thêm nguồn trích dẫn","summary":"Insert Citation","detail":"• Chọn thẻ References > Insert Citation.\n• Thêm nguồn mới và nhập thông tin tài liệu."}]},{"id":"equation","title":"12.11.3. Tạo công thức toán học","summary":"Insert > Symbols > Equation","color":"#7295ba","children":[{"id":"equationsteps","title":"Chèn Equation","summary":"Công thức toán học trong Word","detail":"Để tạo công thức toán học, chọn thẻ Insert > nhóm Symbols > Equation."}]}]}]};
+const svg=document.getElementById('map'), vp=document.getElementById('viewport');
+let scale=1,tx=30,ty=30,expanded=new Set(),nodes=[],edges=[],drag=null;
+function allIds(n){let a=[n.id];(n.children||[]).forEach(c=>a=a.concat(allIds(c)));return a}
+function flatten(n,depth=0,parent=null){nodes.push({n,depth,parent});(n.children||[]).forEach(c=>flatten(c,depth+1,n))}
+function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function wrapped(text,maxChars){let words=String(text||'').split(/\s+/),lines=[],line='';for(const word of words){if((line+' '+word).trim().length>maxChars&&line){lines.push(line);line=word}else line=(line+' '+word).trim()}if(line)lines.push(line);return lines}
+function contentLayout(n){
+ const root=n.id==='root';
+ const head=wrapped(n.title,root?27:31);
+ const sums=wrapped(n.summary||'Nhấn để xem chi tiết',root?33:36);
+ const detail=expanded.has(n.id)&&n.detail?n.detail.split(/\r?\n/).flatMap(line=>wrapped(line,43)):[];
+ let y=20+head.length*16;
+ y+=sums.length*14;
+ const sep=detail.length?y+6:null;
+ const height=detail.length?Math.max(96,sep+17+detail.length*14+30):Math.max(66,y+24);
+ return {head,sums,detail,sep,height};
+}
+function nodeHeight(n){return contentLayout(n).height}
+function visibleTree(n){return {n,children:expanded.has(n.id)?(n.children||[]).map(visibleTree):[]}}
+function draw(){
+ nodes=[];edges=[];
+ const tree=visibleTree(data);const slot=340,margin=60,levelGap=54;let leafCount=0,maxDepth=0;const levelHeights=[];
+ function measure(t,depth=0){
+  t.depth=depth;maxDepth=Math.max(maxDepth,depth);t.w=depth===0?300:280;t.layout=contentLayout(t.n);t.h=t.layout.height;
+  levelHeights[depth]=Math.max(levelHeights[depth]||0,t.h);
+  if(!t.children.length){t.slotX=leafCount*slot;leafCount++;}
+  else {t.children.forEach(c=>measure(c,depth+1));t.slotX=(t.children[0].slotX+t.children[t.children.length-1].slotX)/2;}
+  t.x=t.slotX+margin-t.w/2;
+ }
+ measure(tree);
+ const levelY=[];levelY[0]=margin;
+ for(let d=1;d<=maxDepth;d++)levelY[d]=levelY[d-1]+(levelHeights[d-1]||66)+levelGap;
+ function assignY(t){t.y=levelY[t.depth];t.cy=t.y+t.h/2;t.children.forEach(assignY)}
+ assignY(tree);
+ function place(t){nodes.push(t);t.children.forEach(c=>{edges.push({a:t,b:c,color:c.n.color||t.n.color||'#91a9bd'});place(c)});}
+ place(tree);
+ const maxX=Math.max(700,leafCount*slot+margin*2),maxY=levelY[maxDepth]+(levelHeights[maxDepth]||66)+margin+40;
+ svg.setAttribute('width',maxX);svg.setAttribute('height',maxY);svg.setAttribute('viewBox',`0 0 ${maxX} ${maxY}`);
+ let out='';
+ edges.forEach(e=>{
+  const x1=e.a.x+e.a.w/2,y1=e.a.y+e.a.h,x2=e.b.x+e.b.w/2,y2=e.b.y;
+  const mid=y1+Math.max(18,(y2-y1)*0.48);
+  out+=`<path class="edge" stroke="${e.color}" d="M ${x1} ${y1} V ${mid} H ${x2} V ${y2}"/>`;
+ });
+ nodes.forEach(t=>{
+  let n=t.n,layout=t.layout,detail=layout.detail,h=t.h,root=n.id==='root';
+  let fill=n.color?n.color:(t.depth===2?'#eaf2fb':'#ffffff'),stroke=n.color|| (t.depth===2?'#c3d6e8':'#d2dfeb');
+  out+=`<g class="node ${root?'root':''}" data-id="${n.id}" transform="translate(${t.x},${t.y})"><rect width="${t.w}" height="${h}" rx="${root?17:12}" fill="${fill}" stroke="${stroke}"/>`;
+  if(!root&&n.color)out+=`<rect x="0" y="0" width="5" height="${h}" rx="2.5" fill="${n.color}" stroke="none"/>`;
+  let titleColor=root?'#fff':n.color?'#fff':'#20334a',sumColor=root?'#e9f5ff':n.color?'#f3f7ff':'#60758b';
+  let yy=20;layout.head.forEach(line=>{out+=`<text class="heading" x="14" y="${yy}" style="fill:${titleColor};font-size:${root?17:13.5}px">${esc(line)}</text>`;yy+=16});
+  layout.sums.forEach(line=>{out+=`<text class="summary" x="14" y="${yy+1}" style="fill:${sumColor};font-size:11px">${esc(line)}</text>`;yy+=14});
+  if(detail.length){const sep=layout.sep;out+=`<line x1="12" y1="${sep}" x2="${t.w-12}" y2="${sep}" stroke="${root?'#6b9ac0':'#d6e2ec'}"/>`;let dy=sep+17;detail.forEach(line=>{out+=`<text x="14" y="${dy}" style="font-size:10.5px;fill:${root?'#fff':'#334c63'}">${esc(line)}</text>`;dy+=14})}
+  if(n.children&&n.children.length){let label=expanded.has(n.id)?'− Thu nhánh':'＋ Mở nhánh';out+=`<rect x="${t.w-78}" y="${h-21}" width="68" height="15" rx="7" fill="${root?'#477aa4':'#e3edf6'}" stroke="none"/><text x="${t.w-44}" y="${h-10}" text-anchor="middle" style="font-size:9px;fill:${root?'#fff':'#41617d'};pointer-events:none">${label}</text>`}
+  else if(n.detail)out+=`<text x="${t.w-12}" y="${h-9}" text-anchor="end" style="font-size:9px;fill:${root?'#d5ecff':'#7390a8'};pointer-events:none">${expanded.has(n.id)?'− Thu gọn':'＋ Chi tiết'}</text>`;
+  out+='</g>';
+ });
+ svg.innerHTML=out;
+ svg.querySelectorAll('.node').forEach(el=>el.addEventListener('click',ev=>{ev.stopPropagation();const id=el.dataset.id;const item=nodes.find(x=>x.n.id===id);if(item&&(item.n.children?.length||item.n.detail)){if(expanded.has(id))expanded.delete(id);else expanded.add(id);draw();applyTransform()}}));
+ document.getElementById('status').textContent=Math.round(scale*100)+'% · '+nodes.length+' nút đang hiển thị';
+}
+function applyTransform(){svg.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;document.getElementById('status').textContent=Math.round(scale*100)+'% · Kéo để di chuyển'}
+function fit(){let w=+svg.getAttribute('width'),h=+svg.getAttribute('height'),vw=vp.clientWidth,vh=vp.clientHeight;scale=Math.min(vw/(w+60),vh/(h+50),1);scale=Math.max(.15,scale);tx=Math.max(12,(vw-w*scale)/2);ty=Math.max(12,(vh-h*scale)/2);applyTransform()}
+vp.addEventListener('pointerdown',e=>{if(e.button!==0)return;if(e.target.closest&&e.target.closest('.node'))return;drag={x:e.clientX,y:e.clientY,tx,ty};vp.classList.add('dragging');vp.setPointerCapture(e.pointerId)});
+vp.addEventListener('pointermove',e=>{if(!drag)return;tx=drag.tx+(e.clientX-drag.x);ty=drag.ty+(e.clientY-drag.y);applyTransform()});
+vp.addEventListener('pointerup',()=>{drag=null;vp.classList.remove('dragging')});vp.addEventListener('pointercancel',()=>{drag=null;vp.classList.remove('dragging')});
+vp.addEventListener('wheel',e=>{e.preventDefault();let old=scale,rect=vp.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;scale=Math.max(.15,Math.min(2.5,scale*(e.deltaY<0?1.1:.9)));tx=mx-(mx-tx)*(scale/old);ty=my-(my-ty)*(scale/old);applyTransform()},{passive:false});
+document.getElementById('plus').onclick=()=>{scale=Math.min(2.5,scale*1.15);applyTransform()};
+document.getElementById('minus').onclick=()=>{scale=Math.max(.15,scale/1.15);applyTransform()};
+document.getElementById('fit').onclick=fit;
+document.getElementById('collapse').onclick=()=>{expanded.clear();draw();fit()};
+document.getElementById('expand').onclick=()=>{allIds(data).forEach(id=>expanded.add(id));draw();fit()};
+window.addEventListener('resize',fit);
+draw();fit();
+</script>
+</body>
+</html>
