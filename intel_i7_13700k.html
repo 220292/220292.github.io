@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô hình 3D Cấu Trúc Chip Intel Core i7-13700K (Chạy Offline 100%)</title>
+<style>
+  :root {
+    --bg-dark: #070b14;
+    --panel-bg: rgba(15, 23, 42, 0.88);
+    --border-color: rgba(56, 189, 248, 0.25);
+    --accent: #00c8ff;
+    --accent-glow: rgba(0, 200, 255, 0.35);
+    --text-main: #f1f5f9;
+    --text-sub: #94a3b8;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: radial-gradient(circle at 50% 45%, #111e36 0%, #060a12 100%);
+    color: var(--text-main);
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Vùng vẽ 3D & Con trỏ bàn tay */
+  #viewport {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+  }
+  #viewport.grabbing {
+    cursor: grabbing;
+  }
+
+  /* Header góc trái */
+  .top-header {
+    position: absolute;
+    top: 18px;
+    left: 20px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+    padding: 14px 20px;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 20;
+    max-width: 430px;
+  }
+  .badge {
+    display: inline-block;
+    background: rgba(0, 200, 255, 0.15);
+    color: var(--accent);
+    border: 1px solid rgba(0, 200, 255, 0.4);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 20px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .top-header h1 {
+    font-size: 20px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.2px;
+  }
+  .top-header p {
+    font-size: 12.5px;
+    color: var(--text-sub);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  /* Trạng thái bàn tay nắm mô hình */
+  .hand-indicator {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    padding: 9px 18px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #e2e8f0;
+    z-index: 20;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+    transition: all 0.2s ease;
+    pointer-events: none;
+  }
+  .hand-indicator.active {
+    border-color: #38bdf8;
+    background: rgba(2, 132, 199, 0.32);
+    box-shadow: 0 0 20px var(--accent-glow);
+    transform: translateX(-50%) scale(1.04);
+  }
+  .hand-svg {
+    width: 22px;
+    height: 22px;
+    fill: var(--accent);
+    transition: transform 0.15s ease;
+  }
+  .hand-indicator.active .hand-svg {
+    transform: scale(0.88) rotate(-8deg);
+    fill: #7dd3fc;
+  }
+
+  /* Bảng điều khiển bên trái */
+  .left-controls {
+    position: absolute;
+    bottom: 22px;
+    left: 20px;
+    width: 340px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    padding: 16px 18px;
+    z-index: 20;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+  }
+  .control-group {
+    margin-bottom: 14px;
+  }
+  .control-group:last-child {
+    margin-bottom: 0;
+  }
+  .control-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #cbd5e1;
+    margin-bottom: 7px;
+  }
+  .control-label span.val {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+    height: 6px;
+    background: #1e293b;
+    border-radius: 5px;
+  }
+  .btn-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 7px;
+    margin-top: 8px;
+  }
+  .btn {
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+    padding: 8px 6px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .btn.active {
+    background: rgba(0, 200, 255, 0.28);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* Bảng thông tin chi tiết bên phải */
+  .right-panel {
+    position: absolute;
+    top: 18px;
+    right: 20px;
+    bottom: 22px;
+    width: 355px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(10px);
+    border-radius: 14px;
+    padding: 18px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.55);
+  }
+  .panel-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+    padding-bottom: 8px;
+  }
+  .layer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+    overflow-y: auto;
+    max-height: 44%;
+    padding-right: 4px;
+  }
+  .layer-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 11px;
+    border-radius: 9px;
+    background: rgba(30, 41, 59, 0.55);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 12.5px;
+  }
+  .layer-item:hover {
+    background: rgba(51, 65, 85, 0.75);
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+  .layer-item.selected {
+    background: rgba(0, 200, 255, 0.18);
+    border-color: var(--accent);
+    box-shadow: inset 0 0 10px rgba(0,200,255,0.15);
+  }
+  .color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .layer-name {
+    font-weight: 600;
+    color: #f8fafc;
+    flex: 1;
+  }
+  .layer-tag {
+    font-size: 10.5px;
+    color: #94a3b8;
+    background: rgba(15, 23, 42, 0.7);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* Chi tiết bộ phận đang chọn */
+  .detail-box {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 10px;
+    padding: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-header h2 {
+    font-size: 16px;
+    color: #fff;
+    font-weight: 700;
+  }
+  .detail-desc {
+    font-size: 13px;
+    color: #cbd5e1;
+    line-height: 1.55;
+  }
+  .spec-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+    font-size: 12px;
+  }
+  .spec-table td {
+    padding: 6px 4px;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+  }
+  .spec-table td:first-child {
+    color: #94a3b8;
+    width: 44%;
+  }
+  .spec-table td:last-child {
+    color: #f1f5f9;
+    font-weight: 600;
+    text-align: right;
+  }
+
+  /* Nhãn chú thích 3D nổi (Callout Pins) */
+  #labels-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10;
+    overflow: hidden;
+  }
+  .pin-label {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: #f8fafc;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: auto;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+    transition: background 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pin-label:hover, .pin-label.active {
+    background: rgba(2, 132, 199, 0.92);
+    border-color: #fff;
+    z-index: 15;
+  }
+  .pin-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* Responsive cho màn hình nhỏ */
+  @media (max-width: 900px) {
+    .right-panel {
+      width: 290px;
+    }
+    .left-controls {
+      width: 280px;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="top-header">
+    <span class="badge">Offline 3D Engine • LGA1700</span>
+    <h1>Intel® Core™ i7-13700K (Gen 13)</h1>
+    <p>Kiến trúc lai <strong>Raptor Lake (Intel 7)</strong> • 16 Nhân (8 P-Core + 8 E-Core) • 24 Luồng • Xung nhịp tối đa 5.4 GHz</p>
+  </div>
+
+  <!-- Biểu tượng bàn tay nắm xoay 360 độ -->
+  <div id="handStatus" class="hand-indicator">
+    <!-- Icon bàn tay SVG nội tuyến -->
+    <svg class="hand-svg" id="handSvgOpen" viewBox="0 0 24 24">
+      <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <span id="handText">Bàn tay mở: Nhấn giữ chuột để NẮM & XOAY 360° mọi hướng</span>
+  </div>
+
+  <!-- Bảng điều khiển bên trái -->
+  <div class="left-controls">
+    <div class="control-group">
+      <div class="control-label">
+        <span>Độ tách lớp (Explode View)</span>
+        <span class="val" id="explodeVal">65%</span>
+      </div>
+      <input type="range" id="explodeSlider" min="0" max="100" value="65">
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Phóng to / Thu nhỏ (Zoom)</span>
+        <span class="val" id="zoomVal">100%</span>
+      </div>
+      <input type="range" id="zoomSlider" min="45" max="200" value="100">
+      <div class="btn-row">
+        <button class="btn" id="btnZoomIn" title="Phóng to">＋ Zoom</button>
+        <button class="btn" id="btnZoomOut" title="Thu nhỏ">－ Zoom</button>
+        <button class="btn" id="btnExplodeToggle">Tách/Gộp</button>
+        <button class="btn" id="btnReset">Đặt lại</button>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">
+        <span>Góc nhìn nhanh & Chú thích</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn" data-view="iso">Góc 3D</button>
+        <button class="btn" data-view="top">Mặt trên</button>
+        <button class="btn" data-view="bottom">Mặt đáy</button>
+        <button class="btn" data-view="side">Mặt cắt</button>
+      </div>
+      <div class="btn-row" style="grid-template-columns: 1fr 1fr; margin-top: 6px;">
+        <button class="btn active" id="btnToggleLabels">Ẩn/Hiện Nhãn 3D</button>
+        <button class="btn" id="btnAutoRotate">Tự động xoay</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bảng chú thích chi tiết bên phải -->
+  <div class="right-panel">
+    <div class="panel-title">Danh sách các lớp & Vi kiến trúc (Chọn để xem)</div>
+    <div class="layer-list" id="layerList"></div>
+
+    <div class="panel-title">Thông số kỹ thuật chi tiết</div>
+    <div class="detail-box" id="detailBox"></div>
+  </div>
+
+  <!-- Container chứa nhãn 3D nổi -->
+  <div id="labels-container"></div>
+
+  <!-- Canvas dựng hình 3D thuần HTML5 -->
+  <canvas id="viewport"></canvas>
+
+<script>
+/**
+ * DỮ LIỆU CẤU TRÚC CHIP INTEL CORE i7-13700K (5 LỚP VẬT LÝ + CÁC KHU VỰC DIE)
+ */
+const CHIP_PARTS = [
+  {
+    id: 'all',
+    name: 'Tổng quan Intel Core i7-13700K',
+    tag: 'Toàn bộ Chip',
+    color: '#00c8ff',
+    desc: 'Vi xử lý Intel Core i7-13700K thuộc thế hệ thứ 13 (tên mã Raptor Lake), sản xuất trên tiến trình Intel 7 (10nm Enhanced SuperFin). Thiết kế kết hợp 8 nhân hiệu năng cao (P-Core) và 8 nhân tiết kiệm điện (E-Core) điều phối bởi Intel Thread Director.',
+    specs: [
+      ['Socket hỗ trợ', 'LGA 1700 (37.5mm × 45.0mm)'],
+      ['Cấu hình nhân/luồng', '16 Nhân (8P + 8E) / 24 Luồng'],
+      ['Xung nhịp Turbo tối đa', '5.4 GHz (P-Core) / 4.2 GHz (E-Core)'],
+      ['Bộ nhớ đệm', '30 MB Intel Smart Cache (L3) + 24 MB L2'],
+      ['Công suất PBP / MTP', '125W / 253W']
+    ]
+  },
+  {
+    id: 'ihs',
+    name: '1. Nắp tản nhiệt IHS (Mạ Niken)',
+    tag: 'Lớp 1 (Trên cùng)',
+    color: '#cbd5e1',
+    desc: 'Integrated Heat Spreader (IHS) được đúc từ đồng nguyên chất dẫn nhiệt cao và phủ lớp mạ Niken chống oxy hóa. Có nhiệm vụ phân tán nhiệt lượng từ lõi Silicon Die bên dưới ra bề mặt rộng để truyền sang tản nhiệt CPU.',
+    specs: [
+      ['Vật liệu cốt lõi', 'Đồng nguyên chất (Cu) mạ Niken (Ni)'],
+      ['Diện tích bề mặt gia tăng', 'Rộng hơn thế hệ 11 giúp tản nhiệt nhanh'],
+      ['Khắc Laser trên nắp', 'Intel® Core™ i7-13700K • SRMB8'],
+      ['Độ dày tiêu chuẩn', '~2.8 mm']
+    ]
+  },
+  {
+    id: 'stim',
+    name: '2. Lớp hàn nhiệt STIM (Indium)',
+    tag: 'Lớp 2 (Dẫn nhiệt)',
+    color: '#f59e0b',
+    desc: 'Solder Thermal Interface Material (STIM) là lớp hợp kim hàn gốc Indium nối trực tiếp mặt lưng tinh thể Silicon Die với nắp đồng IHS, giúp giảm tối đa nhiệt trở so với kem tản nhiệt thông thường.',
+    specs: [
+      ['Hợp kim chế tạo', 'Indium (In) độ tinh khiết cao'],
+      ['Độ dẫn nhiệt', '~80 - 86 W/(m·K)'],
+      ['Công nghệ', 'Thin-Die STIM tối ưu cho Raptor Lake'],
+      ['Chức năng', 'Truyền nhiệt tức thời từ Die lên IHS']
+    ]
+  },
+  {
+    id: 'pcores',
+    name: '3A. Cụm 8 Nhân P-Core (Raptor Cove)',
+    tag: 'Lớp 3 (Silicon Die)',
+    color: '#2563eb',
+    desc: '8 nhân hiệu năng cao kiến trúc Raptor Cove hỗ trợ siêu phân luồng (Hyper-Threading: 16 luồng). Mỗi nhân sở hữu tới 2MB bộ nhớ đệm L2 riêng biệt (gấp đôi so với 1.25MB trên thế hệ 12 Alder Lake), chuyên xử lý game nặng và tác vụ đơn luồng.',
+    specs: [
+      ['Số lượng', '8 Nhân / 16 Luồng'],
+      ['Xung nhịp Cơ bản / Boost', '3.4 GHz / Lên tới 5.4 GHz'],
+      ['L2 Cache riêng', '2 MB / nhân (Tổng 16 MB L2 cho P-Core)'],
+      ['Vi kiến trúc', 'Raptor Cove (Tiến trình Intel 7 Ultra)']
+    ]
+  },
+  {
+    id: 'ecores',
+    name: '3B. Cụm 8 Nhân E-Core (Gracemont)',
+    tag: 'Lớp 3 (Silicon Die)',
+    color: '#06b6d4',
+    desc: '8 nhân tiết kiệm điện kiến trúc Gracemont chia làm 2 cụm (Clusters), mỗi cụm gồm 4 nhân dùng chung 4MB bộ nhớ đệm L2. Đảm nhiệm xử lý đa nhiệm nền, render đa luồng và giải phóng tải cho P-Core.',
+    specs: [
+      ['Số lượng', '8 Nhân / 8 Luồng (2 Cụm × 4 Nhân)'],
+      ['Xung nhịp Cơ bản / Boost', '2.5 GHz / Lên tới 4.2 GHz'],
+      ['L2 Cache mỗi cụm', '4 MB / cụm 4 nhân (Tổng 8 MB L2)'],
+      ['Vi kiến trúc', 'Gracemont tối ưu hiệu năng/watt']
+    ]
+  },
+  {
+    id: 'l3cache',
+    name: '3C. 30MB L3 Smart Cache & Ring Bus',
+    tag: 'Lớp 3 (Silicon Die)',
+    color: '#8b5cf6',
+    desc: 'Bộ nhớ đệm L3 dung lượng 30MB nằm dọc trung tâm Die kết hợp mạng liên kết vòng đôi (Dual-Ring Bus Fabric), cho phép cả P-Core, E-Core và iGPU truy cập dữ liệu tốc độ cực cao với độ trễ thấp.',
+    specs: [
+      ['Dung lượng L3 Cache', '30 MB Intel® Smart Cache'],
+      ['Cấu trúc kết nối', 'Dynamic Ring Bus (Xung nhịp lên tới ~4.5GHz)'],
+      ['Chia sẻ dữ liệu', 'Truy xuất chung cho 8 P-Core, 8 E-Core & iGPU'],
+      ['Điều phối thông minh', 'Intel® Thread Director tích hợp phần cứng']
+    ]
+  },
+  {
+    id: 'igpu',
+    name: '3D. Đồ họa Intel® UHD Graphics 770',
+    tag: 'Lớp 3 (Silicon Die)',
+    color: '#10b981',
+    desc: 'Nhân đồ họa tích hợp kiến trúc Xe-LP với 32 đơn vị thực thi (Execution Units), hỗ trợ giải mã phần cứng AV1, Quick Sync Video tốc độ cao phục vụ dựng phim và xuất tối đa 4 màn hình 4K/8K.',
+    specs: [
+      ['Tên nhân đồ họa', 'Intel® UHD Graphics 770'],
+      ['Số đơn vị thực thi (EUs)', '32 Execution Units (256 Shading Units)'],
+      ['Xung nhịp động tối đa', '1.60 GHz'],
+      ['Tăng tốc Media', 'Dual Multi-Format Codec Engines (QuickSync)']
+    ]
+  },
+  {
+    id: 'uncore',
+    name: '3E. System Agent, IMC (DDR5/4) & PCIe 5.0',
+    tag: 'Lớp 3 (Silicon Die)',
+    color: '#ec4899',
+    desc: 'Khu vực điều khiển I/O và Bộ điều khiển bộ nhớ tích hợp (IMC) hỗ trợ linh hoạt cả RAM DDR5-5600 lẫn DDR4-3200, cùng 16 làn PCIe 5.0 trực tiếp cho card đồ họa/SSD thế hệ mới.',
+    specs: [
+      ['Hỗ trợ bộ nhớ RAM', 'DDR5 5600 MT/s hoặc DDR4 3200 MT/s (Dual-Channel)'],
+      ['Băng thông RAM tối đa', '89.6 GB/s'],
+      ['Giao tiếp PCI Express', '16 làn PCIe 5.0 + 4 làn PCIe 4.0'],
+      ['Liên kết Chipset', 'DMI 4.0 ×8 lanes']
+    ]
+  },
+  {
+    id: 'substrate',
+    name: '4. Đế mạch PCB đa lớp & Tụ SMD',
+    tag: 'Lớp 4 (Bo mạch đế)',
+    color: '#15803d',
+    desc: 'Bo mạch sợi thủy tinh hữu cơ nhiều lớp (Multi-layer Organic Package Substrate) tích hợp hàng vạn đường mạch siêu vi (Micro-vias) dẫn tín hiệu và cấp nguồn từ 1700 chân tiếp xúc lên tinh thể Silicon Die.',
+    specs: [
+      ['Kích thước vật lý', '37.5 mm × 45.0 mm (Hình chữ nhật)'],
+      ['Cấu tạo mạch', '12 - 14 lớp đồng siêu mỏng đan xen'],
+      ['Linh kiện bề mặt', 'Tụ gốm SMD lọc nhiễu xung quanh Die'],
+      ['Khớp định vị', '4 khuyết chống lắp ngược trên Socket LGA1700']
+    ]
+  },
+  {
+    id: 'lga1700',
+    name: '5. 1700 Chân tiếp xúc mạ vàng & Tụ MLCC',
+    tag: 'Lớp 5 (Mặt đáy)',
+    color: '#eab308',
+    desc: 'Mặt dưới của CPU gồm 1700 điểm tiếp xúc phẳng mạ vàng (Land Grid Array) chia thành 2 cánh đối xứng. Khoang trống ở trung tâm chứa dày đặc các tụ điện gốm đa lớp (MLCC) giúp ổn định điện áp tức thời khi CPU đạt xung nhịp 5.4 GHz.',
+    specs: [
+      ['Chuẩn giao tiếp', 'LGA 1700 (1700 chân tiếp xúc trên Mainboard)'],
+      ['Lớp phủ bề mặt', 'Mạ vàng (Au) giảm điện trở tiếp xúc'],
+      ['Khoang trung tâm', 'Hệ thống tụ lọc nguồn cao tần MLCC'],
+      ['Phân bổ chân', 'Cấp nguồn Vcore, VSS, tín hiệu DDR5 & PCIe 5.0']
+    ]
+  }
+];
+
+/**
+ * ENGINE 3D THUẦN JAVASCRIPT (QUATERNION TRACKBALL + PAINTER'S ALGORITHM + LIGHTING)
+ * Cho phép xoay tự do 360 độ mọi hướng không bị khóa trục (No Gimbal Lock)
+ */
+const canvas = document.getElementById('viewport');
+const ctx = canvas.getContext('2d');
+const labelsContainer = document.getElementById('labels-container');
+
+let width = window.innerWidth;
+let height = window.innerHeight;
+
+// Trạng thái hiển thị
+let explodeFactor = 0.65;      // 0.0 -> 1.0
+let targetExplode = 0.65;
+let zoomScale = 1.0;           // 0.45 -> 2.0
+let targetZoom = 1.0;
+let selectedPartId = 'all';
+let showLabels = true;
+let autoRotate = false;
+
+// Quaternion biểu diễn góc xoay 3D tự do ở mọi hướng [x, y, z, w]
+let curQuat = fromEuler(-0.52, 0.62, 0);
+let targetQuat = [...curQuat];
+
+// Biến điều khiển chuột/cảm ứng
+let isDragging = false;
+let lastMouseX = 0;
+let lastMouseY = 0;
+let dragMoved = false;
+
+// Hàm toán học Quaternion
+function normalizeQuat(q) {
+  const len = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+  return [q[0]/len, q[1]/len, q[2]/len, q[3]/len];
+}
+
+function multiplyQuat(a, b) {
+  return [
+    a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+    a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+    a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+    a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]
+  ];
+}
+
+function axisAngleToQuat(ax, ay, az, angle) {
+  const half = angle * 0.5;
+  const s = Math.sin(half);
+  return normalizeQuat([ax * s, ay * s, az * s, Math.cos(half)]);
+}
+
+function fromEuler(rx, ry, rz) {
+  const qx = axisAngleToQuat(1, 0, 0, rx);
+  const qy = axisAngleToQuat(0, 1, 0, ry);
+  const qz = axisAngleToQuat(0, 0, 1, rz);
+  return normalizeQuat(multiplyQuat(qx, multiplyQuat(qy, qz)));
+}
+
+function slerpQuat(a, b, t) {
+  let cosHalfTheta = a[0]*b[0] + a[1]*b[1] + a[2]*b[2] + a[3]*b[3];
+  let bCopy = [...b];
+  if (cosHalfTheta < 0) {
+    bCopy = [-b[0], -b[1], -b[2], -b[3]];
+    cosHalfTheta = -cosHalfTheta;
+  }
+  if (cosHalfTheta >= 1.0) return [...a];
+  return normalizeQuat([
+    a[0] + (bCopy[0] - a[0]) * t,
+    a[1] + (bCopy[1] - a[1]) * t,
+    a[2] + (bCopy[2] - a[2]) * t,
+    a[3] + (bCopy[3] - a[3]) * t
+  ]);
+}
+
+function rotatePointByQuat(p, q) {
+  const x = p[0], y = p[1], z = p[2];
+  const qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+  const ix =  qw * x + qy * z - qz * y;
+  const iy =  qw * y + qz * x - qx * z;
+  const iz =  qw * z + qx * y - qy * x;
+  const iw = -qx * x - qy * y - qz * z;
+  return [
+    ix * qw + iw * -qx + iy * -qz - iz * -qy,
+    iy * qw + iw * -qy + iz * -qx - ix * -qz,
+    iz * qw + iw * -qz + ix * -qy - iy * -qx
+  ];
+}
+
+// Chiếu tọa độ 3D sang màn hình 2D
+function project3D(p) {
+  const fov = 720 * zoomScale;
+  const viewerDist = 650;
+  const z = p[2] + viewerDist;
+  const scale = fov / Math.max(80, z);
+  return {
+    x: width * 0.45 + p[0] * scale,
+    y: height * 0.52 - p[1] * scale,
+    z: p[2],
+    scale: scale
+  };
+}
+
+/**
+ * TẠO CÁC KHỐI HÌNH HỌA 3D CỦA CHIP INTEL CORE i7-13700K
+ * Tỷ lệ chuẩn LGA 1700 (37.5mm x 45.0mm -> tương đương 150 x 180 đơn vị 3D)
+ */
+function buildChipBoxes(explode) {
+  const boxes = [];
+  const gap = explode * 68; // Khoảng cách tách lớp
+
+  // LỚP 1: NẮP TẢN NHIỆT IHS (Mạ Niken bậc thang đặc trưng LGA1700)
+  const yIHS = 2.0 * gap + 18;
+  // Đế viền IHS
+  boxes.push({
+    partId: 'ihs',
+    cx: 0, cy: yIHS - 4, cz: 0,
+    w: 136, h: 4, d: 166,
+    color: '#94a3b8', topColor: '#cbd5e1', sideColor: '#64748b'
+  });
+  // Phần thân chính IHS
+  boxes.push({
+    partId: 'ihs',
+    cx: 0, cy: yIHS + 3, cz: 0,
+    w: 122, h: 10, d: 154,
+    color: '#cbd5e1', topColor: '#e2e8f0', sideColor: '#94a3b8',
+    topMarking: 'IHS_LASER'
+  });
+
+  // LỚP 2: LỚP HÀN NHIỆT STIM (Indium Solder)
+  const ySTIM = 1.0 * gap + 6;
+  boxes.push({
+    partId: 'stim',
+    cx: 0, cy: ySTIM, cz: 0,
+    w: 44, h: 3.2, d: 96,
+    color: '#f59e0b', topColor: '#fbbf24', sideColor: '#d97706',
+    topMarking: 'STIM_GRID'
+  });
+
+  // LỚP 3: TINH THỂ BÁN DẪN SILICON DIE (Raptor Lake B0 Die ~ 257 mm2)
+  // Chia thành 5 phân khu vi kiến trúc rõ rệt kèm chú thích
+  const yDie = 0;
+  const dieH = 6.5;
+
+  // 3A. 8 Nhân P-Core (Raptor Cove) - Xếp thành 2 cột dọc bên trái/giữa
+  for (let i = 0; i < 4; i++) {
+    const zPos = -28 + i * 14;
+    // Cột trái P-Core (P0..P3)
+    boxes.push({
+      partId: 'pcores',
+      cx: -12, cy: yDie, cz: zPos,
+      w: 17, h: dieH, d: 12.8,
+      color: '#1d4ed8', topColor: '#3b82f6', sideColor: '#1e40af',
+      coreLabel: `P${i}`
+    });
+    // Cột phải P-Core (P4..P7)
+    boxes.push({
+      partId: 'pcores',
+      cx: 12, cy: yDie, cz: zPos,
+      w: 17, h: dieH, d: 12.8,
+      color: '#1d4ed8', topColor: '#3b82f6', sideColor: '#1e40af',
+      coreLabel: `P${i+4}`
+    });
+  }
+
+  // 3B. 8 Nhân E-Core (2 cụm Gracemont x 4 nhân)
+  boxes.push({
+    partId: 'ecores',
+    cx: -12, cy: yDie, cz: 25,
+    w: 17, h: dieH, d: 13.5,
+    color: '#0891b2', topColor: '#06b6d4', sideColor: '#0e7490',
+    coreLabel: '4x E-Core'
+  });
+  boxes.push({
+    partId: 'ecores',
+    cx: 12, cy: yDie, cz: 25,
+    w: 17, h: dieH, d: 13.5,
+    color: '#0891b2', topColor: '#06b6d4', sideColor: '#0e7490',
+    coreLabel: '4x E-Core'
+  });
+
+  // 3C. 30MB L3 Smart Cache & Ring Bus (Trục xương sống ở trung tâm Die)
+  boxes.push({
+    partId: 'l3cache',
+    cx: 0, cy: yDie + 0.2, cz: -2,
+    w: 6.2, h: dieH + 0.4, d: 68,
+    color: '#7c3aed', topColor: '#a855f7', sideColor: '#6d28d9',
+    coreLabel: 'L3'
+  });
+
+  // 3D. Đồ họa tích hợp Intel UHD Graphics 770 (Phía dưới Die)
+  boxes.push({
+    partId: 'igpu',
+    cx: 0, cy: yDie, cz: 41,
+    w: 41.5, h: dieH, d: 15,
+    color: '#059669', topColor: '#10b981', sideColor: '#047857',
+    coreLabel: 'UHD 770 iGPU'
+  });
+
+  // 3E. System Agent, DDR5/DDR4 IMC & PCIe 5.0 Controller (Phía trên Die)
+  boxes.push({
+    partId: 'uncore',
+    cx: 0, cy: yDie, cz: -42,
+    w: 41.5, h: dieH, d: 13,
+    color: '#db2777', topColor: '#ec4899', sideColor: '#be185d',
+    coreLabel: 'IMC DDR5 / PCIe 5'
+  });
+
+  // LỚP 4: ĐẾ MẠCH PCB ĐA LỚP (Package Substrate) & TỤ SMD
+  const ySub = -1.0 * gap - 10;
+  boxes.push({
+    partId: 'substrate',
+    cx: 0, cy: ySub, cz: 0,
+    w: 150, h: 6.5, d: 180,
+    color: '#14532d', topColor: '#15803d', sideColor: '#166534',
+    topMarking: 'SUBSTRATE_TRACES'
+  });
+
+  // Các dãy tụ gốm SMD nhỏ xung quanh Die trên mặt PCB
+  const smdPositions = [
+    [-34, -20], [-34, 0], [-34, 20],
+    [34, -20], [34, 0], [34, 20],
+    [-12, -56], [12, -56], [-12, 56], [12, 56]
+  ];
+  for (const [sx, sz] of smdPositions) {
+    boxes.push({
+      partId: 'substrate',
+      cx: sx, cy: ySub + 4.5, cz: sz,
+      w: 5.5, h: 2.5, d: 9,
+      color: '#b45309', topColor: '#f59e0b', sideColor: '#92400e'
+    });
+  }
+
+  // LỚP 5: MẶT ĐÁY LGA 1700 CHÂN TIẾP XÚC MẠ VÀNG & TỤ MLCC TRUNG TÂM
+  const yLGA = -2.0 * gap - 22;
+  // Khung nền chân pin LGA 1700
+  boxes.push({
+    partId: 'lga1700',
+    cx: 0, cy: yLGA, cz: 0,
+    w: 146, h: 3.2, d: 176,
+    color: '#a16207', topColor: '#ca8a04', sideColor: '#854d0e',
+    topMarking: 'LGA_PADS',
+    bottomMarking: 'LGA_PADS'
+  });
+  // Cụm tụ điện MLCC ở hốc trung tâm mặt đáy
+  boxes.push({
+    partId: 'lga1700',
+    cx: 0, cy: yLGA - 1.5, cz: 0,
+    w: 38, h: 3.5, d: 76,
+    color: '#475569', topColor: '#94a3b8', sideColor: '#334155',
+    bottomMarking: 'MLCC_ARRAY'
+  });
+
+  return boxes;
+}
+
+// Danh sách các điểm neo gắn nhãn chú thích 3D
+function getLabelAnchors(explode) {
+  const gap = explode * 68;
+  return [
+    { id: 'ihs', text: '1. Nắp đồng mạ Niken (IHS)', pos: [65, 2.0 * gap + 22, -25] },
+    { id: 'stim', text: '2. Lớp hàn nhiệt Indium (STIM)', pos: [-32, 1.0 * gap + 7, 15] },
+    { id: 'pcores', text: '3A. 8 Nhân P-Core (Raptor Cove)', pos: [-28, 3, -15] },
+    { id: 'ecores', text: '3B. 8 Nhân E-Core (Gracemont)', pos: [28, 3, 25] },
+    { id: 'l3cache', text: '3C. 30MB L3 Smart Cache & Ring', pos: [0, 7, 0] },
+    { id: 'igpu', text: '3D. Đồ họa Intel UHD 770', pos: [-26, 2, 42] },
+    { id: 'uncore', text: '3E. IMC DDR4/5 & PCIe 5.0', pos: [28, 2, -42] },
+    { id: 'substrate', text: '4. Đế mạch PCB đa lớp & Tụ SMD', pos: [-78, -1.0 * gap - 10, 35] },
+    { id: 'lga1700', text: '5. 1700 Chân mạ vàng (LGA1700)', pos: [74, -2.0 * gap - 22, -30] }
+  ];
+}
+
+// Chuyển đổi màu Hex sang tươi sáng/tối theo cường độ ánh sáng
+function shadeHexColor(hex, brightness) {
+  const c = hex.replace('#', '');
+  const num = parseInt(c, 16);
+  let r = Math.min(255, Math.max(0, Math.round(((num >> 16) & 255) * brightness)));
+  let g = Math.min(255, Math.max(0, Math.round(((num >> 8) & 255) * brightness)));
+  let b = Math.min(255, Math.max(0, Math.round((num & 255) * brightness)));
+  return `rgb(${r},${g},${b})`;
+}
+
+// Vẽ chi tiết bề mặt đặc biệt (Khắc laser trên IHS, chân vàng LGA1700, mạch PCB)
+function drawSurfaceDetail(face, pts2d) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(pts2d[0].x, pts2d[0].y);
+  for (let i = 1; i < pts2d.length; i++) ctx.lineTo(pts2d[i].x, pts2d[i].y);
+  ctx.closePath();
+  ctx.clip();
+
+  // Trung tâm của mặt tứ giác
+  const cx = (pts2d[0].x + pts2d[1].x + pts2d[2].x + pts2d[3].x) * 0.25;
+  const cy = (pts2d[0].y + pts2d[1].y + pts2d[2].y + pts2d[3].y) * 0.25;
+
+  if (face.marking === 'IHS_LASER') {
+    // Khắc chữ Intel Core i7-13700K trên mặt IHS
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+    ctx.textAlign = 'center';
+    ctx.font = `bold ${Math.round(12 * zoomScale)}px "Segoe UI", sans-serif`;
+    ctx.fillText('INTEL® CORE™ i7', cx, cy - 10 * zoomScale);
+    ctx.font = `bold ${Math.round(11 * zoomScale)}px "Segoe UI", sans-serif`;
+    ctx.fillText('i7-13700K', cx, cy + 5 * zoomScale);
+    ctx.font = `600 ${Math.round(8.5 * zoomScale)}px monospace`;
+    ctx.fillText('SRMB8   L234B512', cx, cy + 18 * zoomScale);
+  } else if (face.marking === 'SUBSTRATE_TRACES') {
+    // Vẽ đường mạch đồng ẩn và chấm tam giác Pin 1 ở góc
+    ctx.strokeStyle = 'rgba(74, 222, 128, 0.22)';
+    ctx.lineWidth = 1.2 * zoomScale;
+    for (let r = 0.25; r <= 0.85; r += 0.2) {
+      ctx.beginPath();
+      pts2d.forEach((p, idx) => {
+        const px = cx + (p.x - cx) * r;
+        const py = cy + (p.y - cy) * r;
+        if (idx === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      });
+      ctx.closePath();
+      ctx.stroke();
+    }
+    // Dấu tam giác vàng Pin 1 góc dưới trái
+    ctx.fillStyle = '#facc15';
+    ctx.beginPath();
+    ctx.arc(pts2d[0].x * 0.85 + cx * 0.15, pts2d[0].y * 0.85 + cy * 0.15, 4 * zoomScale, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (face.marking === 'LGA_PADS') {
+    // Vẽ lưới 1700 chân tiếp xúc mạ vàng lấp lánh
+    ctx.strokeStyle = 'rgba(254, 240, 138, 0.45)';
+    ctx.lineWidth = 1.4 * zoomScale;
+    const steps = 10;
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const ax = pts2d[0].x + (pts2d[1].x - pts2d[0].x) * t;
+      const ay = pts2d[0].y + (pts2d[1].y - pts2d[0].y) * t;
+      const bx = pts2d[3].x + (pts2d[2].x - pts2d[3].x) * t;
+      const by = pts2d[3].y + (pts2d[2].y - pts2d[3].y) * t;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+      ctx.stroke();
+
+      const cx1 = pts2d[0].x + (pts2d[3].x - pts2d[0].x) * t;
+      const cy1 = pts2d[0].y + (pts2d[3].y - pts2d[0].y) * t;
+      const dx1 = pts2d[1].x + (pts2d[2].x - pts2d[1].x) * t;
+      const dy1 = pts2d[1].y + (pts2d[2].y - pts2d[1].y) * t;
+      ctx.beginPath();
+      ctx.moveTo(cx1, cy1);
+      ctx.lineTo(dx1, dy1);
+      ctx.stroke();
+    }
+  } else if (face.coreLabel) {
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.textAlign = 'center';
+    ctx.font = `bold ${Math.max(8, Math.round(8.5 * zoomScale))}px "Segoe UI", sans-serif`;
+    ctx.fillText(face.coreLabel, cx, cy + 3);
+  }
+
+  ctx.restore();
+}
+
+// Lưu danh sách các đa giác đã vẽ để hỗ trợ click chọn trực tiếp trên mô hình 3D
+let renderedPolygons = [];
+
+function renderScene() {
+  // Làm mượt chuyển động (Smooth Interpolation)
+  explodeFactor += (targetExplode - explodeFactor) * 0.14;
+  zoomScale += (targetZoom - zoomScale) * 0.15;
+  if (autoRotate && !isDragging) {
+    const rotStep = axisAngleToQuat(0, 1, 0, 0.007);
+    targetQuat = normalizeQuat(multiplyQuat(targetQuat, rotStep));
+  }
+  curQuat = slerpQuat(curQuat, targetQuat, 0.22);
+
+  ctx.clearRect(0, 0, width, height);
+
+  // Vẽ lưới tọa độ nền mờ công nghệ cao
+  ctx.save();
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.05)';
+  ctx.lineWidth = 1;
+  const gridStep = 48;
+  for (let x = 0; x < width; x += gridStep) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+  }
+  for (let y = 0; y < height; y += gridStep) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+  }
+  ctx.restore();
+
+  const boxes = buildChipBoxes(explodeFactor);
+  const allFaces = [];
+
+  // Nguồn sáng định hướng
+  const lightDir = [0.38, 0.72, -0.58];
+  const lightLen = Math.hypot(...lightDir);
+  const lx = lightDir[0]/lightLen, ly = lightDir[1]/lightLen, lz = lightDir[2]/lightLen;
+
+  // Chuyển mỗi hình hộp thành 6 mặt phẳng 3D
+  for (const b of boxes) {
+    const hw = b.w * 0.5, hh = b.h * 0.5, hd = b.d * 0.5;
+    const v = [
+      [b.cx - hw, b.cy - hh, b.cz - hd], // 0
+      [b.cx + hw, b.cy - hh, b.cz - hd], // 1
+      [b.cx + hw, b.cy + hh, b.cz - hd], // 2
+      [b.cx - hw, b.cy + hh, b.cz - hd], // 3
+      [b.cx - hw, b.cy - hh, b.cz + hd], // 4
+      [b.cx + hw, b.cy - hh, b.cz + hd], // 5
+      [b.cx + hw, b.cy + hh, b.cz + hd], // 6
+      [b.cx - hw, b.cy + hh, b.cz + hd]  // 7
+    ];
+
+    // Xoay cả 8 đỉnh bằng Quaternion hiện tại
+    const rv = v.map(pt => rotatePointByQuat(pt, curQuat));
+
+    const faceDefs = [
+      { idx: [3, 2, 6, 7], norm: [0, 1, 0], baseCol: b.topColor || b.color, marking: b.topMarking, coreLabel: b.coreLabel }, // Mặt trên
+      { idx: [0, 4, 5, 1], norm: [0, -1, 0], baseCol: b.sideColor || b.color, marking: b.bottomMarking },                   // Mặt dưới
+      { idx: [0, 1, 2, 3], norm: [0, 0, -1], baseCol: b.sideColor || b.color },                                              // Mặt trước
+      { idx: [5, 4, 7, 6], norm: [0, 0, 1], baseCol: b.sideColor || b.color },                                               // Mặt sau
+      { idx: [4, 0, 3, 7], norm: [-1, 0, 0], baseCol: b.sideColor || b.color },                                              // Mặt trái
+      { idx: [1, 5, 6, 2], norm: [1, 0, 0], baseCol: b.sideColor || b.color }                                                // Mặt phải
+    ];
+
+    for (const fd of faceDefs) {
+      const rNorm = rotatePointByQuat(fd.norm, curQuat);
+      const pts3d = fd.idx.map(i => rv[i]);
+      const avgZ = (pts3d[0][2] + pts3d[1][2] + pts3d[2][2] + pts3d[3][2]) * 0.25;
+
+      // Tính độ sáng dựa theo góc pháp tuyến với nguồn sáng
+      const dot = rNorm[0]*lx + rNorm[1]*ly + rNorm[2]*lz;
+      const brightness = 0.68 + 0.38 * Math.max(-0.4, dot);
+
+      allFaces.push({
+        partId: b.partId,
+        pts3d,
+        avgZ,
+        color: shadeHexColor(fd.baseCol, brightness),
+        marking: fd.marking,
+        coreLabel: fd.coreLabel,
+        rNorm
+      });
+    }
+  }
+
+  // Sắp xếp các mặt từ xa tới gần (Painter's Algorithm)
+  allFaces.sort((a, b) => b.avgZ - a.avgZ);
+
+  renderedPolygons = [];
+
+  // Vẽ các mặt 3D
+  for (const face of allFaces) {
+    const pts2d = face.pts3d.map(project3D);
+
+    // Kiểm tra hướng mặt (Back-face culling nhẹ để tăng độ sắc nét)
+    const cross = (pts2d[1].x - pts2d[0].x) * (pts2d[2].y - pts2d[0].y) -
+                  (pts2d[1].y - pts2d[0].y) * (pts2d[2].x - pts2d[0].x);
+    if (cross > 0) continue;
+
+    const isSelected = (selectedPartId === 'all' || selectedPartId === face.partId);
+    ctx.save();
+    ctx.globalAlpha = isSelected ? 1.0 : 0.22;
+
+    ctx.beginPath();
+    ctx.moveTo(pts2d[0].x, pts2d[0].y);
+    for (let i = 1; i < 4; i++) ctx.lineTo(pts2d[i].x, pts2d[i].y);
+    ctx.closePath();
+
+    ctx.fillStyle = face.color;
+    ctx.fill();
+
+    ctx.strokeStyle = (selectedPartId === face.partId)
+      ? 'rgba(0, 230, 255, 0.95)'
+      : 'rgba(15, 23, 42, 0.55)';
+    ctx.lineWidth = (selectedPartId === face.partId) ? 1.6 : 0.8;
+    ctx.stroke();
+
+    if (face.marking || face.coreLabel) {
+      drawSurfaceDetail(face, pts2d);
+    }
+
+    ctx.restore();
+
+    renderedPolygons.push({ partId: face.partId, pts2d });
+  }
+
+  // Vẽ đường dẫn và cập nhật vị trí các nhãn chú thích 3D nổi
+  update3DLabels();
+
+  requestAnimationFrame(renderScene);
+}
+
+/**
+ * QUẢN LÝ NHÃN CHÚ THÍCH 3D NỔI VÀ ĐƯỜNG CHỈ DẪN
+ */
+const labelElements = {};
+
+function init3DLabels() {
+  labelsContainer.innerHTML = '';
+  const anchors = getLabelAnchors(explodeFactor);
+  anchors.forEach(a => {
+    const el = document.createElement('div');
+    el.className = 'pin-label';
+    el.innerHTML = `<span class="pin-dot"></span><span>${a.text}</span>`;
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectPart(a.id);
+    });
+    labelsContainer.appendChild(el);
+    labelElements[a.id] = el;
+  });
+}
+
+function update3DLabels() {
+  const anchors = getLabelAnchors(explodeFactor);
+  for (const a of anchors) {
+    const el = labelElements[a.id];
+    if (!el) continue;
+
+    if (!showLabels) {
+      el.style.display = 'none';
+      continue;
+    }
+    el.style.display = 'flex';
+
+    const rotPt = rotatePointByQuat(a.pos, curQuat);
+    const proj = project3D(rotPt);
+
+    // Đẩy nhãn ra phía ngoài tâm mô hình để không che khuất chip
+    const centerProj = project3D([0, 0, 0]);
+    const dx = proj.x - centerProj.x;
+    const dy = proj.y - centerProj.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    const offsetDist = 52 * zoomScale;
+
+    const labelX = proj.x + (dx / dist) * offsetDist;
+    const labelY = proj.y + (dy / dist) * (offsetDist * 0.55);
+
+    // Vẽ đường kẻ nối từ bộ phận trên chip tới nhãn
+    const isHighlighted = (selectedPartId === a.id);
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(proj.x, proj.y);
+    ctx.lineTo(labelX, labelY);
+    ctx.strokeStyle = isHighlighted ? '#00e5ff' : 'rgba(56, 189, 248, 0.5)';
+    ctx.lineWidth = isHighlighted ? 2 : 1.1;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(proj.x, proj.y, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = isHighlighted ? '#fff' : '#00c8ff';
+    ctx.fill();
+    ctx.restore();
+
+    el.style.left = `${labelX}px`;
+    el.style.top = `${labelY}px`;
+    el.classList.toggle('active', isHighlighted);
+  }
+}
+
+/**
+ * TƯƠNG TÁC BÀN TAY NẮM XOAY MÔ HÌNH 360° & CLICK CHỌN LỚP
+ */
+const handStatus = document.getElementById('handStatus');
+const handText = document.getElementById('handText');
+
+function setGrabbingState(grabbing) {
+  isDragging = grabbing;
+  canvas.classList.toggle('grabbing', grabbing);
+  handStatus.classList.toggle('active', grabbing);
+  handText.textContent = grabbing
+    ? 'Đang NẮM mô hình: Kéo chuột để xoay tự do 360° mọi hướng'
+    : 'Bàn tay mở: Nhấn giữ chuột để NẮM & XOAY 360° mọi hướng';
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  setGrabbingState(true);
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+  dragMoved = false;
+  canvas.setPointerCapture(e.pointerId);
+});
+
+canvas.addEventListener('pointermove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMouseX;
+  const dy = e.clientY - lastMouseY;
+  if (Math.hypot(dx, dy) > 3) dragMoved = true;
+
+  lastMouseX = e.clientX;
+  lastMouseY = e.clientY;
+
+  // Xoay Quaternion theo trục màn hình -> cho phép lật 360 độ ở mọi góc mà không bị khóa trục
+  const rotSensitivity = 0.0075;
+  const qYaw = axisAngleToQuat(0, 1, 0, -dx * rotSensitivity);
+  const qPitch = axisAngleToQuat(1, 0, 0, -dy * rotSensitivity);
+  targetQuat = normalizeQuat(multiplyQuat(qPitch, multiplyQuat(qYaw, targetQuat)));
+});
+
+canvas.addEventListener('pointerup', (e) => {
+  if (!dragMoved) {
+    handleCanvasClick(e.clientX, e.clientY);
+  }
+  setGrabbingState(false);
+});
+
+// Phóng to / thu nhỏ bằng con lăn chuột
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const delta = -e.deltaY * 0.0012;
+  setZoom(Math.min(2.0, Math.max(0.45, targetZoom + delta)));
+}, { passive: false });
+
+// Kiểm tra điểm click nằm trong đa giác 3D nào (từ gần tới xa)
+function pointInPoly(x, y, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y;
+    const xj = poly[j].x, yj = poly[j].y;
+    const intersect = ((yi > y) !== (yj > y)) &&
+                      (x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-6) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function handleCanvasClick(mx, my) {
+  for (let i = renderedPolygons.length - 1; i >= 0; i--) {
+    const item = renderedPolygons[i];
+    if (pointInPoly(mx, my, item.pts2d)) {
+      selectPart(item.partId);
+      return;
+    }
+  }
+  selectPart('all');
+}
+
+/**
+ * CẬP NHẬT GIAO DIỆN BẢNG ĐIỀU KHIỂN & THÔNG SỐ KỸ THUẬT
+ */
+const layerListEl = document.getElementById('layerList');
+const detailBoxEl = document.getElementById('detailBox');
+
+function renderSidebarList() {
+  layerListEl.innerHTML = '';
+  CHIP_PARTS.forEach(part => {
+    const item = document.createElement('div');
+    item.className = `layer-item ${part.id === selectedPartId ? 'selected' : ''}`;
+    item.innerHTML = `
+      <span class="color-dot" style="background:${part.color}"></span>
+      <span class="layer-name">${part.name}</span>
+      <span class="layer-tag">${part.tag}</span>
+    `;
+    item.addEventListener('click', () => selectPart(part.id));
+    layerListEl.appendChild(item);
+  });
+}
+
+function selectPart(partId) {
+  selectedPartId = partId;
+  renderSidebarList();
+
+  const part = CHIP_PARTS.find(p => p.id === partId) || CHIP_PARTS[0];
+  const rowsHtml = part.specs.map(([k, v]) => `
+    <tr>
+      <td>${k}</td>
+      <td>${v}</td>
+    </tr>
+  `).join('');
+
+  detailBoxEl.innerHTML = `
+    <div class="detail-header">
+      <span class="color-dot" style="background:${part.color}; width:14px; height:14px;"></span>
+      <h2>${part.name}</h2>
+    </div>
+    <p class="detail-desc">${part.desc}</p>
+    <table class="spec-table">
+      <tbody>${rowsHtml}</tbody>
+    </table>
+  `;
+}
+
+// Thanh trượt Tách lớp & Zoom
+const explodeSlider = document.getElementById('explodeSlider');
+const explodeVal = document.getElementById('explodeVal');
+const zoomSlider = document.getElementById('zoomSlider');
+const zoomVal = document.getElementById('zoomVal');
+
+function setExplode(val) {
+  targetExplode = val;
+  const pct = Math.round(val * 100);
+  explodeSlider.value = pct;
+  explodeVal.textContent = `${pct}%`;
+}
+
+function setZoom(val) {
+  targetZoom = val;
+  const pct = Math.round(val * 100);
+  zoomSlider.value = pct;
+  zoomVal.textContent = `${pct}%`;
+}
+
+explodeSlider.addEventListener('input', (e) => setExplode(e.target.value / 100));
+zoomSlider.addEventListener('input', (e) => setZoom(e.target.value / 100));
+
+document.getElementById('btnZoomIn').addEventListener('click', () => setZoom(Math.min(2.0, targetZoom + 0.2)));
+document.getElementById('btnZoomOut').addEventListener('click', () => setZoom(Math.max(0.45, targetZoom - 0.2)));
+
+document.getElementById('btnExplodeToggle').addEventListener('click', () => {
+  setExplode(targetExplode > 0.15 ? 0 : 0.75);
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  setExplode(0.65);
+  setZoom(1.0);
+  targetQuat = fromEuler(-0.52, 0.62, 0);
+  selectPart('all');
+});
+
+// Các nút chọn góc nhìn nhanh
+document.querySelectorAll('[data-view]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const view = btn.getAttribute('data-view');
+    if (view === 'iso') targetQuat = fromEuler(-0.52, 0.62, 0);
+    if (view === 'top') targetQuat = fromEuler(-Math.PI / 2, 0, 0);
+    if (view === 'bottom') targetQuat = fromEuler(Math.PI / 2, 0, 0);
+    if (view === 'side') targetQuat = fromEuler(0, Math.PI / 2, 0);
+  });
+});
+
+const btnToggleLabels = document.getElementById('btnToggleLabels');
+btnToggleLabels.addEventListener('click', () => {
+  showLabels = !showLabels;
+  btnToggleLabels.classList.toggle('active', showLabels);
+});
+
+const btnAutoRotate = document.getElementById('btnAutoRotate');
+btnAutoRotate.addEventListener('click', () => {
+  autoRotate = !autoRotate;
+  btnAutoRotate.classList.toggle('active', autoRotate);
+});
+
+function handleResize() {
+  width = window.innerWidth;
+  height = window.innerHeight;
+  canvas.width = width * window.devicePixelRatio;
+  canvas.height = height * window.devicePixelRatio;
+  ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+}
+
+window.addEventListener('resize', handleResize);
+
+// Khởi chạy ứng dụng
+handleResize();
+init3DLabels();
+selectPart('all');
+requestAnimationFrame(renderScene);
+</script>
+</body>
+</html>
