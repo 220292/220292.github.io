@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+  // Chạy ngay khi trang bắt đầu tải
+  // Thay thế thanh địa chỉ thành một chuỗi mã hóa giả hoặc ẩn tên file đi
+  window.history.replaceState(null, "", "/view-secure");
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Math & Trig Functions Sandbox - Mô Phỏng 28 Hàm Toán Học & Lượng Giác</title>
+    <!-- Tải Tailwind CSS qua CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Google Font Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        excel: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#21a366',
+                            600: '#107c41',
+                            700: '#0b5c30',
+                            800: '#064e27',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .excel-grid-shadow {
+            box-shadow: 0 4px 20px -2px rgba(16, 124, 65, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.92); opacity: 0; }
+            70% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop-in 0.25s ease-out forwards;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(16, 124, 65, 0.45); }
+            70% { box-shadow: 0 0 0 8px rgba(16, 124, 65, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 124, 65, 0); }
+        }
+        .cell-scanning {
+            animation: pulse-ring 1.2s infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER CHUẨN EXCEL + BỘ CHỌN 28 HÀM XUỐNG DÒNG (KHÔNG THANH TRƯỢT NGANG) -->
+    <header class="bg-excel-600 text-white shadow-md z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shadow-inner shrink-0">
+                    <span class="font-serif italic font-extrabold text-xl text-amber-300">fx</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-xl font-extrabold tracking-tight">Excel Math & Trig Sandbox</h1>
+                        <span class="text-xs bg-amber-400 text-slate-900 px-2.5 py-0.5 rounded-full font-bold shadow-sm">28 Hàm Chuẩn</span>
+                    </div>
+                    <p class="text-xs text-excel-100/90">Mô phỏng trực quan cơ chế tính toán đằng sau 28 hàm Toán học & Lượng giác trong Excel</p>
+                </div>
+            </div>
+
+            <!-- Bộ lọc nhóm hàm + Nút tra cứu bảng 28 hàm -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <div id="categoryFilterBar" class="flex flex-wrap items-center gap-1 bg-excel-800/60 p-1 rounded-lg border border-excel-500/30 text-xs">
+                    <!-- Render bằng JS -->
+                </div>
+                <button id="btnOpenCatalogModal" class="bg-amber-400 hover:bg-amber-300 text-slate-900 active:scale-95 transition text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                    <span>📋 Bảng tra cứu 28 hàm</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH 28 HÀM TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP, KHÔNG THANH TRƯỢT) -->
+        <div class="bg-excel-700/95 border-t border-excel-500/30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
+                <div id="functionButtonsGrid" class="flex flex-wrap gap-1.5 items-center">
+                    <!-- 28 nút hàm sẽ tự động xuống dòng tại đây -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- CỘT TRÁI (5/12): BẢNG TÍNH EXCEL TƯƠNG TÁC & ĐẦU VÀO THAM SỐ -->
+        <section class="lg:col-span-5 bg-white rounded-xl border border-slate-300 excel-grid-shadow overflow-hidden flex flex-col">
+            <!-- Thanh tiêu đề bảng tính -->
+            <div class="bg-excel-700 text-white px-3.5 py-2 flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                    <span class="font-mono font-bold"> Bang_Tinh_Toan_Hoc.xlsx</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button id="btnPresetPositive" class="bg-white/15 hover:bg-white/25 px-2 py-0.5 rounded text-[11px] font-semibold transition" title="Thử bộ số chuẩn">
+                        🎲 Đổi số mẫu
+                    </button>
+                    <button id="btnPresetNegative" class="bg-amber-400/90 hover:bg-amber-300 text-slate-900 px-2 py-0.5 rounded text-[11px] font-bold transition" title="Thử số âm / đặc biệt">
+                        ⚡ Thử số âm / Đặc biệt
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh Công Thức (Name Box & Formula Bar) -->
+            <div class="bg-slate-50 border-b border-slate-300 px-3 py-2 flex items-center gap-2">
+                <div class="w-14 bg-white border border-slate-300 rounded px-2 py-1 font-mono text-xs font-bold text-center text-excel-800 shadow-inner" id="nameBoxDisplay">
+                    B6
+                </div>
+                <div class="text-excel-600 font-serif italic font-extrabold text-base px-0.5 select-none">fx</div>
+                <div class="flex-1 bg-white border border-excel-500/60 rounded px-2.5 py-1 font-mono text-xs sm:text-sm font-bold text-slate-800 flex items-center justify-between shadow-inner overflow-x-auto">
+                    <span id="formulaBarText" class="text-excel-700">=SUM(A1:A5)</span>
+                    <span id="formulaResultBadge" class="ml-2 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-extrabold shrink-0">
+                        = 150
+                    </span>
+                </div>
+            </div>
+
+            <!-- Hướng dẫn chỉnh sửa trực tiếp -->
+            <div class="bg-amber-50/80 border-b border-amber-200/80 px-3.5 py-1.5 text-[11px] text-amber-900 flex items-center justify-between">
+                <span>✏️ <strong>Tương tác:</strong> Nhấp trực tiếp vào các ô màu trắng ở cột <strong>B</strong> để tự sửa số đầu vào!</span>
+                <span id="funcCategoryBadge" class="font-bold text-excel-700 bg-excel-100 px-2 py-0.5 rounded">Toán học</span>
+            </div>
+
+            <!-- Bảng Lưới Excel (Cột A: Nhãn tham số, Cột B: Giá trị có thể sửa, Cột C: Ghi chú địa chỉ) -->
+            <div class="p-3 bg-slate-100 flex-1">
+                <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <table class="w-full border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-200 text-slate-700 font-bold border-b border-slate-300 select-none">
+                                <th class="w-9 py-1.5 text-center border-r border-slate-300">◢</th>
+                                <th class="w-5/12 py-1.5 text-center border-r border-slate-300">A (Mô tả ô)</th>
+                                <th class="w-4/12 py-1.5 text-center border-r border-slate-300 bg-excel-100 text-excel-800">B (Giá trị)</th>
+                                <th class="w-3/12 py-1.5 text-center">C (Vai trò)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="excelSheetBody" class="divide-y divide-slate-200">
+                            <!-- Các dòng Excel được tạo động theo hàm -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cú pháp & Tham số chuẩn của Hàm -->
+            <div class="p-3.5 bg-white border-t border-slate-200 space-y-1.5">
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cú pháp chuẩn trong Excel</span>
+                    <span id="funcSyntaxTag" class="font-mono text-xs font-bold text-excel-700 bg-excel-50 px-2 py-0.5 rounded border border-excel-200">
+                        =SUM(number1, [number2], ...)
+                    </span>
+                </div>
+                <p id="funcPurposeText" class="text-xs text-slate-600 leading-relaxed">
+                    Cộng tất cả các số trong một vùng dữ liệu hoặc danh sách tham số.
+                </p>
+            </div>
+        </section>
+
+        <!-- CỘT PHẢI (7/12): SÂN KHẤU HOẠT HỌA CƠ CHẾ TÍNH TOÁN & GIẢI THÍCH TỪNG BƯỚC -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+
+            <!-- 1. Thanh Điều Khiển Từng Bước (Play / Pause / Step / Reset) -->
+            <div class="bg-white rounded-xl border border-slate-200 p-3.5 excel-grid-shadow flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btnPlayPause" class="bg-excel-600 hover:bg-excel-700 active:scale-95 text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
+                        <span id="playPauseIcon">▶</span>
+                        <span id="playPauseText">Chạy hoạt họa</span>
+                    </button>
+                    <button id="btnStep" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg border border-slate-300 flex items-center gap-1 transition">
+                        <span>⏭</span>
+                        <span>Từng bước</span>
+                    </button>
+                    <button id="btnReset" class="bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:scale-95 text-slate-600 font-semibold text-xs sm:text-sm px-2.5 py-2 rounded-lg border border-slate-300 transition">
+                        ↺ Đặt lại
+                    </button>
+                </div>
+
+                <!-- Các nút nhảy nhanh vào Bước 1, Bước 2, Bước 3 -->
+                <div class="flex items-center gap-1.5" id="stepPillsContainer">
+                    <!-- Render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 2. SÂN KHẤU ĐỒ HỌA TRỰC QUAN (VISUAL ENGINE CANVAS) -->
+            <div class="bg-white rounded-xl border border-slate-200 excel-grid-shadow overflow-hidden flex flex-col">
+                <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 text-sm">⚡</span>
+                        <span class="font-bold tracking-wide uppercase" id="visualStageHeader">Mô phỏng cơ chế hoạt động của hàm</span>
+                    </div>
+                    <span id="visualStepBadge" class="bg-white/15 text-emerald-300 font-mono px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                        Bước 1 / 3
+                    </span>
+                </div>
+
+                <!-- Khu vực hiển thị đồ họa động tùy biến theo từng nhóm hàm -->
+                <div id="visualStageCanvas" class="p-4 sm:p-5 min-h-[290px] bg-gradient-to-b from-slate-50 to-white flex flex-col justify-center">
+                    <!-- Nội dung đồ họa (Trục số, Đường tròn lượng giác, Khối chia dư, Thanh tích lũy...) render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 3. HỘP THOẠI GIẢI THÍCH TIẾNG VIỆT ĐỘNG & LƯU Ý BẪY THƯỜNG GẶP -->
+            <div class="bg-gradient-to-br from-excel-50 via-white to-emerald-50 rounded-xl border-2 border-excel-500/40 p-4 shadow-sm space-y-2">
+                <div class="flex items-center justify-between">
+                    <span id="stepTitleBanner" class="text-xs font-extrabold uppercase tracking-wider text-excel-800 bg-excel-200/80 px-2.5 py-0.5 rounded-full">
+                        Giải thích bước hiện tại
+                    </span>
+                    <span class="text-[11px] font-mono text-slate-400">Tự động cập nhật theo dữ liệu</span>
+                </div>
+                <div id="stepExplanationText" class="text-slate-800 text-sm leading-relaxed font-medium">
+                    <!-- Giải thích tiếng Việt chi tiết theo từng bước -->
+                </div>
+            </div>
+
+            <!-- 4. GHI CHÚ QUAN TRỌNG / SO SÁNH NHANH -->
+            <div class="bg-amber-50/90 rounded-xl p-3.5 border border-amber-200 flex items-start gap-2.5 text-xs text-slate-700">
+                <span class="text-base leading-none shrink-0">💡</span>
+                <div id="funcNoteBox" class="leading-relaxed">
+                    <!-- Mẹo & lưu ý tránh sai lầm khi dùng hàm -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL BẢNG TRA CỨU NHANH 28 HÀM -->
+    <div id="catalogModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-pop">
+            <div class="bg-excel-600 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📚</span>
+                    <h3 class="font-bold text-base sm:text-lg">Bảng Tổng Hợp 28 Hàm Toán Học & Lượng Giác Trong Excel</h3>
+                </div>
+                <button id="btnCloseCatalogModal" class="bg-white/15 hover:bg-white/25 text-white rounded-lg px-3 py-1 text-xs font-bold transition">
+                    Đóng ✕
+                </button>
+            </div>
+            <div class="p-4 sm:p-5 overflow-y-auto">
+                <p class="text-xs text-slate-600 mb-3">Nhấp vào bất kỳ hàm nào trong bảng để chuyển ngay tới màn hình mô phỏng chi tiết:</p>
+                <div class="border border-slate-300 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-800 font-bold">
+                                <th class="py-2 px-3 border-r border-slate-300 w-10 text-center">STT</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-36">Tên hàm</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-48">Cú pháp</th>
+                                <th class="py-2 px-3">Ý nghĩa & Cơ chế hoạt động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogTableBody" class="divide-y divide-slate-200">
+                            <!-- Điền bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-3 px-4 text-center text-xs text-slate-500">
+        Excel Math & Trig Functions Sandbox • Mô phỏng trực quan 28 hàm Toán học & Lượng giác trong Microsoft Excel.
+    </footer>
+
+    <!-- JAVASCRIPT ENGINE CHO 28 HÀM EXCEL -->
+    <script>
+        /**
+         * DANH MỤC NHÓM HÀM ĐỂ LỌC NHANH
+         */
+        const CATEGORIES = [
+            { id: 'ALL', name: 'Tất cả (28)' },
+            { id: 'BASIC', name: 'Cộng, Nhân & Chia dư' },
+            { id: 'ROUND', name: 'Làm tròn & Cắt số' },
+            { id: 'POWER_LOG', name: 'Mũ, Căn & Logarit' },
+            { id: 'RAND_CONST', name: 'Ngẫu nhiên & Hằng số' },
+            { id: 'TRIG', name: 'Lượng giác & Góc' }
+        ];
+
+        /**
+         * CƠ SỞ DỮ LIỆU ĐẦY ĐỦ 28 HÀM THEO YÊU CẦU
+         */
+        const FUNCTIONS_DB = [
+            // 1. SUM
+            {
+                name: 'SUM',
+                shortVi: 'Cộng tổng',
+                category: 'BASIC',
+                syntax: '=SUM(number1, [number2], ...)',
+                purpose: 'Tính tổng tất cả các số trong vùng dữ liệu được chọn (bỏ qua các ô chứa chữ hoặc ô trống).',
+                note: '<strong>Lưu ý:</strong> Khác với phép cộng <code>=B1+B2+B3</code> (sẽ báo lỗi <code>#VALUE!</code> nếu có ô chứa chữ), hàm <code>SUM(B1:B4)</code> tự động phớt lờ ô chữ và chỉ cộng các ô số.',
+                inputs: [
+                    { cell: 'B1', label: 'Số hạng 1', val: 25, role: 'number1' },
+                    { cell: 'B2', label: 'Số hạng 2', val: 40, role: 'number2' },
+                    { cell: 'B3', label: 'Số hạng 3', val: 15, role: 'number3' },
+                    { cell: 'B4', label: 'Số hạng 4', val: 30, role: 'number4' }
+                ],
+                altInputs: [120, -35, 65, 50],
+                visualType: 'RANGE_ACCUM',
+                opSymbol: '+'
+            },
+            // 2. PRODUCT
+            {
+                name: 'PRODUCT',
+                shortVi: 'Nhân tích',
+                category: 'BASIC',
+                syntax: '=PRODUCT(number1, [number2], ...)',
+                purpose: 'Nhân tất cả các số được cung cấp làm đối số với nhau và trả về tích số.',
+                note: '<strong>Ứng dụng:</strong> Rất hữu ích khi cần nhân một chuỗi nhiều ô liên tiếp <code>=PRODUCT(B1:B4)</code> thay vì phải gõ <code>=B1*B2*B3*B4</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Thừa số 1', val: 2, role: 'number1' },
+                    { cell: 'B2', label: 'Thừa số 2', val: 5, role: 'number2' },
+                    { cell: 'B3', label: 'Thừa số 3', val: 3, role: 'number3' },
+                    { cell: 'B4', label: 'Thừa số 4', val: 4, role: 'number4' }
+                ],
+                altInputs: [3, -2, 5, 2],
+                visualType: 'RANGE_ACCUM',
+                opSymbol: '×'
+            },
+            // 3. ABS
+            {
+                name: 'ABS',
+                shortVi: 'Trị tuyệt đối',
+                category: 'BASIC',
+                syntax: '=ABS(number)',
+                purpose: 'Trả về giá trị tuyệt đối của một số (khoảng cách từ số đó đến số 0 trên trục số, luôn không âm).',
+                note: '<strong>Ứng dụng thực tế:</strong> Dùng để tính chênh lệch giữa 2 số mà không quan tâm số nào lớn hơn, ví dụ <code>=ABS(Thực_tế - Kế_hoạch)</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Số đầu vào (number)', val: -42.5, role: 'number' }
+                ],
+                altInputs: [28.75],
+                visualType: 'ABS_SIGN'
+            },
+            // 4. SQRT
+            {
+                name: 'SQRT',
+                shortVi: 'Căn bậc hai',
+                category: 'POWER_LOG',
+                syntax: '=SQRT(number)',
+                purpose: 'Trả về căn bậc hai dương của một số không âm.',
+                note: '<strong>Cảnh báo lỗi <code>#NUM!</code>:</strong> Nếu số đầu vào nhỏ hơn 0 (số âm), hàm <code>SQRT</code> sẽ trả về lỗi <code>#NUM!</code>. Có thể kết hợp <code>=SQRT(ABS(B1))</code> để tránh lỗi.',
+                inputs: [
+                    { cell: 'B1', label: 'Diện tích hình vuông (number)', val: 81, role: 'number ≥ 0' }
+                ],
+                altInputs: [144],
+                visualType: 'POWER_LOG'
+            },
+            // 5. POWER
+            {
+                name: 'POWER',
+                shortVi: 'Lũy thừa x^y',
+                category: 'POWER_LOG',
+                syntax: '=POWER(number, power)',
+                purpose: 'Tính kết quả của một cơ số (number) được nâng lên lũy thừa (power). Tương đương với toán tử mũ (^).',
+                note: '<strong>Mẹo viết gọn:</strong> Trong Excel, <code>=POWER(2, 4)</code> hoàn toàn tương đương với cách viết <code>=2^4</code>. Bạn cũng có thể dùng số mũ phân số như <code>=POWER(27, 1/3)</code> để tính căn bậc 3!',
+                inputs: [
+                    { cell: 'B1', label: 'Cơ số (number)', val: 2, role: 'number' },
+                    { cell: 'B2', label: 'Số mũ (power)', val: 5, role: 'power' }
+                ],
+                altInputs: [3, 4],
+                visualType: 'POWER_LOG'
+            },
+            // 6. EXP
+            {
+                name: 'EXP',
+                shortVi: 'Hàm mũ e^x',
+                category: 'POWER_LOG',
+                syntax: '=EXP(number)',
+                purpose: 'Trả về hằng số e (≈ 2.718281828...) được nâng lên lũy thừa number (e^x). Là hàm ngược của hàm LN.',
+                note: '<strong>Mối quan hệ nghịch đảo:</strong> Vì <code>EXP</code> là hàm ngược của logarit tự nhiên <code>LN</code>, nên <code>=LN(EXP(x))</code> luôn trả về chính xác <code>x</code> (và <code>=EXP(1)</code> trả về hằng số Euler <code>e ≈ 2.71828</code>).',
+                inputs: [
+                    { cell: 'B1', label: 'Số mũ x (number)', val: 2, role: 'number' }
+                ],
+                altInputs: [1],
+                visualType: 'POWER_LOG'
+            },
+            // 7. LN
+            {
+                name: 'LN',
+                shortVi: 'Log tự nhiên',
+                category: 'POWER_LOG',
+                syntax: '=LN(number)',
+                purpose: 'Trả về logarit tự nhiên (logarit cơ số e ≈ 2.71828) của một số dương.',
+                note: '<strong>Lưu ý:</strong> Đối số <code>number</code> bắt buộc phải là số thực dương (> 0). Nếu nhập số ≤ 0, Excel sẽ báo lỗi <code>#NUM!</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Số dương (number)', val: 7.389056, role: 'number > 0' }
+                ],
+                altInputs: [20.085537],
+                visualType: 'POWER_LOG'
+            },
+            // 8. LOG
+            {
+                name: 'LOG',
+                shortVi: 'Log cơ số bất kỳ',
+                category: 'POWER_LOG',
+                syntax: '=LOG(number, [base])',
+                purpose: 'Trả về logarit của một số dương theo cơ số (base) do bạn chỉ định. Nếu bỏ qua [base], Excel mặc định cơ số 10.',
+                note: '<strong>Bản chất toán học:</strong> <code>=LOG(8, 2) = 3</code> trả lời cho câu hỏi: <em>"Cơ số 2 phải nâng lên lũy thừa mấy để bằng 8?"</em> (Vì 2³ = 8).',
+                inputs: [
+                    { cell: 'B1', label: 'Số cần tính (number)', val: 8, role: 'number > 0' },
+                    { cell: 'B2', label: 'Cơ số (base)', val: 2, role: 'base > 0, ≠ 1' }
+                ],
+                altInputs: [1000, 10],
+                visualType: 'POWER_LOG'
+            },
+            // 9. MOD
+            {
+                name: 'MOD',
+                shortVi: 'Lấy phần dư',
+                category: 'BASIC',
+                syntax: '=MOD(number, divisor)',
+                purpose: 'Trả về phần dư sau khi chia number (số bị chia) cho divisor (số chia).',
+                note: '<strong>Công thức ngầm của Excel:</strong> <code>MOD(n, d) = n - d * INT(n/d)</code>. Kết quả của hàm <code>MOD</code> luôn <strong>cùng dấu với số chia (divisor)</strong>! Nếu <code>divisor = 0</code> sẽ báo lỗi <code>#DIV/0!</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Số bị chia (number)', val: 17, role: 'number' },
+                    { cell: 'B2', label: 'Số chia (divisor)', val: 5, role: 'divisor ≠ 0' }
+                ],
+                altInputs: [-17, 5],
+                visualType: 'MOD_VISUAL'
+            },
+            // 10. INT
+            {
+                name: 'INT',
+                shortVi: 'Làm tròn xuống nguyên',
+                category: 'ROUND',
+                syntax: '=INT(number)',
+                purpose: 'Làm tròn một số XUỐNG tới số nguyên gần nhất (luôn đi về phía âm vô cùng trên trục số).',
+                note: '<strong>Phân biệt cực kỳ quan trọng giữa INT và TRUNC với số âm:</strong> Với số dương <code>4.7</code>, cả hai đều ra <code>4</code>. Nhưng với số âm <code>-4.7</code>: <code>INT(-4.7) = -5</code> (làm tròn xuống số nhỏ hơn), còn <code>TRUNC(-4.7) = -4</code> (chỉ cắt bỏ phần thập phân .7)!',
+                inputs: [
+                    { cell: 'B1', label: 'Số thực (number)', val: 4.7, role: 'number' }
+                ],
+                altInputs: [-4.7],
+                visualType: 'ROUNDING_LINE'
+            },
+            // 11. ROUND
+            {
+                name: 'ROUND',
+                shortVi: 'Làm tròn chuẩn',
+                category: 'ROUND',
+                syntax: '=ROUND(number, num_digits)',
+                purpose: 'Làm tròn một số tới số chữ số thập phân chỉ định theo quy tắc toán học (từ 5 trở lên làm tròn lên, dưới 5 làm tròn xuống).',
+                note: '<strong>Quy tắc đối số <code>num_digits</code>:</strong> <code>> 0</code>: làm tròn phần thập phân; <code>= 0</code>: làm tròn thành số nguyên; <code>< 0</code> (ví dụ <code>-2</code>, <code>-3</code>): làm tròn sang bên trái dấu phẩy (hàng trăm, hàng nghìn).',
+                inputs: [
+                    { cell: 'B1', label: 'Số cần làm tròn (number)', val: 15.678, role: 'number' },
+                    { cell: 'B2', label: 'Số chữ số (num_digits)', val: 1, role: 'num_digits' }
+                ],
+                altInputs: [12650, -2],
+                visualType: 'ROUNDING_LINE'
+            },
+            // 12. ROUNDDOWN
+            {
+                name: 'ROUNDDOWN',
+                shortVi: 'Làm tròn về 0',
+                category: 'ROUND',
+                syntax: '=ROUNDDOWN(number, num_digits)',
+                purpose: 'Luôn làm tròn một số tiến gần về phía số 0 (cắt bỏ phần lẻ phía sau bậc làm tròn bất kể lớn hay nhỏ hơn 5).',
+                note: '<strong>Đặc điểm:</strong> Dù phần lẻ là <code>.999</code> thì <code>=ROUNDDOWN(8.999, 0)</code> vẫn trả về <code>8</code>. Với số âm <code>-8.999</code>, tiến về 0 sẽ trả về <code>-8</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Số cần làm tròn (number)', val: 8.89, role: 'number' },
+                    { cell: 'B2', label: 'Số chữ số (num_digits)', val: 1, role: 'num_digits' }
+                ],
+                altInputs: [-8.89, 1],
+                visualType: 'ROUNDING_LINE'
+            },
+            // 13. ROUNDUP
+            {
+                name: 'ROUNDUP',
+                shortVi: 'Làm tròn xa 0',
+                category: 'ROUND',
+                syntax: '=ROUNDUP(number, num_digits)',
+                purpose: 'Luôn làm tròn một số tiến ra xa khỏi số 0 (chỉ cần có phần lẻ khác 0 là sẽ đẩy lên một đơn vị ở bậc làm tròn).',
+                note: '<strong>Ứng dụng thực tế:</strong> Tính số xe khách hoặc số thùng hàng cần thiết: <code>=ROUNDUP(41/10, 0) = 5</code> (dù chỉ dư 1 người vẫn phải thuê thêm 1 xe).',
+                inputs: [
+                    { cell: 'B1', label: 'Số cần làm tròn (number)', val: 4.12, role: 'number' },
+                    { cell: 'B2', label: 'Số chữ số (num_digits)', val: 1, role: 'num_digits' }
+                ],
+                altInputs: [-4.12, 1],
+                visualType: 'ROUNDING_LINE'
+            },
+            // 14. CEILING
+            {
+                name: 'CEILING',
+                shortVi: 'Tròn lên bội số',
+                category: 'ROUND',
+                syntax: '=CEILING(number, significance)',
+                purpose: 'Làm tròn một số LÊN (ra xa 0) tới bội số gần nhất của significance (bước nhảy).',
+                note: '<strong>Ứng dụng trong tính giá & đóng gói:</strong> Làm tròn giá tiền lên bội số của 500đ hoặc 1000đ, ví dụ <code>=CEILING(23, 5) = 25</code> (vì các bội số của 5 là 5, 10, 15, 20, 25...).',
+                inputs: [
+                    { cell: 'B1', label: 'Số cần làm tròn (number)', val: 22, role: 'number' },
+                    { cell: 'B2', label: 'Bội số bước nhảy (significance)', val: 5, role: 'significance' }
+                ],
+                altInputs: [13.2, 2],
+                visualType: 'ROUNDING_LINE'
+            },
+            // 15. FLOOR
+            {
+                name: 'FLOOR',
+                shortVi: 'Tròn xuống bội số',
+                category: 'ROUND',
+                syntax: '=FLOOR(number, significance)',
+                purpose: 'Làm tròn một số XUỐNG (về phía 0) tới bội số gần nhất của significance (bước nhảy).',
+                note: '<strong>Ví dụ thực tế:</strong> Đóng gói sản phẩm theo lốc 6 lon: Với <code>22</code> lon, <code>=FLOOR(22, 6) = 18</code> (chỉ đóng đủ 3 lốc = 18 lon, còn lẻ 4 lon chưa đủ lốc).',
+                inputs: [
+                    { cell: 'B1', label: 'Số cần làm tròn (number)', val: 22, role: 'number' },
+                    { cell: 'B2', label: 'Bội số bước nhảy (significance)', val: 5, role: 'significance' }
+                ],
+                altInputs: [19.8, 4],
+                visualType: 'ROUNDING_LINE'
+            },
+            // 16. RAND
+            {
+                name: 'RAND',
+                shortVi: 'Ngẫu nhiên [0, 1)',
+                category: 'RAND_CONST',
+                syntax: '=RAND()',
+                purpose: 'Trả về một số thực ngẫu nhiên phân bố đều lớn hơn hoặc bằng 0 và nhỏ hơn 1. Không có tham số nhưng bắt buộc phải có cặp ngoặc đơn ().',
+                note: '<strong>Mẹo:</strong> Hàm <code>RAND()</code> sẽ tự động sinh số mới mỗi khi bảng tính có sự thay đổi (hoặc khi nhấn phím <code>F9</code>). Muốn tạo số thực ngẫu nhiên từ a đến b: dùng <code>=RAND()*(b-a)+a</code>.',
+                inputs: [],
+                altInputs: [],
+                visualType: 'RAND_CONST'
+            },
+            // 17. RANDBETWEEN
+            {
+                name: 'RANDBETWEEN',
+                shortVi: 'Ngẫu nhiên [a, b]',
+                category: 'RAND_CONST',
+                syntax: '=RANDBETWEEN(bottom, top)',
+                purpose: 'Trả về một số nguyên ngẫu nhiên nằm trong khoảng từ bottom (số nhỏ nhất) đến top (số lớn nhất), bao gồm cả 2 đầu mút.',
+                note: '<strong>Lưu ý tránh lỗi <code>#NUM!</code>:</strong> Giá trị <code>bottom</code> bắt buộc phải nhỏ hơn hoặc bằng <code>top</code>. Nếu <code>bottom > top</code>, Excel sẽ báo lỗi <code>#NUM!</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Cận dưới (bottom)', val: 10, role: 'bottom (Nguyên)' },
+                    { cell: 'B2', label: 'Cận trên (top)', val: 99, role: 'top (Nguyên)' }
+                ],
+                altInputs: [1, 6],
+                visualType: 'RAND_CONST'
+            },
+            // 18. PI
+            {
+                name: 'PI',
+                shortVi: 'Hằng số Pi (π)',
+                category: 'RAND_CONST',
+                syntax: '=PI()',
+                purpose: 'Trả về giá trị của hằng số toán học Pi (π ≈ 3.14159265358979), chính xác đến 15 chữ số. Không có đối số trong ngoặc.',
+                note: '<strong>Ứng dụng:</strong> Dùng tính chu vi đường tròn <code>=2*PI()*R</code>, diện tích hình tròn <code>=PI()*R^2</code>, hoặc đổi giữa Độ và Radian.',
+                inputs: [
+                    { cell: 'B1', label: 'Bán kính R (để thử diện tích)', val: 5, role: 'Minh họa π×R²' }
+                ],
+                altInputs: [10],
+                visualType: 'RAND_CONST'
+            },
+            // 19. TRUNC
+            {
+                name: 'TRUNC',
+                shortVi: 'Cắt phần thập phân',
+                category: 'ROUND',
+                syntax: '=TRUNC(number, [num_digits])',
+                purpose: 'Cắt bỏ phần thập phân của một số để lấy phần nguyên (hoặc cắt tới số chữ số chỉ định) mà KHÔNG làm tròn.',
+                note: '<strong>So sánh với INT trên số âm:</strong> <code>TRUNC(-4.7)</code> chỉ cắt bỏ đuôi <code>.7</code> nên ra <code>-4</code>; trong khi <code>INT(-4.7)</code> làm tròn xuống số nguyên nhỏ hơn nên ra <code>-5</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Số cần cắt (number)', val: -4.789, role: 'number' },
+                    { cell: 'B2', label: 'Số chữ số giữ lại [num_digits]', val: 0, role: '[num_digits]' }
+                ],
+                altInputs: [15.987, 1],
+                visualType: 'ROUNDING_LINE'
+            },
+            // 20. SIGN
+            {
+                name: 'SIGN',
+                shortVi: 'Xác định dấu',
+                category: 'BASIC',
+                syntax: '=SIGN(number)',
+                purpose: 'Kiểm tra dấu của một số: Trả về 1 nếu số dương (>0), trả về 0 nếu số bằng 0, và trả về -1 nếu số âm (<0).',
+                note: '<strong>Ứng dụng:</strong> Rất tiện lợi khi cần phân loại trạng thái Lãi (+1), Hòa vốn (0), Lỗ (-1) của dòng tiền mà không cần viết hàm IF lồng nhau.',
+                inputs: [
+                    { cell: 'B1', label: 'Số cần kiểm tra dấu (number)', val: -125, role: 'number' }
+                ],
+                altInputs: [350],
+                visualType: 'ABS_SIGN'
+            },
+            // 21. SIN
+            {
+                name: 'SIN',
+                shortVi: 'Sin góc (Radian)',
+                category: 'TRIG',
+                syntax: '=SIN(number)',
+                purpose: 'Trả về giá trị lượng giác Sin (tung độ Y trên đường tròn đơn vị) của một góc tính bằng đơn vị RADIAN.',
+                note: '<strong>Bẫy kinh điển trong Excel:</strong> Excel tính <code>SIN</code> theo đơn vị <strong>Radian</strong> chứ không phải Độ! Nếu bạn có góc 30°, phải viết <code>=SIN(RADIANS(30))</code> hoặc <code>=SIN(30*PI()/180)</code> mới ra đúng <code>0.5</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Góc theo Độ (để dễ hình dung)', val: 30, role: 'Đổi qua Radian' }
+                ],
+                altInputs: [90],
+                visualType: 'TRIG_CIRCLE'
+            },
+            // 22. COS
+            {
+                name: 'COS',
+                shortVi: 'Cosin góc (Radian)',
+                category: 'TRIG',
+                syntax: '=COS(number)',
+                purpose: 'Trả về giá trị lượng giác Cosin (hoành độ X trên đường tròn đơn vị) của một góc tính bằng đơn vị RADIAN.',
+                note: '<strong>Lưu ý:</strong> Cũng giống như SIN, đối số đưa vào hàm <code>COS</code> phải ở đơn vị <strong>Radian</strong>. Với góc 60° (tức π/3 rad ≈ 1.0472 rad), <code>=COS(RADIANS(60)) = 0.5</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Góc theo Độ (để dễ hình dung)', val: 60, role: 'Đổi qua Radian' }
+                ],
+                altInputs: [0],
+                visualType: 'TRIG_CIRCLE'
+            },
+            // 23. TAN
+            {
+                name: 'TAN',
+                shortVi: 'Tang góc (Radian)',
+                category: 'TRIG',
+                syntax: '=TAN(number)',
+                purpose: 'Trả về giá trị lượng giác Tang (tỷ số SIN/COS hay độ dốc) của một góc tính bằng đơn vị RADIAN.',
+                note: '<strong>Lưu ý:</strong> Tại góc 45° (π/4 rad), <code>SIN = COS</code> nên <code>=TAN(RADIANS(45)) = 1</code>. Tại góc 90°, vì <code>COS = 0</code> nên <code>TAN</code> không xác định (ra số cực lớn do sai số dấu phẩy động).',
+                inputs: [
+                    { cell: 'B1', label: 'Góc theo Độ (để dễ hình dung)', val: 45, role: 'Đổi qua Radian' }
+                ],
+                altInputs: [30],
+                visualType: 'TRIG_CIRCLE'
+            },
+            // 24. ASIN
+            {
+                name: 'ASIN',
+                shortVi: 'Arcsin (Tìm góc)',
+                category: 'TRIG',
+                syntax: '=ASIN(number)',
+                purpose: 'Hàm lượng giác ngược Arcsin: Từ giá trị Sin (trong đoạn [-1, 1]), trả về góc tương ứng tính bằng RADIAN trong khoảng [-π/2, π/2].',
+                note: '<strong>Cách đổi kết quả sang Độ:</strong> Vì <code>=ASIN(0.5)</code> trả về <code>0.523599</code> (Radian), bạn bọc thêm hàm <code>=DEGREES(ASIN(0.5))</code> sẽ thu được đúng <code>30°</code>! Nếu nhập số ngoài đoạn [-1, 1] sẽ báo lỗi <code>#NUM!</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Giá trị Sin (-1 ≤ x ≤ 1)', val: 0.5, role: 'number ∈ [-1, 1]' }
+                ],
+                altInputs: [1],
+                visualType: 'TRIG_CIRCLE'
+            },
+            // 25. ACOS
+            {
+                name: 'ACOS',
+                shortVi: 'Arccos (Tìm góc)',
+                category: 'TRIG',
+                syntax: '=ACOS(number)',
+                purpose: 'Hàm lượng giác ngược Arccosin: Từ giá trị Cosin (trong đoạn [-1, 1]), trả về góc tương ứng tính bằng RADIAN trong khoảng [0, π].',
+                note: '<strong>Ví dụ:</strong> <code>=ACOS(0.5)</code> trả về <code>1.047198</code> rad (tức π/3). Dùng <code>=DEGREES(ACOS(0.5))</code> để đổi sang độ sẽ được <code>60°</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Giá trị Cos (-1 ≤ x ≤ 1)', val: 0.5, role: 'number ∈ [-1, 1]' }
+                ],
+                altInputs: [0],
+                visualType: 'TRIG_CIRCLE'
+            },
+            // 26. ATAN
+            {
+                name: 'ATAN',
+                shortVi: 'Arctan (Tìm góc)',
+                category: 'TRIG',
+                syntax: '=ATAN(number)',
+                purpose: 'Hàm lượng giác ngược Arctang: Từ giá trị Tang (hệ số góc bất kỳ), trả về góc tương ứng tính bằng RADIAN trong khoảng (-π/2, π/2).',
+                note: '<strong>Ví dụ:</strong> Khi độ dốc bằng <code>1</code>, <code>=ATAN(1)</code> trả về <code>0.785398</code> rad (tức π/4). Dùng <code>=DEGREES(ATAN(1))</code> sẽ trả về đúng góc <code>45°</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Giá trị Tan (number)', val: 1, role: 'number ∈ ℝ' }
+                ],
+                altInputs: [0.57735],
+                visualType: 'TRIG_CIRCLE'
+            },
+            // 27. DEGREES
+            {
+                name: 'DEGREES',
+                shortVi: 'Radian → Độ (°)',
+                category: 'TRIG',
+                syntax: '=DEGREES(angle)',
+                purpose: 'Chuyển đổi một góc từ đơn vị Radian sang đơn vị Độ (°) theo công thức: Độ = Radian × 180 / π.',
+                note: '<strong>Ví dụ chuẩn:</strong> <code>=DEGREES(PI()) = 180</code>; <code>=DEGREES(PI()/2) = 90</code>; <code>=DEGREES(1.047198) ≈ 60°</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Góc tính bằng Radian (angle)', val: 3.141593, role: 'angle (Rad)' }
+                ],
+                altInputs: [1.570796],
+                visualType: 'TRIG_CIRCLE'
+            },
+            // 28. RADIANS
+            {
+                name: 'RADIANS',
+                shortVi: 'Độ (°) → Radian',
+                category: 'TRIG',
+                syntax: '=RADIANS(angle)',
+                purpose: 'Chuyển đổi một góc từ đơn vị Độ (°) sang đơn vị Radian theo công thức: Radian = Độ × π / 180.',
+                note: '<strong>Ứng dụng bắt buộc khi tính Lượng giác:</strong> Luôn dùng <code>RADIANS</code> bên trong các hàm <code>SIN, COS, TAN</code> khi đề bài cho góc theo Độ, ví dụ: <code>=SIN(RADIANS(30))</code>.',
+                inputs: [
+                    { cell: 'B1', label: 'Góc tính bằng Độ (angle)', val: 180, role: 'angle (Độ °)' }
+                ],
+                altInputs: [45],
+                visualType: 'TRIG_CIRCLE'
+            }
+        ];
+
+        /**
+         * TRẠNG THÁI ỨNG DỤNG
+         */
+        const state = {
+            selectedCategory: 'ALL',
+            funcIndex: 0, // 0..27
+            stepIndex: 0,
+            maxSteps: 3,
+            currentValues: [],
+            randomCache: 0.7428, // Lưu giá trị RAND/RANDBETWEEN hiện tại
+            isPlaying: false,
+            timer: null
+        };
+
+        /**
+         * ĐỊNH DẠNG SỐ GỌN GÀNG
+         */
+        function fmt(num, maxDec = 4) {
+            if (typeof num !== 'number' || isNaN(num)) return String(num);
+            if (!isFinite(num)) return '#DIV/0!';
+            return Number(Math.round(num + 'e' + maxDec) + 'e-' + maxDec);
+        }
+
+        /**
+         * LẤY HÀM HIỆN TẠI
+         */
+        function currentFunc() {
+            return FUNCTIONS_DB[state.funcIndex];
+        }
+
+        /**
+         * TÍNH KẾT QUẢ EXCEL CHUẨN CHO HÀM HIỆN TẠI
+         */
+        function evaluateCurrentFunction() {
+            const fn = currentFunc();
+            const v = state.currentValues;
+            const x = Number(v[0] ?? 0);
+            const y = Number(v[1] ?? 0);
+
+            switch (fn.name) {
+                case 'SUM':
+                    return { formula: `=SUM(B1:B${v.length})`, result: fmt(v.reduce((a, b) => a + Number(b || 0), 0)) };
+                case 'PRODUCT':
+                    return { formula: `=PRODUCT(B1:B${v.length})`, result: fmt(v.reduce((a, b) => a * Number(b || 0), 1)) };
+                case 'ABS':
+                    return { formula: `=ABS(B1)`, result: fmt(Math.abs(x)) };
+                case 'SQRT':
+                    return { formula: `=SQRT(B1)`, result: x < 0 ? '#NUM!' : fmt(Math.sqrt(x)) };
+                case 'POWER':
+                    return { formula: `=POWER(B1, B2)`, result: fmt(Math.pow(x, y)) };
+                case 'EXP':
+                    return { formula: `=EXP(B1)`, result: fmt(Math.exp(x), 6) };
+                case 'LN':
+                    return { formula: `=LN(B1)`, result: x <= 0 ? '#NUM!' : fmt(Math.log(x), 6) };
+                case 'LOG': {
+                    const base = y === 0 ? 10 : y;
+                    if (x <= 0 || base <= 0 || base === 1) return { formula: `=LOG(B1, B2)`, result: '#NUM!' };
+                    return { formula: `=LOG(B1, B2)`, result: fmt(Math.log(x) / Math.log(base), 6) };
+                }
+                case 'MOD': {
+                    if (y === 0) return { formula: `=MOD(B1, B2)`, result: '#DIV/0!' };
+                    // Công thức MOD chuẩn của Excel: n - d * INT(n/d)
+                    const qFloor = Math.floor(x / y);
+                    const modExcel = x - y * qFloor;
+                    return { formula: `=MOD(B1, B2)`, result: fmt(modExcel) };
+                }
+                case 'INT':
+                    return { formula: `=INT(B1)`, result: Math.floor(x) };
+                case 'TRUNC': {
+                    const digits = Math.trunc(y || 0);
+                    const factor = Math.pow(10, digits);
+                    const res = Math.trunc(x * factor) / factor;
+                    return { formula: `=TRUNC(B1, B2)`, result: fmt(res, 6) };
+                }
+                case 'ROUND': {
+                    const digits = Math.trunc(y || 0);
+                    const factor = Math.pow(10, digits);
+                    const res = Math.sign(x) * Math.round(Math.abs(x) * factor) / factor;
+                    return { formula: `=ROUND(B1, B2)`, result: fmt(res, 6) };
+                }
+                case 'ROUNDDOWN': {
+                    const digits = Math.trunc(y || 0);
+                    const factor = Math.pow(10, digits);
+                    const res = Math.trunc(x * factor) / factor;
+                    return { formula: `=ROUNDDOWN(B1, B2)`, result: fmt(res, 6) };
+                }
+                case 'ROUNDUP': {
+                    const digits = Math.trunc(y || 0);
+                    const factor = Math.pow(10, digits);
+                    const res = Math.sign(x) * Math.ceil(Math.abs(x) * factor - 1e-12) / factor;
+                    return { formula: `=ROUNDUP(B1, B2)`, result: fmt(res, 6) };
+                }
+                case 'CEILING': {
+                    if (y === 0) return { formula: `=CEILING(B1, B2)`, result: 0 };
+                    if (x > 0 && y < 0) return { formula: `=CEILING(B1, B2)`, result: '#NUM!' };
+                    const res = Math.ceil(x / y - 1e-12) * y;
+                    return { formula: `=CEILING(B1, B2)`, result: fmt(res, 6) };
+                }
+                case 'FLOOR': {
+                    if (y === 0) return { formula: `=FLOOR(B1, B2)`, result: '#DIV/0!' };
+                    if (x > 0 && y < 0) return { formula: `=FLOOR(B1, B2)`, result: '#NUM!' };
+                    const res = Math.floor(x / y + 1e-12) * y;
+                    return { formula: `=FLOOR(B1, B2)`, result: fmt(res, 6) };
+                }
+                case 'RAND':
+                    return { formula: `=RAND()`, result: fmt(state.randomCache, 6) };
+                case 'RANDBETWEEN': {
+                    const low = Math.ceil(x);
+                    const high = Math.floor(y);
+                    if (low > high) return { formula: `=RANDBETWEEN(B1, B2)`, result: '#NUM!' };
+                    const intVal = Math.floor(state.randomCache * (high - low + 1)) + low;
+                    return { formula: `=RANDBETWEEN(B1, B2)`, result: intVal };
+                }
+                case 'PI':
+                    return { formula: `=PI()`, result: fmt(Math.PI, 8) };
+                case 'SIGN':
+                    return { formula: `=SIGN(B1)`, result: x > 0 ? 1 : x < 0 ? -1 : 0 };
+                case 'SIN': {
+                    const rad = (x * Math.PI) / 180;
+                    return { formula: `=SIN(RADIANS(B1))`, result: fmt(Math.sin(rad), 6) };
+                }
+                case 'COS': {
+                    const rad = (x * Math.PI) / 180;
+                    return { formula: `=COS(RADIANS(B1))`, result: fmt(Math.cos(rad), 6) };
+                }
+                case 'TAN': {
+                    if (Math.abs(x % 180) === 90) return { formula: `=TAN(RADIANS(B1))`, result: '∞ (Không xác định)' };
+                    const rad = (x * Math.PI) / 180;
+                    return { formula: `=TAN(RADIANS(B1))`, result: fmt(Math.tan(rad), 6) };
+                }
+                case 'ASIN':
+                    if (x < -1 || x > 1) return { formula: `=ASIN(B1)`, result: '#NUM!' };
+                    return { formula: `=ASIN(B1)`, result: `${fmt(Math.asin(x), 4)} rad (${fmt(Math.asin(x) * 180 / Math.PI, 1)}°)` };
+                case 'ACOS':
+                    if (x < -1 || x > 1) return { formula: `=ACOS(B1)`, result: '#NUM!' };
+                    return { formula: `=ACOS(B1)`, result: `${fmt(Math.acos(x), 4)} rad (${fmt(Math.acos(x) * 180 / Math.PI, 1)}°)` };
+                case 'ATAN':
+                    return { formula: `=ATAN(B1)`, result: `${fmt(Math.atan(x), 4)} rad (${fmt(Math.atan(x) * 180 / Math.PI, 1)}°)` };
+                case 'DEGREES':
+                    return { formula: `=DEGREES(B1)`, result: `${fmt((x * 180) / Math.PI, 2)}°` };
+                case 'RADIANS':
+                    return { formula: `=RADIANS(B1)`, result: `${fmt((x * Math.PI) / 180, 6)} rad` };
+                default:
+                    return { formula: `=${fn.name}()`, result: 0 };
+            }
+        }
+
+        /**
+         * RENDER BỘ LỌC DANH MỤC VÀ LƯỚI 28 NÚT HÀM XUỐNG DÒNG (KHÔNG THANH TRƯỢT)
+         */
+        function renderHeaderButtons() {
+            // 1. Category Filter
+            const catBar = document.getElementById('categoryFilterBar');
+            catBar.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const active = state.selectedCategory === cat.id;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md font-bold transition ${
+                    active ? 'bg-white text-excel-800 shadow-sm' : 'text-excel-100 hover:bg-white/10'
+                }`;
+                btn.textContent = cat.name;
+                btn.addEventListener('click', () => {
+                    state.selectedCategory = cat.id;
+                    renderHeaderButtons();
+                });
+                catBar.appendChild(btn);
+            });
+
+            // 2. Multi-line Wrap Grid cho 28 hàm
+            const grid = document.getElementById('functionButtonsGrid');
+            grid.innerHTML = '';
+
+            FUNCTIONS_DB.forEach((fn, idx) => {
+                if (state.selectedCategory !== 'ALL' && fn.category !== state.selectedCategory) return;
+
+                const isSelected = idx === state.funcIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border ${
+                    isSelected
+                        ? 'bg-amber-400 text-slate-950 font-extrabold border-amber-300 shadow-md ring-2 ring-white'
+                        : 'bg-excel-800/80 hover:bg-excel-800 text-white border-excel-500/40 font-semibold'
+                }`;
+                btn.innerHTML = `
+                    <span class="font-mono tracking-tight">${fn.name}</span>
+                    <span class="text-[10px] ${isSelected ? 'text-slate-800 font-bold' : 'text-excel-200 font-normal'} hidden sm:inline">• ${fn.shortVi}</span>
+                `;
+                btn.addEventListener('click', () => selectFunction(idx));
+                grid.appendChild(btn);
+            });
+        }
+
+        /**
+         * CHỌN MỘT HÀM MỚI TRONG 28 HÀM
+         */
+        function selectFunction(idx, useAlt = false) {
+            stopAutoPlay();
+            state.funcIndex = idx;
+            const fn = currentFunc();
+            state.currentValues = useAlt && fn.altInputs.length
+                ? [...fn.altInputs]
+                : fn.inputs.map(item => item.val);
+            state.randomCache = Math.random();
+            state.maxSteps = fn.visualType === 'RANGE_ACCUM' ? fn.inputs.length : 3;
+            state.stepIndex = state.maxSteps - 1; // Mặc định hiển thị đầy đủ để nhìn ngay kết quả, bấm Play sẽ chạy từ bước 0
+            renderHeaderButtons();
+            renderAll();
+        }
+
+        /**
+         * RENDER BẢNG TÍNH EXCEL BÊN TRÁI
+         */
+        function renderSpreadsheet() {
+            const fn = currentFunc();
+            const evalObj = evaluateCurrentFunction();
+
+            const resultRowIdx = fn.inputs.length + 1;
+            document.getElementById('nameBoxDisplay').textContent = `B${resultRowIdx}`;
+            document.getElementById('formulaBarText').textContent = evalObj.formula;
+            document.getElementById('formulaResultBadge').textContent = `= ${evalObj.result}`;
+            document.getElementById('funcSyntaxTag').textContent = fn.syntax;
+            document.getElementById('funcPurposeText').textContent = fn.purpose;
+            document.getElementById('funcNoteBox').innerHTML = fn.note;
+
+            const catObj = CATEGORIES.find(c => c.id === fn.category);
+            document.getElementById('funcCategoryBadge').textContent = catObj ? catObj.name : 'Toán học';
+
+            const tbody = document.getElementById('excelSheetBody');
+            tbody.innerHTML = '';
+
+            // Các dòng tham số đầu vào
+            fn.inputs.forEach((inp, i) => {
+                const isScanning = fn.visualType === 'RANGE_ACCUM' && i === state.stepIndex;
+                const isIncluded = fn.visualType === 'RANGE_ACCUM' && i <= state.stepIndex;
+
+                const tr = document.createElement('tr');
+                tr.className = isScanning ? 'bg-amber-50' : isIncluded ? 'bg-emerald-50/40' : '';
+
+                tr.innerHTML = `
+                    <td class="py-2 text-center font-mono text-xs bg-slate-100 text-slate-500 font-bold border-r border-slate-300 select-none">${i + 1}</td>
+                    <td class="py-2 px-2.5 border-r border-slate-200 text-xs font-medium text-slate-700">${inp.label}</td>
+                    <td class="p-1 border-r border-slate-200 ${isScanning ? 'ring-2 ring-inset ring-amber-500' : ''}">
+                        <input type="number" step="any" data-idx="${i}" value="${state.currentValues[i]}"
+                            class="w-full px-2 py-1 font-mono font-bold text-xs sm:text-sm text-slate-900 bg-white border border-slate-200 rounded focus:outline-none focus:border-excel-600 focus:ring-1 focus:ring-excel-600 text-right" />
+                    </td>
+                    <td class="py-2 px-2 text-center font-mono text-[11px] text-slate-500">${inp.cell} (${inp.role})</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Nếu hàm không có đối số (như RAND)
+            if (fn.inputs.length === 0) {
+                const trEmpty = document.createElement('tr');
+                trEmpty.innerHTML = `
+                    <td class="py-2 text-center font-mono text-xs bg-slate-100 text-slate-500 font-bold border-r border-slate-300">1</td>
+                    <td class="py-2 px-2.5 border-r border-slate-200 text-xs text-slate-500 italic" colspan="3">Hàm ${fn.name}() không cần nhập đối số đầu vào</td>
+                `;
+                tbody.appendChild(trEmpty);
+            }
+
+            // Dòng Kết quả công thức
+            const trRes = document.createElement('tr');
+            trRes.className = 'bg-excel-50/90 font-bold border-t-2 border-excel-500/40';
+            trRes.innerHTML = `
+                <td class="py-2.5 text-center font-mono text-xs bg-excel-100 text-excel-800 font-extrabold border-r border-slate-300">${resultRowIdx}</td>
+                <td class="py-2.5 px-2.5 border-r border-slate-200 text-xs text-excel-800 flex items-center justify-between">
+                    <span>Kết quả hàm ${fn.name}</span>
+                    <span class="font-mono text-[10px] bg-white px-1.5 py-0.5 rounded border border-excel-200">${evalObj.formula}</span>
+                </td>
+                <td class="py-2.5 px-2.5 border-r border-slate-200 font-mono text-sm text-right text-excel-700 bg-emerald-100/70 ring-2 ring-inset ring-excel-600">
+                    ${evalObj.result}
+                </td>
+                <td class="py-2.5 px-2 text-center font-mono text-[11px] text-excel-700">Ô B${resultRowIdx}</td>
+            `;
+            tbody.appendChild(trRes);
+
+            // Lắng nghe sự kiện sửa số trực tiếp trong ô input
+            tbody.querySelectorAll('input[type="number"]').forEach(inputEl => {
+                inputEl.addEventListener('input', (e) => {
+                    const idx = Number(e.target.getAttribute('data-idx'));
+                    const parsed = parseFloat(e.target.value);
+                    state.currentValues[idx] = isNaN(parsed) ? 0 : parsed;
+                    renderAll(true); // Không tạo lại input để giữ focus
+                });
+            });
+        }
+
+        /**
+         * RENDER CÁC NÚT BƯỚC (STEP PILLS)
+         */
+        function renderStepPills() {
+            const container = document.getElementById('stepPillsContainer');
+            container.innerHTML = '';
+            for (let s = 0; s < state.maxSteps; s++) {
+                const active = s === state.stepIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md text-xs font-mono font-bold transition ${
+                    active
+                        ? 'bg-excel-600 text-white shadow-sm'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`;
+                btn.textContent = `Bước ${s + 1}`;
+                btn.addEventListener('click', () => {
+                    stopAutoPlay();
+                    state.stepIndex = s;
+                    renderAll();
+                });
+                container.appendChild(btn);
+            }
+            document.getElementById('visualStepBadge').textContent = `Bước ${state.stepIndex + 1} / ${state.maxSteps}`;
+        }
+
+        /**
+         * RENDER SÂN KHẤU ĐỒ HỌA TRỰC QUAN & HỘP GIẢI THÍCH TIẾNG VIỆT
+         */
+        function renderVisualStage() {
+            const fn = currentFunc();
+            const stage = document.getElementById('visualStageCanvas');
+            const header = document.getElementById('visualStageHeader');
+            const stepBanner = document.getElementById('stepTitleBanner');
+            const stepExp = document.getElementById('stepExplanationText');
+
+            header.textContent = `Cơ chế trực quan: Hàm ${fn.name} (${fn.shortVi})`;
+
+            if (fn.visualType === 'RANGE_ACCUM') {
+                renderRangeAccumVisual(fn, stage, stepBanner, stepExp);
+            } else if (fn.visualType === 'ROUNDING_LINE') {
+                renderRoundingLineVisual(fn, stage, stepBanner, stepExp);
+            } else if (fn.visualType === 'MOD_VISUAL') {
+                renderModVisual(fn, stage, stepBanner, stepExp);
+            } else if (fn.visualType === 'ABS_SIGN') {
+                renderAbsSignVisual(fn, stage, stepBanner, stepExp);
+            } else if (fn.visualType === 'POWER_LOG') {
+                renderPowerLogVisual(fn, stage, stepBanner, stepExp);
+            } else if (fn.visualType === 'RAND_CONST') {
+                renderRandConstVisual(fn, stage, stepBanner, stepExp);
+            } else if (fn.visualType === 'TRIG_CIRCLE') {
+                renderTrigCircleVisual(fn, stage, stepBanner, stepExp);
+            }
+        }
+
+        /**
+         * NHÓM 1: MÔ PHỎNG TÍCH LŨY DÃY Ô (SUM, PRODUCT)
+         */
+        function renderRangeAccumVisual(fn, stage, stepBanner, stepExp) {
+            const isSum = fn.name === 'SUM';
+            const vals = state.currentValues.map(v => Number(v || 0));
+            const activeIdx = state.stepIndex;
+            const sliced = vals.slice(0, activeIdx + 1);
+            const partialResult = isSum
+                ? sliced.reduce((a, b) => a + b, 0)
+                : sliced.reduce((a, b) => a * b, 1);
+
+            const totalAbsSum = vals.reduce((a, b) => a + Math.abs(b), 0) || 1;
+            const colors = ['bg-emerald-500', 'bg-sky-500', 'bg-amber-500', 'bg-indigo-500'];
+
+            let cardsHtml = vals.map((v, i) => {
+                const passed = i <= activeIdx;
+                const current = i === activeIdx;
+                return `
+                    <div class="flex items-center gap-1.5">
+                        <div class="px-3 py-2 rounded-xl border-2 font-mono transition-all ${
+                            current
+                                ? 'bg-amber-100 border-amber-500 text-slate-900 scale-105 shadow-md font-extrabold'
+                                : passed
+                                    ? 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold'
+                                    : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                        }">
+                            <div class="text-[10px] font-sans text-slate-500">Ô B${i + 1}</div>
+                            <div class="text-sm sm:text-base">${v}</div>
+                        </div>
+                        ${i < vals.length - 1 ? `<span class="font-mono font-extrabold text-lg ${i < activeIdx ? 'text-excel-600' : 'text-slate-300'}">${fn.opSymbol}</span>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            let barSegmentsHtml = sliced.map((v, i) => {
+                const widthPct = Math.max(10, Math.round((Math.abs(v) / totalAbsSum) * 100));
+                return `
+                    <div style="width: ${widthPct}%" class="${colors[i % colors.length]} text-white text-xs font-mono font-bold py-2 text-center transition-all duration-300 border-r border-white/30 truncate px-1">
+                        B${i + 1}: ${v}
+                    </div>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-xs font-bold uppercase text-slate-400">1. Quét từng ô trong vùng tham chiếu B1:B${vals.length}</div>
+                    <div class="flex flex-wrap items-center justify-center gap-2 bg-slate-100 p-3.5 rounded-xl border border-slate-200">
+                        ${cardsHtml}
+                        <span class="font-mono font-extrabold text-lg text-excel-700">=</span>
+                        <div class="px-4 py-2 rounded-xl bg-excel-600 text-white font-mono font-extrabold text-base sm:text-lg shadow animate-pop">
+                            ${fmt(partialResult)}
+                        </div>
+                    </div>
+
+                    <div class="text-xs font-bold uppercase text-slate-400">
+                        2. ${isSum ? 'Thanh đo tích lũy tổng (Progress Bar)' : 'Chuỗi nhân lũy tiến qua từng bước'}
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-xl overflow-hidden flex h-9 shadow-inner border border-slate-300">
+                        ${barSegmentsHtml}
+                    </div>
+
+                    <div class="bg-slate-900 text-emerald-300 font-mono text-xs sm:text-sm p-3 rounded-lg flex items-center justify-between">
+                        <span>Biểu thức bước ${activeIdx + 1}: <strong>${sliced.join(` ${fn.opSymbol} `)}</strong></span>
+                        <span class="text-amber-300 font-bold">Lũy kế = ${fmt(partialResult)}</span>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Bước ${activeIdx + 1}/${vals.length}: Quét ô B${activeIdx + 1} (Giá trị = ${vals[activeIdx]})`;
+            stepExp.innerHTML = isSum
+                ? `Hàm <code>SUM</code> đang quét đến ô <strong>B${activeIdx + 1} (${vals[activeIdx]})</strong> và cộng dồn vào tổng trước đó: <code>${sliced.join(' + ')} = <strong>${fmt(partialResult)}</strong></code>.`
+                : `Hàm <code>PRODUCT</code> đang quét đến ô <strong>B${activeIdx + 1} (${vals[activeIdx]})</strong> và nhân tiếp vào tích lũy kế: <code>${sliced.join(' × ')} = <strong>${fmt(partialResult)}</strong></code>.`;
+        }
+
+        /**
+         * NHÓM 2: TRỤC SỐ LÀM TRÒN & BẢNG ĐỐI CHIẾU 7 HÀM LÀM TRÒN
+         * (INT, TRUNC, ROUND, ROUNDDOWN, ROUNDUP, CEILING, FLOOR)
+         */
+        function renderRoundingLineVisual(fn, stage, stepBanner, stepExp) {
+            const x = Number(state.currentValues[0] ?? 0);
+            const param2 = Number(state.currentValues[1] ?? (fn.name === 'CEILING' || fn.name === 'FLOOR' ? 5 : 0));
+            const evalObj = evaluateCurrentFunction();
+            const resNum = Number(evalObj.result);
+
+            // Tính kết quả của cả 7 hàm làm tròn trên cùng số x để học viên so sánh trực tiếp
+            const stepMult = (fn.name === 'CEILING' || fn.name === 'FLOOR') ? (param2 || 1) : Math.pow(10, -Math.trunc(param2 || 0));
+            const lowBound = Math.floor(x / (stepMult || 1)) * (stepMult || 1);
+            const highBound = lowBound + Math.abs(stepMult || 1);
+            const pctOnSegment = Math.min(100, Math.max(0, ((x - lowBound) / ((highBound - lowBound) || 1)) * 100));
+
+            const compareRows = [
+                { k: 'INT(x)', v: Math.floor(x), rule: 'Luôn kéo XUỐNG số nguyên nhỏ hơn (về -∞)' },
+                { k: 'TRUNC(x)', v: Math.trunc(x), rule: 'Chỉ cắt bỏ phần thập phân (về phía số 0)' },
+                { k: `ROUND(x, 0)`, v: Math.sign(x) * Math.round(Math.abs(x)), rule: 'Làm tròn chuẩn (≥ .5 đẩy lên, < .5 hạ xuống)' },
+                { k: `ROUNDDOWN(x, 0)`, v: Math.trunc(x), rule: 'Làm tròn tiến về gần số 0' },
+                { k: `ROUNDUP(x, 0)`, v: Math.sign(x) * Math.ceil(Math.abs(x) - 1e-12), rule: 'Làm tròn tiến ra xa số 0' }
+            ];
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <!-- Trục số trực quan -->
+                    <div class="bg-slate-100 p-4 rounded-xl border border-slate-200">
+                        <div class="flex justify-between text-xs font-mono font-bold text-slate-600 mb-1">
+                            <span>Mốc dưới: ${fmt(lowBound)}</span>
+                            <span class="text-amber-700">Số gốc x = ${fmt(x)}</span>
+                            <span>Mốc trên: ${fmt(highBound)}</span>
+                        </div>
+                        <div class="relative h-10 flex items-center my-2">
+                            <!-- Đường trục số -->
+                            <div class="w-full h-2 bg-slate-300 rounded-full relative">
+                                <div class="absolute left-0 -top-1.5 w-1 h-5 bg-slate-500 rounded"></div>
+                                <div class="absolute left-1/2 -top-1 w-0.5 h-4 bg-slate-400"></div>
+                                <div class="absolute right-0 -top-1.5 w-1 h-5 bg-slate-500 rounded"></div>
+                            </div>
+                            <!-- Điểm gốc x -->
+                            <div style="left: calc(${pctOnSegment}% - 12px)" class="absolute -top-1 w-6 h-6 rounded-full bg-amber-500 text-white font-mono text-[10px] font-bold flex items-center justify-center shadow ring-2 ring-white" title="Giá trị gốc">
+                                x
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between bg-white px-3 py-2 rounded-lg border border-slate-200 text-xs font-mono">
+                            <span>Số đầu vào: <strong class="text-slate-900">${fmt(x)}</strong></span>
+                            <span class="text-excel-600 font-extrabold">━━━▶ ${fn.name} ━━━▶</span>
+                            <span class="bg-excel-600 text-white px-2.5 py-1 rounded font-extrabold text-sm">Kết quả = ${evalObj.result}</span>
+                        </div>
+                    </div>
+
+                    <!-- Bảng đối chiếu nhanh để phân biệt INT vs TRUNC vs ROUND -->
+                    <div>
+                        <div class="text-[11px] font-bold uppercase text-slate-400 mb-1.5">
+                            Bảng đối chiếu trực tiếp trên số x = ${fmt(x)} (Đặc biệt rõ khi thử số âm!):
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-5 gap-1.5 text-xs">
+                            ${compareRows.map(r => {
+                                const isCurrent = r.k.startsWith(fn.name + '(');
+                                return `
+                                    <div class="p-2 rounded-lg border ${isCurrent ? 'bg-excel-50 border-excel-600 ring-1 ring-excel-600' : 'bg-slate-50 border-slate-200'}">
+                                        <div class="font-mono font-bold text-[11px] text-slate-700">${r.k}</div>
+                                        <div class="font-mono font-extrabold text-base text-excel-700 my-0.5">${fmt(r.v)}</div>
+                                        <div class="text-[10px] text-slate-500 leading-tight">${r.rule}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (state.stepIndex === 0) {
+                stepBanner.textContent = `Bước 1/3: Xác định vị trí của số ${fmt(x)} trên trục số`;
+                stepExp.innerHTML = `Số đầu vào <strong>${fmt(x)}</strong> nằm giữa hai mốc <code>${fmt(lowBound)}</code> và <code>${fmt(highBound)}</code> trên trục số.`;
+            } else if (state.stepIndex === 1) {
+                stepBanner.textContent = `Bước 2/3: Áp dụng quy tắc dịch chuyển của hàm ${fn.name}`;
+                stepExp.innerHTML = `Hàm <code>${fn.name}</code> kiểm tra hướng làm tròn (${fn.shortVi}) với tham số thứ hai là <code>${param2}</code>.`;
+            } else {
+                stepBanner.textContent = `Bước 3/3: Chốt kết quả ${evalObj.formula} = ${evalObj.result}`;
+                stepExp.innerHTML = `Sau khi áp dụng quy tắc của <code>${fn.name}</code>, giá trị <strong>${fmt(x)}</strong> được chuyển thành <strong>${evalObj.result}</strong>. Hãy bấm nút <em>"⚡ Thử số âm / Đặc biệt"</em> ở góc trên bảng tính để thấy sự khác biệt rõ rệt giữa <code>INT</code> và <code>TRUNC</code>!`;
+            }
+        }
+
+        /**
+         * NHÓM 3: MÔ PHỎNG PHÉP CHIA LẤY DƯ (MOD)
+         */
+        function renderModVisual(fn, stage, stepBanner, stepExp) {
+            const n = Number(state.currentValues[0] ?? 17);
+            const d = Number(state.currentValues[1] ?? 5);
+            const evalObj = evaluateCurrentFunction();
+
+            if (d === 0) {
+                stage.innerHTML = `<div class="p-6 text-center text-rose-600 font-bold">Số chia (divisor) bằng 0 → Excel trả về lỗi #DIV/0!</div>`;
+                return;
+            }
+
+            const qFloor = Math.floor(n / d);
+            const rem = n - d * qFloor;
+
+            // Vẽ các khối nguyên nếu dương và nhỏ gọn
+            let blocksHtml = '';
+            const absQ = Math.min(8, Math.abs(qFloor));
+            for (let i = 1; i <= absQ; i++) {
+                blocksHtml += `
+                    <div class="px-3 py-2 rounded-lg bg-excel-600 text-white font-mono text-xs font-bold shadow-sm">
+                        Nhóm ${i}: (${d})
+                    </div>
+                `;
+            }
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-3 gap-2 text-center">
+                        <div class="bg-slate-100 p-3 rounded-xl border border-slate-200">
+                            <div class="text-[11px] text-slate-500 font-semibold">Số bị chia (n)</div>
+                            <div class="font-mono text-xl font-extrabold text-slate-800">${fmt(n)}</div>
+                        </div>
+                        <div class="bg-slate-100 p-3 rounded-xl border border-slate-200">
+                            <div class="text-[11px] text-slate-500 font-semibold">Thương nguyên INT(n/d)</div>
+                            <div class="font-mono text-xl font-extrabold text-sky-700">${fmt(qFloor)} nhóm</div>
+                        </div>
+                        <div class="bg-amber-100 p-3 rounded-xl border-2 border-amber-400">
+                            <div class="text-[11px] text-amber-900 font-bold">Phần dư MOD(n, d)</div>
+                            <div class="font-mono text-xl font-extrabold text-amber-900">${fmt(rem)}</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
+                        <div class="text-xs font-bold text-slate-500 uppercase">Minh họa tách nhóm (n = d × Thương + Dư):</div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            ${blocksHtml}
+                            <span class="font-mono font-bold text-slate-400">+</span>
+                            <div class="px-3.5 py-2 rounded-lg bg-amber-400 text-slate-950 font-mono text-xs font-extrabold shadow ring-2 ring-amber-500 animate-pop">
+                                Phần lẻ còn dư: ${fmt(rem)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 text-white font-mono text-xs sm:text-sm p-3 rounded-lg flex flex-wrap items-center justify-between gap-2">
+                        <span>Công thức Excel: <strong>MOD(${fmt(n)}, ${fmt(d)}) = ${fmt(n)} - (${fmt(d)} × INT(${fmt(n)}/${fmt(d)}))</strong></span>
+                        <span class="text-amber-300 font-bold">= ${evalObj.result}</span>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Cơ chế hàm MOD(${fmt(n)}, ${fmt(d)}) = ${evalObj.result}`;
+            stepExp.innerHTML = `Chia <strong>${fmt(n)}</strong> cho <strong>${fmt(d)}</strong> được thương nguyên là <code>INT(${fmt(n)}/${fmt(d)}) = ${fmt(qFloor)}</code> (tương ứng <code>${fmt(d)} × ${fmt(qFloor)} = ${fmt(d * qFloor)}</code>). Phần còn dư lại chính là <code>${fmt(n)} - ${fmt(d * qFloor)} = <strong>${fmt(rem)}</strong></code>.`;
+        }
+
+        /**
+         * NHÓM 4: TRỊ TUYỆT ĐỐI (ABS) & XÁC ĐỊNH DẤU (SIGN)
+         */
+        function renderAbsSignVisual(fn, stage, stepBanner, stepExp) {
+            const x = Number(state.currentValues[0] ?? 0);
+            const evalObj = evaluateCurrentFunction();
+
+            if (fn.name === 'ABS') {
+                const dist = Math.abs(x);
+                stage.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="bg-slate-100 p-4 rounded-xl border border-slate-200 text-center space-y-3">
+                            <div class="text-xs font-bold text-slate-500 uppercase">Khoảng cách đối xứng qua điểm 0 trên trục số</div>
+                            <div class="flex items-center justify-between font-mono text-xs sm:text-sm bg-white p-3 rounded-lg border border-slate-300">
+                                <span class="px-2.5 py-1 rounded ${x < 0 ? 'bg-rose-100 text-rose-800 font-extrabold ring-2 ring-rose-400' : 'text-slate-400'}">-${fmt(dist)}</span>
+                                <span class="text-excel-600 font-bold">◀━━ Khoảng cách = ${fmt(dist)} ━━▶</span>
+                                <span class="px-2.5 py-1 rounded bg-slate-800 text-white font-bold">0</span>
+                                <span class="text-excel-600 font-bold">◀━━ Khoảng cách = ${fmt(dist)} ━━▶</span>
+                                <span class="px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 font-extrabold ring-2 ring-emerald-500">+${fmt(dist)}</span>
+                            </div>
+                            <div class="text-sm font-medium text-slate-700">
+                                Bất kể số đầu vào mang dấu âm hay dương, <code>ABS(${fmt(x)})</code> luôn khử dấu âm để trả về độ lớn không âm <strong>${fmt(dist)}</strong>.
+                            </div>
+                        </div>
+                    </div>
+                `;
+                stepBanner.textContent = `Hàm ABS(${fmt(x)}) = ${fmt(dist)}`;
+                stepExp.innerHTML = `Khoảng cách từ điểm <strong>${fmt(x)}</strong> đến mốc <strong>0</strong> trên trục số là <strong>${fmt(dist)}</strong> đơn vị.`;
+            } else {
+                // SIGN
+                const s = x > 0 ? 1 : x < 0 ? -1 : 0;
+                stage.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="text-xs font-bold text-slate-400 uppercase text-center">Bộ cảm biến dấu của hàm SIGN(number)</div>
+                        <div class="grid grid-cols-3 gap-3 text-center">
+                            <div class="p-4 rounded-xl border-2 transition-all ${s === -1 ? 'bg-rose-100 border-rose-500 scale-105 shadow-md' : 'bg-slate-50 border-slate-200 opacity-50'}">
+                                <div class="font-mono text-2xl font-extrabold text-rose-700">-1</div>
+                                <div class="text-xs font-bold text-slate-700 mt-1">Khi số Âm (&lt; 0)</div>
+                            </div>
+                            <div class="p-4 rounded-xl border-2 transition-all ${s === 0 ? 'bg-slate-200 border-slate-600 scale-105 shadow-md' : 'bg-slate-50 border-slate-200 opacity-50'}">
+                                <div class="font-mono text-2xl font-extrabold text-slate-800">0</div>
+                                <div class="text-xs font-bold text-slate-700 mt-1">Khi số Bằng 0</div>
+                            </div>
+                            <div class="p-4 rounded-xl border-2 transition-all ${s === 1 ? 'bg-emerald-100 border-emerald-500 scale-105 shadow-md' : 'bg-slate-50 border-slate-200 opacity-50'}">
+                                <div class="font-mono text-2xl font-extrabold text-emerald-700">+1</div>
+                                <div class="text-xs font-bold text-slate-700 mt-1">Khi số Dương (&gt; 0)</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                stepBanner.textContent = `Hàm SIGN(${fmt(x)}) = ${s}`;
+                stepExp.innerHTML = `Vì <strong>${fmt(x)} ${x > 0 ? '> 0 (Số dương)' : x < 0 ? '< 0 (Số âm)' : '= 0'}</strong> nên hàm <code>SIGN</code> trả về kết quả chuẩn là <strong>${s}</strong>.`;
+            }
+        }
+
+        /**
+         * NHÓM 5: LŨY THỪA, CĂN BẬC HAI & LOGARIT (SQRT, POWER, EXP, LN, LOG)
+         */
+        function renderPowerLogVisual(fn, stage, stepBanner, stepExp) {
+            const x = Number(state.currentValues[0] ?? 0);
+            const y = Number(state.currentValues[1] ?? 2);
+            const evalObj = evaluateCurrentFunction();
+
+            let diagramHtml = '';
+            if (fn.name === 'SQRT') {
+                const root = x >= 0 ? fmt(Math.sqrt(x), 4) : '#NUM!';
+                diagramHtml = `
+                    <div class="flex flex-col sm:flex-row items-center justify-center gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="w-28 h-28 bg-emerald-100 border-2 border-emerald-600 rounded-lg flex flex-col items-center justify-center shadow-inner">
+                            <span class="text-[10px] text-emerald-800 font-bold uppercase">Diện tích</span>
+                            <span class="font-mono text-lg font-extrabold text-emerald-900">${fmt(x)}</span>
+                        </div>
+                        <div class="text-center font-mono text-xs sm:text-sm space-y-1">
+                            <div class="text-slate-500">Tìm cạnh hình vuông a sao cho a × a = ${fmt(x)}</div>
+                            <div class="text-lg font-extrabold text-excel-700">√${fmt(x)} = ${root}</div>
+                            <div class="text-xs text-slate-500">Kiểm tra lại: ${root} × ${root} = ${fmt(x)}</div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                let baseStr = x, expStr = y, resStr = evalObj.result;
+                if (fn.name === 'EXP') { baseStr = 'e (≈2.71828)'; expStr = x; }
+                if (fn.name === 'LN') { baseStr = 'e (≈2.71828)'; expStr = evalObj.result; resStr = x; }
+                if (fn.name === 'LOG') { baseStr = y || 10; expStr = evalObj.result; resStr = x; }
+
+                diagramHtml = `
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                        <div class="text-xs font-bold text-slate-500 uppercase text-center">Tam giác quan hệ Lũy thừa ⇄ Logarit</div>
+                        <div class="grid grid-cols-3 gap-2 text-center font-mono">
+                            <div class="bg-white p-3 rounded-lg border border-slate-200">
+                                <div class="text-[10px] font-sans text-slate-500">Cơ số (Base)</div>
+                                <div class="text-base font-extrabold text-slate-800">${baseStr}</div>
+                            </div>
+                            <div class="bg-amber-50 p-3 rounded-lg border border-amber-300">
+                                <div class="text-[10px] font-sans text-amber-800">Số mũ (Exponent / Log)</div>
+                                <div class="text-base font-extrabold text-amber-900">${expStr}</div>
+                            </div>
+                            <div class="bg-emerald-50 p-3 rounded-lg border border-emerald-300">
+                                <div class="text-[10px] font-sans text-emerald-800">Giá trị lũy thừa</div>
+                                <div class="text-base font-extrabold text-emerald-900">${resStr}</div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-900 text-white font-mono text-xs p-2.5 rounded-lg text-center">
+                            Biểu thức tương đương: <strong>(${baseStr}) ^ (${expStr}) = ${resStr}</strong>
+                        </div>
+                    </div>
+                `;
+            }
+
+            stage.innerHTML = diagramHtml;
+            stepBanner.textContent = `Kết quả ${evalObj.formula} = ${evalObj.result}`;
+            stepExp.innerHTML = `Hàm <code>${fn.name}</code> thực hiện phép tính <strong>${fn.shortVi}</strong> và trả về kết quả <strong>${evalObj.result}</strong>.`;
+        }
+
+        /**
+         * NHÓM 6: NGẪU NHIÊN & HẰNG SỐ PI (RAND, RANDBETWEEN, PI)
+         */
+        function renderRandConstVisual(fn, stage, stepBanner, stepExp) {
+            const evalObj = evaluateCurrentFunction();
+
+            if (fn.name === 'PI') {
+                const r = Number(state.currentValues[0] ?? 5);
+                const chuVi = fmt(2 * Math.PI * r, 4);
+                const dienTich = fmt(Math.PI * r * r, 4);
+                stage.innerHTML = `
+                    <div class="flex flex-col sm:flex-row items-center justify-around gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="w-28 h-28 rounded-full border-4 border-excel-600 bg-emerald-50 flex flex-col items-center justify-center relative shadow">
+                            <span class="font-mono text-xs font-bold text-excel-800">R = ${r}</span>
+                            <div class="w-1/2 h-0.5 bg-amber-500 absolute right-0 top-1/2"></div>
+                        </div>
+                        <div class="space-y-1.5 font-mono text-xs">
+                            <div class="bg-white px-3 py-1.5 rounded border border-slate-200">Hằng số <strong>=PI()</strong> → <strong class="text-excel-700">3.14159265358979</strong></div>
+                            <div class="bg-white px-3 py-1.5 rounded border border-slate-200">Chu vi <strong>=2*PI()*B1</strong> → <strong>${chuVi}</strong></div>
+                            <div class="bg-white px-3 py-1.5 rounded border border-slate-200">Diện tích <strong>=PI()*B1^2</strong> → <strong>${dienTich}</strong></div>
+                        </div>
+                    </div>
+                `;
+                stepBanner.textContent = `Hằng số =PI() ≈ 3.14159265`;
+                stepExp.innerHTML = `Hàm <code>=PI()</code> luôn trả về tỷ số giữa chu vi và đường kính đường tròn (≈ 3.141592654). Với bán kính <code>R = ${r}</code>, diện tích hình tròn là <code>=PI()*${r}^2 = ${dienTich}</code>.`;
+            } else {
+                const pct = Math.round(state.randomCache * 100);
+                stage.innerHTML = `
+                    <div class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
+                        <div class="flex items-center justify-between text-xs font-mono font-bold text-slate-600">
+                            <span>Cận dưới: ${fn.name === 'RAND' ? '0.0' : state.currentValues[0]}</span>
+                            <span class="text-excel-700">Con số vừa quay ra: ${evalObj.result}</span>
+                            <span>Cận trên: ${fn.name === 'RAND' ? '1.0 (không chạm 1)' : state.currentValues[1]}</span>
+                        </div>
+                        <div class="w-full h-4 bg-slate-200 rounded-full overflow-hidden relative border border-slate-300">
+                            <div style="width: ${pct}%" class="h-full bg-gradient-to-r from-emerald-500 to-amber-400 transition-all duration-300"></div>
+                        </div>
+                        <div>
+                            <button id="btnRerollRandom" class="bg-amber-400 hover:bg-amber-300 text-slate-900 font-extrabold text-xs px-4 py-2 rounded-lg shadow transition active:scale-95">
+                                🎲 Quay số ngẫu nhiên mới (Giống nhấn phím F9 trong Excel)
+                            </button>
+                        </div>
+                    </div>
+                `;
+                const btnRoll = document.getElementById('btnRerollRandom');
+                if (btnRoll) {
+                    btnRoll.addEventListener('click', () => {
+                        state.randomCache = Math.random();
+                        renderAll();
+                    });
+                }
+                stepBanner.textContent = `Sinh số ngẫu nhiên bằng ${evalObj.formula} → ${evalObj.result}`;
+                stepExp.innerHTML = fn.name === 'RAND'
+                    ? `Hàm <code>=RAND()</code> vừa sinh ra số thực ngẫu nhiên <strong>${evalObj.result}</strong> nằm trong khoảng <code>[0, 1)</code>.`
+                    : `Hàm <code>=RANDBETWEEN(${state.currentValues[0]}, ${state.currentValues[1]})</code> vừa rút ngẫu nhiên số nguyên <strong>${evalObj.result}</strong> trong đoạn từ ${state.currentValues[0]} đến ${state.currentValues[1]}.`;
+            }
+        }
+
+        /**
+         * NHÓM 7: ĐƯỜNG TRÒN LƯỢNG GIÁC & CHUYỂN ĐỔI ĐỘ ⇄ RADIAN
+         * (SIN, COS, TAN, ASIN, ACOS, ATAN, DEGREES, RADIANS)
+         */
+        function renderTrigCircleVisual(fn, stage, stepBanner, stepExp) {
+            const rawInput = Number(state.currentValues[0] ?? 0);
+            const evalObj = evaluateCurrentFunction();
+
+            // Xác định góc (theo độ và radian) để vẽ trên đường tròn đơn vị SVG
+            let deg = 30;
+            if (['SIN', 'COS', 'TAN', 'RADIANS'].includes(fn.name)) {
+                deg = rawInput;
+            } else if (fn.name === 'DEGREES') {
+                deg = (rawInput * 180) / Math.PI;
+            } else if (fn.name === 'ASIN') {
+                deg = (Math.asin(Math.max(-1, Math.min(1, rawInput))) * 180) / Math.PI;
+            } else if (fn.name === 'ACOS') {
+                deg = (Math.acos(Math.max(-1, Math.min(1, rawInput))) * 180) / Math.PI;
+            } else if (fn.name === 'ATAN') {
+                deg = (Math.atan(rawInput) * 180) / Math.PI;
+            }
+
+            const rad = (deg * Math.PI) / 180;
+            const cosVal = Math.cos(rad);
+            const sinVal = Math.sin(rad);
+            const tanVal = Math.abs(cosVal) < 1e-9 ? '∞' : fmt(Math.tan(rad), 4);
+
+            // Tọa độ tâm (100, 100), bán kính R = 72 trên SVG 200x200
+            const cx = 100, cy = 100, r = 72;
+            const px = cx + r * cosVal;
+            const py = cy - r * sinVal; // Trục Y của SVG hướng xuống
+
+            stage.innerHTML = `
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                    <!-- Đường tròn lượng giác SVG -->
+                    <div class="sm:col-span-6 flex justify-center">
+                        <svg viewBox="0 0 200 200" class="w-48 h-48 bg-white rounded-xl border border-slate-200 shadow-inner">
+                            <!-- Lưới trục tọa độ -->
+                            <line x1="10" y1="100" x2="190" y2="100" stroke="#cbd5e1" stroke-width="1.5" />
+                            <line x1="100" y1="10" x2="100" y2="190" stroke="#cbd5e1" stroke-width="1.5" />
+                            <!-- Đường tròn đơn vị R = 1 -->
+                            <circle cx="100" cy="100" r="72" fill="#f8fafc" stroke="#107c41" stroke-width="2" />
+                            <!-- Hình chiếu COS (Trục ngang X - Màu xanh dương) -->
+                            <line x1="100" y1="100" x2="${px}" y2="100" stroke="#0284c7" stroke-width="3.5" />
+                            <!-- Hình chiếu SIN (Trục dọc Y - Màu đỏ cam) -->
+                            <line x1="${px}" y1="100" x2="${px}" y2="${py}" stroke="#e11d48" stroke-width="3.5" stroke-dasharray="3,2" />
+                            <!-- Bán kính nối tâm tới điểm M trên đường tròn -->
+                            <line x1="100" y1="100" x2="${px}" y2="${py}" stroke="#0f172a" stroke-width="2" />
+                            <circle cx="${px}" cy="${py}" r="4.5" fill="#f59e0b" stroke="#0f172a" stroke-width="1.5" />
+                            <!-- Nhãn -->
+                            <text x="175" y="95" font-size="9" fill="#64748b" font-weight="bold">X (COS)</text>
+                            <text x="105" y="22" font-size="9" fill="#64748b" font-weight="bold">Y (SIN)</text>
+                        </svg>
+                    </div>
+
+                    <!-- Thông số góc & Giá trị Lượng giác -->
+                    <div class="sm:col-span-6 space-y-2 text-xs font-mono">
+                        <div class="bg-slate-900 text-white p-2.5 rounded-lg flex items-center justify-between">
+                            <span>Góc biểu diễn:</span>
+                            <span class="text-amber-300 font-bold">${fmt(deg, 2)}° = ${fmt(rad, 4)} rad</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-1.5 text-center">
+                            <div class="p-2 rounded-lg border ${fn.name.includes('SIN') ? 'bg-rose-50 border-rose-500 ring-1 ring-rose-500' : 'bg-slate-50 border-slate-200'}">
+                                <div class="text-[10px] font-sans text-rose-700 font-bold">Tung độ SIN</div>
+                                <div class="font-extrabold text-sm text-rose-700">${fmt(sinVal, 4)}</div>
+                            </div>
+                            <div class="p-2 rounded-lg border ${fn.name.includes('COS') ? 'bg-sky-50 border-sky-500 ring-1 ring-sky-500' : 'bg-slate-50 border-slate-200'}">
+                                <div class="text-[10px] font-sans text-sky-700 font-bold">Hoành độ COS</div>
+                                <div class="font-extrabold text-sm text-sky-700">${fmt(cosVal, 4)}</div>
+                            </div>
+                            <div class="p-2 rounded-lg border ${fn.name.includes('TAN') ? 'bg-amber-50 border-amber-500 ring-1 ring-amber-500' : 'bg-slate-50 border-slate-200'}">
+                                <div class="text-[10px] font-sans text-amber-800 font-bold">Độ dốc TAN</div>
+                                <div class="font-extrabold text-sm text-amber-800">${tanVal}</div>
+                            </div>
+                        </div>
+                        <div class="bg-emerald-50 border border-emerald-300 p-2.5 rounded-lg text-emerald-900 font-bold flex items-center justify-between">
+                            <span>${evalObj.formula}</span>
+                            <span class="text-sm bg-emerald-600 text-white px-2 py-0.5 rounded">${evalObj.result}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Mô phỏng đường tròn lượng giác: ${evalObj.formula}`;
+            stepExp.innerHTML = `Trên đường tròn lượng giác đơn vị (bán kính R = 1), góc <strong>${fmt(deg, 2)}°</strong> tương ứng với cung <strong>${fmt(rad, 4)} radian</strong>. Hoành độ (trục ngang màu xanh dương) là <code>COS = ${fmt(cosVal, 4)}</code>, tung độ (trục dọc màu đỏ) là <code>SIN = ${fmt(sinVal, 4)}</code>, và tỷ số <code>SIN/COS</code> là <code>TAN = ${tanVal}</code>.`;
+        }
+
+        /**
+         * RENDER BẢNG TRA CỨU 28 HÀM TRONG MODAL
+         */
+        function renderCatalogModal() {
+            const tbody = document.getElementById('catalogTableBody');
+            tbody.innerHTML = '';
+            FUNCTIONS_DB.forEach((fn, i) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-excel-50 cursor-pointer transition';
+                tr.innerHTML = `
+                    <td class="py-2 px-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500">${i + 1}</td>
+                    <td class="py-2 px-3 border-r border-slate-200 font-mono font-extrabold text-excel-700">
+                        ${fn.name}
+                        <div class="text-[11px] font-sans font-medium text-slate-500">${fn.shortVi}</div>
+                    </td>
+                    <td class="py-2 px-3 border-r border-slate-200 font-mono text-xs text-slate-700">${fn.syntax}</td>
+                    <td class="py-2 px-3 text-xs text-slate-600">${fn.purpose}</td>
+                `;
+                tr.addEventListener('click', () => {
+                    document.getElementById('catalogModal').classList.add('hidden');
+                    document.getElementById('catalogModal').classList.remove('flex');
+                    selectFunction(i);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * RENDER TẤT CẢ THÀNH PHẦN
+         */
+        function renderAll(skipSheetRebuild = false) {
+            if (!skipSheetRebuild) {
+                renderSpreadsheet();
+            } else {
+                // Chỉ cập nhật thanh công thức và dòng kết quả khi người dùng đang gõ
+                const evalObj = evaluateCurrentFunction();
+                document.getElementById('formulaBarText').textContent = evalObj.formula;
+                document.getElementById('formulaResultBadge').textContent = `= ${evalObj.result}`;
+            }
+            renderStepPills();
+            renderVisualStage();
+        }
+
+        /**
+         * ĐIỀU KHIỂN CHẠY TỰ ĐỘNG (PLAY / PAUSE / STEP / RESET)
+         */
+        function startAutoPlay() {
+            state.isPlaying = true;
+            document.getElementById('playPauseIcon').textContent = '⏸';
+            document.getElementById('playPauseText').textContent = 'Tạm dừng';
+            state.timer = setInterval(() => {
+                if (state.stepIndex < state.maxSteps - 1) {
+                    state.stepIndex++;
+                    renderAll();
+                } else {
+                    stopAutoPlay();
+                }
+            }, 1300);
+        }
+
+        function stopAutoPlay() {
+            state.isPlaying = false;
+            if (state.timer) {
+                clearInterval(state.timer);
+                state.timer = null;
+            }
+            document.getElementById('playPauseIcon').textContent = '▶';
+            document.getElementById('playPauseText').textContent = 'Chạy hoạt họa';
+        }
+
+        /**
+         * KHỞI TẠO SỰ KIỆN
+         */
+        function initEvents() {
+            document.getElementById('btnPlayPause').addEventListener('click', () => {
+                if (state.isPlaying) {
+                    stopAutoPlay();
+                } else {
+                    if (state.stepIndex >= state.maxSteps - 1) {
+                        state.stepIndex = 0;
+                        renderAll();
+                    }
+                    startAutoPlay();
+                }
+            });
+
+            document.getElementById('btnStep').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = (state.stepIndex + 1) % state.maxSteps;
+                renderAll();
+            });
+
+            document.getElementById('btnReset').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = 0;
+                renderAll();
+            });
+
+            // Nút đổi số mẫu chuẩn & thử số âm/đặc biệt
+            document.getElementById('btnPresetPositive').addEventListener('click', () => {
+                state.randomCache = Math.random();
+                selectFunction(state.funcIndex, false);
+            });
+
+            document.getElementById('btnPresetNegative').addEventListener('click', () => {
+                state.randomCache = Math.random();
+                selectFunction(state.funcIndex, true);
+            });
+
+            // Modal bảng tra cứu 28 hàm
+            const modal = document.getElementById('catalogModal');
+            document.getElementById('btnOpenCatalogModal').addEventListener('click', () => {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+            document.getElementById('btnCloseCatalogModal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initEvents();
+            renderCatalogModal();
+            selectFunction(0);
+        });
+    </script>
+</body>
+</html>
