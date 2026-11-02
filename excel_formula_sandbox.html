@@ -1,0 +1,1592 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Statistical Functions Sandbox - Mô Phỏng 17 Hàm Thống Kê</title>
+    <!-- Tải Tailwind CSS qua CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Google Font Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        excel: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#21a366',
+                            600: '#107c41',
+                            700: '#0b5c30',
+                            800: '#064e27',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .excel-grid-shadow {
+            box-shadow: 0 4px 20px -2px rgba(16, 124, 65, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.92); opacity: 0; }
+            70% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop-in 0.25s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER CHUẨN EXCEL + BỘ CHỌN 17 HÀM THỐNG KÊ XUỐNG DÒNG (KHÔNG THANH TRƯỢT NGANG) -->
+    <header class="bg-excel-600 text-white shadow-md z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shadow-inner shrink-0">
+                    <span class="font-serif italic font-extrabold text-xl text-amber-300">fx</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-xl font-extrabold tracking-tight">Excel Statistical Functions Sandbox</h1>
+                        <span class="text-xs bg-amber-400 text-slate-900 px-2.5 py-0.5 rounded-full font-bold shadow-sm">17 Hàm Thống Kê</span>
+                    </div>
+                    <p class="text-xs text-excel-100/90">Mô phỏng trực quan cơ chế tính toán đằng sau 17 hàm Thống kê chuẩn trong Microsoft Excel</p>
+                </div>
+            </div>
+
+            <!-- Bộ lọc nhóm hàm + Nút tra cứu bảng 17 hàm -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <div id="categoryFilterBar" class="flex flex-wrap items-center gap-1 bg-excel-800/60 p-1 rounded-lg border border-excel-500/30 text-xs">
+                    <!-- Render bằng JS -->
+                </div>
+                <button id="btnOpenCatalogModal" class="bg-amber-400 hover:bg-amber-300 text-slate-900 active:scale-95 transition text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                    <span>📋 Bảng tra cứu 17 hàm</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH 17 HÀM TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP, KHÔNG THANH TRƯỢT NGANG) -->
+        <div class="bg-excel-700/95 border-t border-excel-500/30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
+                <div id="functionButtonsGrid" class="flex flex-wrap gap-1.5 items-center">
+                    <!-- 17 nút hàm thống kê sẽ tự động xuống dòng tại đây -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- CỘT TRÁI (5/12): BẢNG TÍNH EXCEL A1:A10 & BỘ DỮ LIỆU MẪU -->
+        <section class="lg:col-span-5 bg-white rounded-xl border border-slate-300 excel-grid-shadow overflow-hidden flex flex-col">
+            <!-- Thanh tiêu đề bảng tính & Các nút bộ dữ liệu mẫu -->
+            <div class="bg-excel-700 text-white px-3.5 py-2.5 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <span class="font-mono font-bold">Du_Lieu_Thong_Ke.xlsx (A1:A10)</span>
+                    </div>
+                    <span id="funcCategoryBadge" class="bg-white/15 px-2 py-0.5 rounded text-[11px] font-semibold">Xu hướng trung tâm</span>
+                </div>
+                <!-- 4 Nút tạo dữ liệu mẫu chuyên biệt -->
+                <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <button id="btnPresetRandom" class="bg-white/15 hover:bg-white/25 px-2 py-1 rounded font-semibold transition text-left truncate">
+                        🎲 1. Số ngẫu nhiên chuẩn
+                    </button>
+                    <button id="btnPresetDuplicates" class="bg-amber-400/90 hover:bg-amber-300 text-slate-900 px-2 py-1 rounded font-bold transition text-left truncate">
+                        👯 2. Có số trùng (MODE/RANK)
+                    </button>
+                    <button id="btnPresetMixed" class="bg-sky-400/90 hover:bg-sky-300 text-slate-950 px-2 py-1 rounded font-bold transition text-left truncate">
+                        🔤 3. Trộn chữ & Trống (COUNT*)
+                    </button>
+                    <button id="btnPresetSpread" class="bg-rose-400/90 hover:bg-rose-300 text-slate-950 px-2 py-1 rounded font-bold transition text-left truncate">
+                        📈 4. Phân tán mạnh (STDEV/VAR)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh Công Thức (Name Box & Formula Bar) -->
+            <div class="bg-slate-50 border-b border-slate-300 px-3 py-2 flex items-center gap-2">
+                <div class="w-12 bg-white border border-slate-300 rounded px-1.5 py-1 font-mono text-xs font-bold text-center text-excel-800 shadow-inner" id="nameBoxDisplay">
+                    A11
+                </div>
+                <div class="text-excel-600 font-serif italic font-extrabold text-base px-0.5 select-none">fx</div>
+                <div class="flex-1 bg-white border border-excel-500/60 rounded px-2.5 py-1 font-mono text-xs sm:text-sm font-bold text-slate-800 flex items-center justify-between shadow-inner overflow-x-auto">
+                    <span id="formulaBarText" class="text-excel-700">=AVERAGE(A1:A10)</span>
+                    <span id="formulaResultBadge" class="ml-2 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-extrabold shrink-0">
+                        = 54.5
+                    </span>
+                </div>
+            </div>
+
+            <!-- Khung điều khiển tham số phụ (k, ref, order, quart) khi chọn LARGE, SMALL, RANK.EQ, PERCENTILE.EXC, QUARTILE.EXC -->
+            <div id="extraParamsPanel" class="hidden bg-emerald-50/90 border-b border-emerald-200 px-3.5 py-2.5">
+                <!-- Render động bằng JS -->
+            </div>
+
+            <!-- Hướng dẫn chỉnh sửa trực tiếp -->
+            <div class="bg-amber-50/80 border-b border-amber-200/80 px-3.5 py-1.5 text-[11px] text-amber-900 flex items-center justify-between">
+                <span>✏️ Nhấp vào bất kỳ ô <strong>A1:A10</strong> nào để nhập số, gõ chữ hoặc xóa trống!</span>
+            </div>
+
+            <!-- Bảng Lưới Excel A1:A10 + Ô kết quả A11 -->
+            <div class="p-3 bg-slate-100 flex-1">
+                <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <table class="w-full border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-200 text-slate-700 font-bold border-b border-slate-300 select-none">
+                                <th class="w-10 py-1.5 text-center border-r border-slate-300">Hàng</th>
+                                <th class="w-5/12 py-1.5 text-center border-r border-slate-300 bg-excel-100 text-excel-800">Cột A (Dữ liệu)</th>
+                                <th class="w-4/12 py-1.5 text-center border-r border-slate-300">Kiểu dữ liệu</th>
+                                <th class="w-3/12 py-1.5 text-center">Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="excelSheetBody" class="divide-y divide-slate-200">
+                            <!-- 10 dòng A1:A10 + A11 được tạo động -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cú pháp & Ý nghĩa của Hàm -->
+            <div class="p-3.5 bg-white border-t border-slate-200 space-y-1.5">
+                <div class="flex items-center justify-between flex-wrap gap-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cú pháp chuẩn Excel</span>
+                    <span id="funcSyntaxTag" class="font-mono text-xs font-bold text-excel-700 bg-excel-50 px-2 py-0.5 rounded border border-excel-200">
+                        =AVERAGE(number1, [number2], ...)
+                    </span>
+                </div>
+                <p id="funcPurposeText" class="text-xs text-slate-600 leading-relaxed">
+                    Tính trung bình cộng của các ô chứa số trong vùng dữ liệu.
+                </p>
+            </div>
+        </section>
+
+        <!-- CỘT PHẢI (7/12): SÂN KHẤU HOẠT HỌA TRỰC QUAN & GIẢI THÍCH TỪNG BƯỚC -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+
+            <!-- 1. Thanh Điều Khiển Hoạt Họa Từng Bước -->
+            <div class="bg-white rounded-xl border border-slate-200 p-3.5 excel-grid-shadow flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btnPlayPause" class="bg-excel-600 hover:bg-excel-700 active:scale-95 text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
+                        <span id="playPauseIcon">▶</span>
+                        <span id="playPauseText">Chạy từng bước</span>
+                    </button>
+                    <button id="btnStep" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg border border-slate-300 flex items-center gap-1 transition">
+                        <span>⏭</span>
+                        <span>Bước tiếp</span>
+                    </button>
+                    <button id="btnReset" class="bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:scale-95 text-slate-600 font-semibold text-xs sm:text-sm px-2.5 py-2 rounded-lg border border-slate-300 transition">
+                        ↺ Đặt lại
+                    </button>
+                </div>
+
+                <!-- Các nút nhảy nhanh vào Bước 1, Bước 2, Bước 3 -->
+                <div class="flex flex-wrap items-center gap-1.5" id="stepPillsContainer">
+                    <!-- Render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 2. SÂN KHẤU ĐỒ HỌA TRỰC QUAN (VISUAL ENGINE CANVAS) -->
+            <div class="bg-white rounded-xl border border-slate-200 excel-grid-shadow overflow-hidden flex flex-col">
+                <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 text-sm">📊</span>
+                        <span class="font-bold tracking-wide uppercase" id="visualStageHeader">Mô phỏng cơ chế thống kê</span>
+                    </div>
+                    <span id="visualStepBadge" class="bg-white/15 text-emerald-300 font-mono px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                        Bước 3 / 3
+                    </span>
+                </div>
+
+                <!-- Khu vực hiển thị đồ họa động tùy biến theo từng nhóm hàm thống kê -->
+                <div id="visualStageCanvas" class="p-4 sm:p-5 min-h-[320px] bg-gradient-to-b from-slate-50 to-white flex flex-col justify-center">
+                    <!-- Nội dung đồ họa render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 3. HỘP THOẠI GIẢI THÍCH TIẾNG VIỆT ĐỘNG THEO TỪNG BƯỚC -->
+            <div class="bg-gradient-to-br from-excel-50 via-white to-emerald-50 rounded-xl border-2 border-excel-500/40 p-4 shadow-sm space-y-2">
+                <div class="flex items-center justify-between">
+                    <span id="stepTitleBanner" class="text-xs font-extrabold uppercase tracking-wider text-excel-800 bg-excel-200/80 px-2.5 py-0.5 rounded-full">
+                        Giải thích cơ chế tính toán
+                    </span>
+                    <span class="text-[11px] font-mono text-slate-400">Cập nhật tự động theo A1:A10</span>
+                </div>
+                <div id="stepExplanationText" class="text-slate-800 text-sm leading-relaxed font-medium">
+                    <!-- Giải thích tiếng Việt chi tiết theo từng bước -->
+                </div>
+            </div>
+
+            <!-- 4. LƯU Ý BẪY THƯỜNG GẶP & CÔNG THỨC TOÁN HỌC ĐẰNG SAU -->
+            <div class="bg-amber-50/90 rounded-xl p-3.5 border border-amber-200 flex items-start gap-2.5 text-xs text-slate-700">
+                <span class="text-base leading-none shrink-0">💡</span>
+                <div id="funcNoteBox" class="leading-relaxed">
+                    <!-- Mẹo & lưu ý tránh sai lầm khi dùng hàm -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL BẢNG TRA CỨU NHANH 17 HÀM THỐNG KÊ -->
+    <div id="catalogModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-pop">
+            <div class="bg-excel-600 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📚</span>
+                    <h3 class="font-bold text-base sm:text-lg">Bảng Tổng Hợp 17 Hàm Thống Kê Trong Excel</h3>
+                </div>
+                <button id="btnCloseCatalogModal" class="bg-white/15 hover:bg-white/25 text-white rounded-lg px-3 py-1 text-xs font-bold transition">
+                    Đóng ✕
+                </button>
+            </div>
+            <div class="p-4 sm:p-5 overflow-y-auto">
+                <p class="text-xs text-slate-600 mb-3">Nhấp vào bất kỳ hàm nào trong bảng để chuyển ngay tới màn hình mô phỏng chi tiết:</p>
+                <div class="border border-slate-300 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-800 font-bold">
+                                <th class="py-2 px-3 border-r border-slate-300 w-10 text-center">STT</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-40">Tên hàm</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-52">Cú pháp</th>
+                                <th class="py-2 px-3">Ý nghĩa & Cơ chế hoạt động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogTableBody" class="divide-y divide-slate-200">
+                            <!-- Điền bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-3 px-4 text-center text-xs text-slate-500">
+        Excel Statistical Functions Sandbox • Mô phỏng trực quan 17 hàm Thống kê trong Microsoft Excel.
+    </footer>
+
+    <!-- JAVASCRIPT ENGINE CHO 17 HÀM THỐNG KÊ EXCEL -->
+    <script>
+        /**
+         * DANH MỤC NHÓM HÀM THỐNG KÊ
+         */
+        const CATEGORIES = [
+            { id: 'ALL', name: 'Tất cả (17)' },
+            { id: 'CENTRAL', name: 'Xu hướng trung tâm (3)' },
+            { id: 'EXTREME_POS', name: 'Cực trị & Thứ hạng (7)' },
+            { id: 'COUNTING', name: 'Đếm dữ liệu (3)' },
+            { id: 'DISPERSION', name: 'Độ phân tán & Phương sai (4)' }
+        ];
+
+        /**
+         * CƠ SỞ DỮ LIỆU ĐẦY ĐỦ 17 HÀM THỐNG KÊ THEO YÊU CẦU
+         */
+        const FUNCTIONS_DB = [
+            // 1. AVERAGE
+            {
+                name: 'AVERAGE',
+                shortVi: 'Trung bình cộng',
+                category: 'CENTRAL',
+                syntax: '=AVERAGE(number1, [number2], ...)',
+                purpose: 'Trả về trung bình cộng (Mean) của các đối số chứa số. Tự động bỏ qua các ô chứa văn bản (chữ) và ô trống.',
+                note: '<strong>Lưu ý quan trọng:</strong> Ô chứa số <code>0</code> VẪN được tính vào mẫu số khi chia trung bình, nhưng ô trống hoặc ô chữ thì bị bỏ qua hoàn toàn. Hãy thử bấm nút <em>"🔤 3. Trộn chữ & Trống"</em> để kiểm chứng!'
+            },
+            // 2. MEDIAN
+            {
+                name: 'MEDIAN',
+                shortVi: 'Trung vị (Số ở giữa)',
+                category: 'CENTRAL',
+                syntax: '=MEDIAN(number1, [number2], ...)',
+                purpose: 'Trả về số nằm ở vị trí chính giữa của tập dữ liệu sau khi đã sắp xếp tăng dần. Nếu số lượng phần tử N là số chẵn, MEDIAN lấy trung bình cộng của 2 số đứng giữa.',
+                note: '<strong>Ưu điểm so với AVERAGE:</strong> <code>MEDIAN</code> không bị méo lệch bởi các giá trị ngoại lai (quá lớn hoặc quá nhỏ đột biến). Ví dụ khi thống kê thu nhập, Trung vị phản ánh mức phổ biến chính xác hơn Trung bình cộng.'
+            },
+            // 3. MODE.SNGL
+            {
+                name: 'MODE.SNGL',
+                shortVi: 'Mốt (Xuất hiện nhiều nhất)',
+                category: 'CENTRAL',
+                syntax: '=MODE.SNGL(number1, [number2], ...)',
+                purpose: 'Trả về giá trị xuất hiện thường xuyên nhất (lặp lại nhiều lần nhất) trong vùng dữ liệu.',
+                note: '<strong>Cảnh báo lỗi <code>#N/A</code>:</strong> Nếu trong vùng dữ liệu KHÔNG có số nào lặp lại từ 2 lần trở lên (tất cả đều xuất hiện 1 lần), hàm <code>MODE.SNGL</code> sẽ trả về lỗi <code>#N/A</code>. Nếu có 2 số cùng đạt tần suất cao nhất, hàm ưu tiên số xuất hiện trước.'
+            },
+            // 4. MAX
+            {
+                name: 'MAX',
+                shortVi: 'Giá trị lớn nhất',
+                category: 'EXTREME_POS',
+                syntax: '=MAX(number1, [number2], ...)',
+                purpose: 'Trả về số lớn nhất trong tập giá trị (bỏ qua các ô chứa chữ và ô trống).',
+                note: '<strong>Mẹo liên hệ:</strong> <code>=MAX(A1:A10)</code> luôn cho kết quả giống hệt <code>=LARGE(A1:A10, 1)</code> (phần tử lớn thứ nhất).'
+            },
+            // 5. MIN
+            {
+                name: 'MIN',
+                shortVi: 'Giá trị nhỏ nhất',
+                category: 'EXTREME_POS',
+                syntax: '=MIN(number1, [number2], ...)',
+                purpose: 'Trả về số nhỏ nhất trong tập giá trị (bỏ qua các ô chứa chữ và ô trống).',
+                note: '<strong>Mẹo liên hệ:</strong> <code>=MIN(A1:A10)</code> luôn cho kết quả giống hệt <code>=SMALL(A1:A10, 1)</code> (phần tử nhỏ thứ nhất).'
+            },
+            // 6. COUNT
+            {
+                name: 'COUNT',
+                shortVi: 'Đếm ô chứa SỐ',
+                category: 'COUNTING',
+                syntax: '=COUNT(value1, [value2], ...)',
+                purpose: 'Đếm số lượng các ô CHỈ CHỨA SỐ (bao gồm cả ngày tháng vì Excel lưu ngày tháng dưới dạng số) trong vùng dữ liệu.',
+                note: '<strong>So sánh bộ 3 hàm đếm:</strong> <code>COUNT</code> chỉ đếm ô số; <code>COUNTA</code> đếm mọi ô không trống (cả số + chữ); <code>COUNTBLANK</code> chỉ đếm ô trống.'
+            },
+            // 7. COUNTA
+            {
+                name: 'COUNTA',
+                shortVi: 'Đếm ô KHÔNG TRỐNG',
+                category: 'COUNTING',
+                syntax: '=COUNTA(value1, [value2], ...)',
+                purpose: 'Đếm tất cả các ô có chứa dữ liệu (không rỗng) trong vùng tham chiếu, bao gồm cả Số, Chữ (Text), Giá trị logic hay Lỗi.',
+                note: '<strong>Ứng dụng:</strong> Thường dùng để đếm tổng số học sinh trong danh sách họ tên (vì họ tên là chữ nên không dùng <code>COUNT</code> được mà phải dùng <code>COUNTA</code>).'
+            },
+            // 8. COUNTBLANK
+            {
+                name: 'COUNTBLANK',
+                shortVi: 'Đếm ô TRỐNG',
+                category: 'COUNTING',
+                syntax: '=COUNTBLANK(range)',
+                purpose: 'Đếm số lượng các ô hoàn toàn trống (rỗng) trong một vùng dữ liệu liên tục.',
+                note: '<strong>Công thức kiểm tra chéo:</strong> Trong vùng 10 ô <code>A1:A10</code>, tổng <code>COUNTA(A1:A10) + COUNTBLANK(A1:A10)</code> luôn luôn bằng đúng <code>10</code>!'
+            },
+            // 9. STDEV.S
+            {
+                name: 'STDEV.S',
+                shortVi: 'Độ lệch chuẩn Mẫu',
+                category: 'DISPERSION',
+                syntax: '=STDEV.S(number1, [number2], ...)',
+                purpose: 'Ước tính độ lệch chuẩn dựa trên một MẪU (Sample), đo lường mức độ phân tán của các số xung quanh giá trị trung bình (chia cho n - 1).',
+                note: '<strong>Khi nào dùng <code>.S</code> hay <code>.P</code>?</strong> Dùng <code>STDEV.S</code> khi dữ liệu của bạn chỉ là một mẫu khảo sát trích ra từ đám đông (chia cho <code>n - 1</code> để hiệu chỉnh Bessel). Công thức: <code>√[ Σ(x - x̄)² / (n - 1) ]</code>.'
+            },
+            // 10. STDEV.P
+            {
+                name: 'STDEV.P',
+                shortVi: 'Độ lệch chuẩn Tổng thể',
+                category: 'DISPERSION',
+                syntax: '=STDEV.P(number1, [number2], ...)',
+                purpose: 'Tính độ lệch chuẩn dựa trên toàn bộ TỔNG THỂ (Population) đã biết đầy đủ (chia cho n).',
+                note: '<strong>So sánh với STDEV.S:</strong> Vì <code>STDEV.P</code> chia cho <code>n</code> thay vì <code>n - 1</code>, kết quả của <code>STDEV.P</code> luôn nhỏ hơn một chút so với <code>STDEV.S</code> trên cùng một tập dữ liệu. Công thức: <code>√[ Σ(x - x̄)² / n ]</code>.'
+            },
+            // 11. VAR.S
+            {
+                name: 'VAR.S',
+                shortVi: 'Phương sai Mẫu',
+                category: 'DISPERSION',
+                syntax: '=VAR.S(number1, [number2], ...)',
+                purpose: 'Ước tính phương sai (Variance) dựa trên một MẪU (Sample) bằng trung bình bình phương độ lệch chia cho (n - 1).',
+                note: '<strong>Mối quan hệ trực tiếp:</strong> Phương sai mẫu chính là bình phương của độ lệch chuẩn mẫu: <code>VAR.S = (STDEV.S)²</code> hay <code>STDEV.S = SQRT(VAR.S)</code>.'
+            },
+            // 12. VAR.P
+            {
+                name: 'VAR.P',
+                shortVi: 'Phương sai Tổng thể',
+                category: 'DISPERSION',
+                syntax: '=VAR.P(number1, [number2], ...)',
+                purpose: 'Tính phương sai (Variance) dựa trên toàn bộ TỔNG THỂ (Population) bằng trung bình bình phương độ lệch chia cho n.',
+                note: '<strong>Mối quan hệ trực tiếp:</strong> Phương sai tổng thể là bình phương của độ lệch chuẩn tổng thể: <code>VAR.P = (STDEV.P)²</code>. Công thức: <code>Σ(x - x̄)² / n</code>.'
+            },
+            // 13. LARGE
+            {
+                name: 'LARGE',
+                shortVi: 'Lớn thứ k',
+                category: 'EXTREME_POS',
+                syntax: '=LARGE(array, k)',
+                purpose: 'Trả về giá trị lớn thứ k trong một tập dữ liệu (ví dụ: tìm điểm số cao thứ 1, cao thứ 2, cao thứ 3).',
+                note: '<strong>Lưu ý:</strong> Nếu <code>k ≤ 0</code> hoặc <code>k</code> lớn hơn tổng số ô chứa số hiện có, Excel sẽ báo lỗi <code>#NUM!</code>. Khi <code>k = 1</code>, <code>LARGE</code> trả về đúng bằng <code>MAX</code>.'
+            },
+            // 14. SMALL
+            {
+                name: 'SMALL',
+                shortVi: 'Nhỏ thứ k',
+                category: 'EXTREME_POS',
+                syntax: '=SMALL(array, k)',
+                purpose: 'Trả về giá trị nhỏ thứ k trong một tập dữ liệu (ví dụ: tìm thời gian chạy nhanh nhất, nhanh nhì).',
+                note: '<strong>Lưu ý:</strong> Khi <code>k = 1</code>, <code>SMALL(A1:A10, 1)</code> trả về đúng bằng <code>MIN(A1:A10)</code>. Bạn có thể thay đổi tham số <code>k</code> trên thanh điều khiển để xem phần tử được chọn!'
+            },
+            // 15. RANK.EQ
+            {
+                name: 'RANK.EQ',
+                shortVi: 'Xếp hạng vị trí',
+                category: 'EXTREME_POS',
+                syntax: '=RANK.EQ(number, ref, [order])',
+                purpose: 'Trả về thứ hạng của một số trong danh sách các số. Nếu có nhiều số bằng nhau, tất cả sẽ nhận cùng thứ hạng cao nhất (Equal Rank).',
+                note: '<strong>Ý nghĩa tham số <code>[order]</code>:</strong> <code>0</code> (hoặc bỏ trống): Xếp từ Cao xuống Thấp (Số lớn nhất hạng 1 - dùng cho Điểm thi, Doanh số). <code>1</code>: Xếp từ Thấp lên Cao (Số nhỏ nhất hạng 1 - dùng cho Thời gian chạy điền kinh).'
+            },
+            // 16. PERCENTILE.EXC
+            {
+                name: 'PERCENTILE.EXC',
+                shortVi: 'Phân vị thứ k (Exclusive)',
+                category: 'EXTREME_POS',
+                syntax: '=PERCENTILE.EXC(array, k)',
+                purpose: 'Trả về giá trị phân vị thứ k của các giá trị trong một dãy, trong đó k nằm trong khoảng mở (0, 1) không bao gồm 0 và 1.',
+                note: '<strong>Cơ chế nội suy của <code>PERCENTILE.EXC</code>:</strong> Excel sắp xếp mảng tăng dần (n phần tử), tính vị trí <code>p = k × (n + 1)</code>, sau đó nội suy tuyến tính giữa 2 phần tử đứng quanh vị trí <code>p</code>. Nếu <code>k < 1/(n+1)</code> hoặc <code>k > n/(n+1)</code> sẽ báo lỗi <code>#NUM!</code>.'
+            },
+            // 17. QUARTILE.EXC
+            {
+                name: 'QUARTILE.EXC',
+                shortVi: 'Tứ phân vị (Q1, Q2, Q3)',
+                category: 'EXTREME_POS',
+                syntax: '=QUARTILE.EXC(array, quart)',
+                purpose: 'Trả về tứ phân vị của tập dữ liệu dựa trên các giá trị phân vị 0.25 (Q1), 0.50 (Q2 - Trung vị), 0.75 (Q3) trong khoảng mở (0, 1).',
+                note: '<strong>Tham số <code>quart</code>:</strong> Chỉ nhận <code>1</code> (Q1 = 25%, tương đương <code>PERCENTILE.EXC(array, 0.25)</code>), <code>2</code> (Q2 = 50%, tương đương <code>MEDIAN</code>), hoặc <code>3</code> (Q3 = 75%). Nếu nhập <code>quart ≤ 0</code> hoặc <code>≥ 4</code> sẽ báo lỗi <code>#NUM!</code>.'
+            }
+        ];
+
+        /**
+         * TRẠNG THÁI ỨNG DỤNG
+         */
+        const state = {
+            selectedCategory: 'ALL',
+            funcIndex: 0, // 0..16
+            stepIndex: 2, // 0, 1, 2 (3 bước trực quan)
+            maxSteps: 3,
+            cells: [45, 80, 60, 90, 35, 70, 50, 85, 40, 65], // A1:A10
+            // Tham số phụ cho các hàm đặc biệt
+            kRankOrder: 3,      // Dùng cho LARGE / SMALL (k = 1..n)
+            rankTargetIdx: 1,   // Ô A(idx+1) được đem đi xếp hạng trong RANK.EQ
+            rankAscOrder: 0,    // 0: Giảm dần (DESC), 1: Tăng dần (ASC)
+            percentileK: 0.25,  // Dùng cho PERCENTILE.EXC (0.1 .. 0.9)
+            quartileVal: 1,     // Dùng cho QUARTILE.EXC (1, 2, 3)
+            isPlaying: false,
+            timer: null
+        };
+
+        /**
+         * HÀM TIỆN ÍCH ĐỊNH DẠNG & PHÂN LOẠI Ô
+         */
+        function fmt(num, maxDec = 4) {
+            if (typeof num !== 'number' || isNaN(num)) return String(num);
+            if (!isFinite(num)) return '#DIV/0!';
+            return Number(Math.round(num + 'e' + maxDec) + 'e-' + maxDec);
+        }
+
+        function currentFunc() {
+            return FUNCTIONS_DB[state.funcIndex];
+        }
+
+        function inspectCell(rawVal) {
+            const str = String(rawVal ?? '').trim();
+            if (str === '') return { type: 'BLANK', num: null, display: '(Trống)' };
+            const parsed = Number(str);
+            if (!isNaN(parsed)) return { type: 'NUMBER', num: parsed, display: String(parsed) };
+            return { type: 'TEXT', num: null, display: str };
+        }
+
+        function getNumericEntries() {
+            const list = [];
+            state.cells.forEach((raw, idx) => {
+                const info = inspectCell(raw);
+                if (info.type === 'NUMBER') {
+                    list.push({ cellName: `A${idx + 1}`, rowIndex: idx, val: info.num });
+                }
+            });
+            return list;
+        }
+
+        /**
+         * HÀM NỘI SUY CHUẨN PERCENTILE.EXC CỦA EXCEL
+         */
+        function calcPercentileExc(sortedNums, k) {
+            const n = sortedNums.length;
+            if (n === 0) return { error: '#NUM!', pos: 0 };
+            const minK = 1 / (n + 1);
+            const maxK = n / (n + 1);
+            if (k <= 0 || k >= 1 || k < minK - 1e-9 || k > maxK + 1e-9) {
+                return { error: '#NUM!', pos: k * (n + 1), minK, maxK };
+            }
+            const pos = k * (n + 1); // Vị trí 1-based
+            const lowerIdx = Math.floor(pos); // 1..n
+            const frac = pos - lowerIdx;
+            const vLow = sortedNums[lowerIdx - 1];
+            const vHigh = lowerIdx < n ? sortedNums[lowerIdx] : vLow;
+            const value = vLow + frac * (vHigh - vLow);
+            return { error: null, value, pos, lowerIdx, frac, vLow, vHigh, minK, maxK };
+        }
+
+        /**
+         * TÍNH KẾT QUẢ EXCEL CHUẨN CHO HÀM THỐNG KÊ HIỆN TẠI
+         */
+        function evaluateCurrentFunction() {
+            const fn = currentFunc();
+            const numEntries = getNumericEntries();
+            const nums = numEntries.map(e => e.val);
+            const sorted = [...nums].sort((a, b) => a - b);
+            const n = nums.length;
+
+            switch (fn.name) {
+                case 'AVERAGE': {
+                    if (n === 0) return { formula: '=AVERAGE(A1:A10)', result: '#DIV/0!' };
+                    const sum = nums.reduce((a, b) => a + b, 0);
+                    return { formula: '=AVERAGE(A1:A10)', result: fmt(sum / n, 4) };
+                }
+                case 'MEDIAN': {
+                    if (n === 0) return { formula: '=MEDIAN(A1:A10)', result: '#NUM!' };
+                    const mid = Math.floor(n / 2);
+                    const med = n % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+                    return { formula: '=MEDIAN(A1:A10)', result: fmt(med, 4) };
+                }
+                case 'MODE.SNGL': {
+                    if (n === 0) return { formula: '=MODE.SNGL(A1:A10)', result: '#N/A' };
+                    const freq = new Map();
+                    let bestVal = null, bestCount = 0;
+                    nums.forEach(v => {
+                        const c = (freq.get(v) || 0) + 1;
+                        freq.set(v, c);
+                        if (c > bestCount) {
+                            bestCount = c;
+                            bestVal = v;
+                        }
+                    });
+                    if (bestCount < 2) return { formula: '=MODE.SNGL(A1:A10)', result: '#N/A (Không có số lặp)' };
+                    return { formula: '=MODE.SNGL(A1:A10)', result: fmt(bestVal, 4) };
+                }
+                case 'MAX':
+                    return { formula: '=MAX(A1:A10)', result: n ? fmt(Math.max(...nums), 4) : 0 };
+                case 'MIN':
+                    return { formula: '=MIN(A1:A10)', result: n ? fmt(Math.min(...nums), 4) : 0 };
+                case 'COUNT':
+                    return { formula: '=COUNT(A1:A10)', result: n };
+                case 'COUNTA': {
+                    const nonBlank = state.cells.filter(c => inspectCell(c).type !== 'BLANK').length;
+                    return { formula: '=COUNTA(A1:A10)', result: nonBlank };
+                }
+                case 'COUNTBLANK': {
+                    const blanks = state.cells.filter(c => inspectCell(c).type === 'BLANK').length;
+                    return { formula: '=COUNTBLANK(A1:A10)', result: blanks };
+                }
+                case 'STDEV.S':
+                case 'STDEV.P':
+                case 'VAR.S':
+                case 'VAR.P': {
+                    const isSample = fn.name.endsWith('.S');
+                    const isStdev = fn.name.startsWith('STDEV');
+                    if ((isSample && n < 2) || (!isSample && n < 1)) {
+                        return { formula: `=${fn.name}(A1:A10)`, result: '#DIV/0!' };
+                    }
+                    const mean = nums.reduce((a, b) => a + b, 0) / n;
+                    const sumSq = nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0);
+                    const denom = isSample ? (n - 1) : n;
+                    const variance = sumSq / denom;
+                    const finalVal = isStdev ? Math.sqrt(variance) : variance;
+                    return { formula: `=${fn.name}(A1:A10)`, result: fmt(finalVal, 4) };
+                }
+                case 'LARGE': {
+                    const k = state.kRankOrder;
+                    const desc = [...sorted].reverse();
+                    if (k < 1 || k > n) return { formula: `=LARGE(A1:A10, ${k})`, result: '#NUM!' };
+                    return { formula: `=LARGE(A1:A10, ${k})`, result: fmt(desc[k - 1], 4) };
+                }
+                case 'SMALL': {
+                    const k = state.kRankOrder;
+                    if (k < 1 || k > n) return { formula: `=SMALL(A1:A10, ${k})`, result: '#NUM!' };
+                    return { formula: `=SMALL(A1:A10, ${k})`, result: fmt(sorted[k - 1], 4) };
+                }
+                case 'RANK.EQ': {
+                    const targetCellName = `A${state.rankTargetIdx + 1}`;
+                    const targetInfo = inspectCell(state.cells[state.rankTargetIdx]);
+                    const formulaStr = state.rankAscOrder === 0
+                        ? `=RANK.EQ(${targetCellName}, A1:A10)`
+                        : `=RANK.EQ(${targetCellName}, A1:A10, 1)`;
+                    if (targetInfo.type !== 'NUMBER') return { formula: formulaStr, result: '#VALUE!' };
+                    const ordered = state.rankAscOrder === 0
+                        ? [...sorted].reverse()
+                        : [...sorted];
+                    const rankPos = ordered.indexOf(targetInfo.num) + 1;
+                    return { formula: formulaStr, result: rankPos > 0 ? `Hạng ${rankPos}` : '#N/A' };
+                }
+                case 'PERCENTILE.EXC': {
+                    const k = state.percentileK;
+                    const pObj = calcPercentileExc(sorted, k);
+                    return {
+                        formula: `=PERCENTILE.EXC(A1:A10, ${k})`,
+                        result: pObj.error ? pObj.error : fmt(pObj.value, 4)
+                    };
+                }
+                case 'QUARTILE.EXC': {
+                    const q = state.quartileVal;
+                    const k = q * 0.25;
+                    const pObj = calcPercentileExc(sorted, k);
+                    return {
+                        formula: `=QUARTILE.EXC(A1:A10, ${q})`,
+                        result: pObj.error ? pObj.error : fmt(pObj.value, 4)
+                    };
+                }
+                default:
+                    return { formula: `=${fn.name}(A1:A10)`, result: 0 };
+            }
+        }
+
+        /**
+         * RENDER BỘ LỌC DANH MỤC & LƯỚI 17 NÚT HÀM XUỐNG DÒNG (KHÔNG THANH TRƯỢT NGANG)
+         */
+        function renderHeaderButtons() {
+            const catBar = document.getElementById('categoryFilterBar');
+            catBar.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const active = state.selectedCategory === cat.id;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md font-bold transition ${
+                    active ? 'bg-white text-excel-800 shadow-sm' : 'text-excel-100 hover:bg-white/10'
+                }`;
+                btn.textContent = cat.name;
+                btn.addEventListener('click', () => {
+                    state.selectedCategory = cat.id;
+                    renderHeaderButtons();
+                });
+                catBar.appendChild(btn);
+            });
+
+            const grid = document.getElementById('functionButtonsGrid');
+            grid.innerHTML = '';
+
+            FUNCTIONS_DB.forEach((fn, idx) => {
+                if (state.selectedCategory !== 'ALL' && fn.category !== state.selectedCategory) return;
+
+                const isSelected = idx === state.funcIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border ${
+                    isSelected
+                        ? 'bg-amber-400 text-slate-950 font-extrabold border-amber-300 shadow-md ring-2 ring-white'
+                        : 'bg-excel-800/80 hover:bg-excel-800 text-white border-excel-500/40 font-semibold'
+                }`;
+                btn.innerHTML = `
+                    <span class="font-mono tracking-tight">${fn.name}</span>
+                    <span class="text-[10px] ${isSelected ? 'text-slate-800 font-bold' : 'text-excel-200 font-normal'} hidden sm:inline">• ${fn.shortVi}</span>
+                `;
+                btn.addEventListener('click', () => selectFunction(idx));
+                grid.appendChild(btn);
+            });
+        }
+
+        /**
+         * CHỌN MỘT HÀM TRONG 17 HÀM THỐNG KÊ
+         */
+        function selectFunction(idx) {
+            stopAutoPlay();
+            state.funcIndex = idx;
+            const fn = currentFunc();
+
+            // Tự động nạp bộ dữ liệu phù hợp nếu cần để người học thấy ngay hiệu ứng đặc trưng
+            if (fn.name === 'MODE.SNGL') {
+                const nums = getNumericEntries().map(e => e.val);
+                const unique = new Set(nums);
+                if (unique.size === nums.length) {
+                    // Nếu chưa có số trùng, nạp bộ có số trùng để thấy rõ MODE.SNGL
+                    state.cells = [75, 80, 60, 80, 50, 80, 60, 90, 75, 80];
+                }
+            }
+
+            state.stepIndex = 2; // Mặc định hiển thị đầy đủ kết quả ở bước cuối
+            renderHeaderButtons();
+            renderAll();
+        }
+
+        /**
+         * RENDER KHUNG ĐIỀU KHIỂN THAM SỐ PHỤ (k, ref, order, quart)
+         */
+        function renderExtraParamsPanel() {
+            const fn = currentFunc();
+            const panel = document.getElementById('extraParamsPanel');
+            const numCount = Math.max(1, getNumericEntries().length);
+
+            if (fn.name === 'LARGE' || fn.name === 'SMALL') {
+                panel.classList.remove('hidden');
+                if (state.kRankOrder > numCount) state.kRankOrder = numCount;
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-900">🎯 Chọn thứ tự <code>k</code> (${fn.name === 'LARGE' ? 'Lớn thứ k' : 'Nhỏ thứ k'}):</span>
+                        <div class="flex items-center gap-1.5">
+                            <input id="inputKOrder" type="range" min="1" max="${numCount}" value="${state.kRankOrder}" class="w-28 accent-excel-600 cursor-pointer" />
+                            <span class="font-mono font-extrabold bg-excel-600 text-white px-2.5 py-0.5 rounded">k = ${state.kRankOrder}</span>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('inputKOrder').addEventListener('input', (e) => {
+                    state.kRankOrder = Number(e.target.value);
+                    renderAll();
+                });
+            } else if (fn.name === 'RANK.EQ') {
+                panel.classList.remove('hidden');
+                const optionsHtml = state.cells.map((v, i) => `<option value="${i}" ${i === state.rankTargetIdx ? 'selected' : ''}>Ô A${i + 1} (${v === '' ? 'Trống' : v})</option>`).join('');
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-emerald-900">📌 Ô cần xếp hạng:</span>
+                            <select id="selectRankCell" class="bg-white border border-emerald-400 rounded px-2 py-1 font-mono font-bold text-slate-800">
+                                ${optionsHtml}
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-bold text-emerald-900">Thứ tự [order]:</span>
+                            <select id="selectRankOrder" class="bg-white border border-emerald-400 rounded px-2 py-1 font-mono font-bold text-slate-800">
+                                <option value="0" ${state.rankAscOrder === 0 ? 'selected' : ''}>0 - Giảm dần (Lớn nhất = Hạng 1)</option>
+                                <option value="1" ${state.rankAscOrder === 1 ? 'selected' : ''}>1 - Tăng dần (Nhỏ nhất = Hạng 1)</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('selectRankCell').addEventListener('change', (e) => {
+                    state.rankTargetIdx = Number(e.target.value);
+                    renderAll();
+                });
+                document.getElementById('selectRankOrder').addEventListener('change', (e) => {
+                    state.rankAscOrder = Number(e.target.value);
+                    renderAll();
+                });
+            } else if (fn.name === 'PERCENTILE.EXC') {
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-900">📐 Hệ số phân vị <code>k</code> (0.1 → 0.9):</span>
+                        <div class="flex items-center gap-2">
+                            <input id="inputPercentileK" type="range" min="0.1" max="0.9" step="0.05" value="${state.percentileK}" class="w-32 accent-excel-600 cursor-pointer" />
+                            <span class="font-mono font-extrabold bg-excel-600 text-white px-2.5 py-0.5 rounded">k = ${state.percentileK} (${Math.round(state.percentileK * 100)}%)</span>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('inputPercentileK').addEventListener('input', (e) => {
+                    state.percentileK = Number(e.target.value);
+                    renderAll();
+                });
+            } else if (fn.name === 'QUARTILE.EXC') {
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-900">📊 Chọn Tứ phân vị <code>quart</code>:</span>
+                        <div class="flex items-center gap-1.5">
+                            ${[
+                                { q: 1, label: 'quart = 1 (Q1 • 25%)' },
+                                { q: 2, label: 'quart = 2 (Q2 • 50%)' },
+                                { q: 3, label: 'quart = 3 (Q3 • 75%)' }
+                            ].map(item => `
+                                <button data-q="${item.q}" class="btn-quart px-2.5 py-1 rounded font-mono font-bold transition ${
+                                    state.quartileVal === item.q
+                                        ? 'bg-excel-600 text-white shadow-sm'
+                                        : 'bg-white text-slate-700 border border-emerald-300 hover:bg-emerald-100'
+                                }">${item.label}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-quart').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.quartileVal = Number(btn.getAttribute('data-q'));
+                        renderAll();
+                    });
+                });
+            } else {
+                panel.classList.add('hidden');
+                panel.innerHTML = '';
+            }
+        }
+
+        /**
+         * RENDER BẢNG TÍNH EXCEL A1:A10 VÀ Ô KẾT QUẢ A11
+         */
+        function renderSpreadsheet() {
+            const fn = currentFunc();
+            const evalObj = evaluateCurrentFunction();
+
+            document.getElementById('formulaBarText').textContent = evalObj.formula;
+            document.getElementById('formulaResultBadge').textContent = `= ${evalObj.result}`;
+            document.getElementById('funcSyntaxTag').textContent = fn.syntax;
+            document.getElementById('funcPurposeText').textContent = fn.purpose;
+            document.getElementById('funcNoteBox').innerHTML = fn.note;
+
+            const catObj = CATEGORIES.find(c => c.id === fn.category);
+            document.getElementById('funcCategoryBadge').textContent = catObj ? catObj.name : 'Thống kê';
+
+            const tbody = document.getElementById('excelSheetBody');
+            tbody.innerHTML = '';
+
+            state.cells.forEach((rawVal, idx) => {
+                const info = inspectCell(rawVal);
+                let isAccepted = info.type === 'NUMBER';
+                if (fn.name === 'COUNTA') isAccepted = info.type !== 'BLANK';
+                if (fn.name === 'COUNTBLANK') isAccepted = info.type === 'BLANK';
+
+                const isRankTarget = fn.name === 'RANK.EQ' && idx === state.rankTargetIdx;
+
+                let typeBadge = '';
+                if (info.type === 'NUMBER') {
+                    typeBadge = `<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-mono text-[11px] font-bold">Số (Number)</span>`;
+                } else if (info.type === 'TEXT') {
+                    typeBadge = `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-mono text-[11px] font-bold">Chữ (Text)</span>`;
+                } else {
+                    typeBadge = `<span class="px-2 py-0.5 rounded bg-slate-200 text-slate-600 font-mono text-[11px] font-semibold">Trống (Blank)</span>`;
+                }
+
+                const statusHtml = isAccepted
+                    ? `<span class="text-emerald-700 font-bold text-xs">✓ Đưa vào tính</span>`
+                    : `<span class="text-rose-500 font-semibold text-xs">✕ Bỏ qua</span>`;
+
+                const tr = document.createElement('tr');
+                tr.className = isRankTarget
+                    ? 'bg-amber-100/90 ring-2 ring-inset ring-amber-500'
+                    : isAccepted ? 'bg-white hover:bg-slate-50' : 'bg-slate-50/70 opacity-75';
+
+                tr.innerHTML = `
+                    <td class="py-1.5 text-center font-mono text-xs bg-slate-100 text-slate-600 font-bold border-r border-slate-300 select-none">
+                        A${idx + 1}
+                    </td>
+                    <td class="p-1 border-r border-slate-200">
+                        <input type="text" data-idx="${idx}" value="${rawVal}" placeholder="(Ô trống)"
+                            class="w-full px-2 py-1 font-mono font-bold text-xs sm:text-sm text-slate-900 bg-white border border-slate-200 rounded focus:outline-none focus:border-excel-600 focus:ring-1 focus:ring-excel-600 text-right" />
+                    </td>
+                    <td class="py-1.5 px-2 text-center border-r border-slate-200">${typeBadge}</td>
+                    <td class="py-1.5 px-2 text-center">${statusHtml}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // Dòng kết quả A11
+            const trRes = document.createElement('tr');
+            trRes.className = 'bg-excel-50/95 font-bold border-t-2 border-excel-500/40';
+            trRes.innerHTML = `
+                <td class="py-2 text-center font-mono text-xs bg-excel-100 text-excel-800 font-extrabold border-r border-slate-300">A11</td>
+                <td class="py-2 px-2.5 border-r border-slate-200 font-mono text-sm text-right text-excel-700 bg-emerald-100/80 ring-2 ring-inset ring-excel-600">
+                    ${evalObj.result}
+                </td>
+                <td class="py-2 px-2.5 text-xs text-excel-800 font-mono" colspan="2">
+                    ${evalObj.formula}
+                </td>
+            `;
+            tbody.appendChild(trRes);
+
+            // Sự kiện sửa trực tiếp ô A1:A10
+            tbody.querySelectorAll('input[type="text"]').forEach(inputEl => {
+                inputEl.addEventListener('input', (e) => {
+                    const idx = Number(e.target.getAttribute('data-idx'));
+                    state.cells[idx] = e.target.value;
+                    renderAll(true);
+                });
+            });
+        }
+
+        /**
+         * RENDER CÁC NÚT BƯỚC (STEP 1, STEP 2, STEP 3)
+         */
+        function renderStepPills() {
+            const container = document.getElementById('stepPillsContainer');
+            container.innerHTML = '';
+            const labels = ['Bước 1: Lọc & Chuẩn bị', 'Bước 2: Xử lý toán học', 'Bước 3: Kết quả cuối'];
+            for (let s = 0; s < state.maxSteps; s++) {
+                const active = s === state.stepIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md text-xs font-bold transition ${
+                    active
+                        ? 'bg-excel-600 text-white shadow-sm'
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`;
+                btn.textContent = labels[s] || `Bước ${s + 1}`;
+                btn.addEventListener('click', () => {
+                    stopAutoPlay();
+                    state.stepIndex = s;
+                    renderAll();
+                });
+                container.appendChild(btn);
+            }
+            document.getElementById('visualStepBadge').textContent = `Bước ${state.stepIndex + 1} / ${state.maxSteps}`;
+        }
+
+        /**
+         * ĐIỀU PHỐI SÂN KHẤU ĐỒ HỌA TRỰC QUAN CHO 17 HÀM THỐNG KÊ
+         */
+        function renderVisualStage() {
+            const fn = currentFunc();
+            const stage = document.getElementById('visualStageCanvas');
+            const header = document.getElementById('visualStageHeader');
+            const stepBanner = document.getElementById('stepTitleBanner');
+            const stepExp = document.getElementById('stepExplanationText');
+
+            header.textContent = `Mô phỏng trực quan: Hàm ${fn.name} (${fn.shortVi})`;
+
+            switch (fn.name) {
+                case 'AVERAGE':
+                    renderAverageVisual(stage, stepBanner, stepExp);
+                    break;
+                case 'MEDIAN':
+                    renderMedianVisual(stage, stepBanner, stepExp);
+                    break;
+                case 'MODE.SNGL':
+                    renderModeVisual(stage, stepBanner, stepExp);
+                    break;
+                case 'COUNT':
+                case 'COUNTA':
+                case 'COUNTBLANK':
+                    renderCountingVisual(fn, stage, stepBanner, stepExp);
+                    break;
+                case 'STDEV.S':
+                case 'STDEV.P':
+                case 'VAR.S':
+                case 'VAR.P':
+                    renderDispersionVisual(fn, stage, stepBanner, stepExp);
+                    break;
+                case 'MAX':
+                case 'MIN':
+                case 'LARGE':
+                case 'SMALL':
+                    renderOrderExtremeVisual(fn, stage, stepBanner, stepExp);
+                    break;
+                case 'RANK.EQ':
+                    renderRankVisual(stage, stepBanner, stepExp);
+                    break;
+                case 'PERCENTILE.EXC':
+                case 'QUARTILE.EXC':
+                    renderPercentileQuartileVisual(fn, stage, stepBanner, stepExp);
+                    break;
+            }
+        }
+
+        /**
+         * 1. MÔ PHỎNG HÀM AVERAGE (CỘNG DỒN TỔNG RỒI CHIA ĐỀU CHO N Ô SỐ)
+         */
+        function renderAverageVisual(stage, stepBanner, stepExp) {
+            const entries = getNumericEntries();
+            const n = entries.length;
+            if (n === 0) {
+                stage.innerHTML = `<div class="p-6 text-center text-rose-600 font-bold">Không có ô chứa số nào trong A1:A10 → Excel báo lỗi #DIV/0!</div>`;
+                return;
+            }
+            const sum = entries.reduce((a, b) => a + b.val, 0);
+            const avg = sum / n;
+            const totalAbs = entries.reduce((a, b) => a + Math.abs(b.val), 0) || 1;
+            const colors = ['bg-emerald-500', 'bg-sky-500', 'bg-amber-500', 'bg-indigo-500', 'bg-teal-500'];
+
+            const sumSegments = entries.map((e, i) => {
+                const w = Math.max(6, (Math.abs(e.val) / totalAbs) * 100);
+                return `<div style="width:${w}%" class="${colors[i % colors.length]} text-white text-[11px] font-mono font-bold py-2 text-center border-r border-white/30 truncate" title="${e.cellName}: ${e.val}">${e.val}</div>`;
+            }).join('');
+
+            const equalSegments = entries.map((_, i) => {
+                return `<div style="width:${100 / n}%" class="bg-excel-600 text-white text-[11px] font-mono font-bold py-2 text-center border-r border-white/40 truncate">${fmt(avg, 1)}</div>`;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between text-xs font-bold text-slate-600">
+                            <span>Bước 1: Cộng dồn SUM của ${n} ô chứa số</span>
+                            <span class="font-mono text-excel-700">Tổng SUM = ${fmt(sum, 2)}</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-xl overflow-hidden flex shadow-inner border border-slate-300">
+                            ${sumSegments}
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5 ${state.stepIndex >= 1 ? 'opacity-100' : 'opacity-40'} transition-opacity">
+                        <div class="flex justify-between text-xs font-bold text-slate-600">
+                            <span>Bước 2: Chia đều tổng ${fmt(sum, 2)} cho ${n} ô hợp lệ (COUNT = ${n})</span>
+                            <span class="font-mono text-amber-700">Mỗi phần = ${fmt(avg, 4)}</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-xl overflow-hidden flex shadow-inner border border-slate-300">
+                            ${equalSegments}
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 text-white font-mono text-xs sm:text-sm p-3 rounded-xl flex flex-wrap items-center justify-between gap-2">
+                        <span>AVERAGE(A1:A10) = SUM / COUNT = ${fmt(sum, 2)} / ${n}</span>
+                        <span class="text-amber-300 font-extrabold text-base">= ${fmt(avg, 4)}</span>
+                    </div>
+                </div>
+            `;
+
+            if (state.stepIndex === 0) {
+                stepBanner.textContent = `Bước 1/3: Lọc các ô chứa số và tính tổng SUM = ${fmt(sum, 2)}`;
+                stepExp.innerHTML = `Excel quét vùng <code>A1:A10</code>, tìm thấy <strong>${n} ô chứa số</strong> (bỏ qua các ô chữ hoặc trống) và cộng tổng được <strong>${fmt(sum, 2)}</strong>.`;
+            } else if (state.stepIndex === 1) {
+                stepBanner.textContent = `Bước 2/3: San bằng thanh tổng thành ${n} phần bằng nhau`;
+                stepExp.innerHTML = `Thanh tổng <strong>${fmt(sum, 2)}</strong> được chia đều cho số lượng ô hợp lệ là <strong>${n}</strong>.`;
+            } else {
+                stepBanner.textContent = `Bước 3/3: Kết quả =AVERAGE(A1:A10) = ${fmt(avg, 4)}`;
+                stepExp.innerHTML = `Phép tính hoàn tất: <code>${fmt(sum, 2)} ÷ ${n} = <strong>${fmt(avg, 4)}</strong></code>.`;
+            }
+        }
+
+        /**
+         * 2. MÔ PHỎNG HÀM MEDIAN (SẮP XẾP TĂNG DẦN & LẤY VỊ TRÍ CHÍNH GIỮA)
+         */
+        function renderMedianVisual(stage, stepBanner, stepExp) {
+            const entries = getNumericEntries();
+            const n = entries.length;
+            if (n === 0) {
+                stage.innerHTML = `<div class="p-6 text-center text-rose-600 font-bold">Không có dữ liệu số → #NUM!</div>`;
+                return;
+            }
+            const sorted = [...entries].sort((a, b) => a.val - b.val);
+            const mid = Math.floor(n / 2);
+            const isEven = n % 2 === 0;
+            const med = isEven ? (sorted[mid - 1].val + sorted[mid].val) / 2 : sorted[mid].val;
+
+            const cardsHtml = sorted.map((item, idx) => {
+                const isMid = isEven ? (idx === mid - 1 || idx === mid) : (idx === mid);
+                return `
+                    <div class="p-2.5 rounded-xl border-2 text-center font-mono transition-all ${
+                        isMid && state.stepIndex >= 1
+                            ? 'bg-amber-300 border-amber-600 text-slate-950 scale-110 shadow-md font-extrabold z-10'
+                            : 'bg-white border-slate-200 text-slate-700'
+                    }">
+                        <div class="text-[10px] text-slate-500">#${idx + 1} (${item.cellName})</div>
+                        <div class="text-sm sm:text-base font-bold">${item.val}</div>
+                    </div>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-xs font-bold uppercase text-slate-500">
+                        1. Dãy ${n} số sau khi Excel tự động sắp xếp tăng dần (Từ nhỏ → lớn):
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center gap-2 bg-slate-100 p-3.5 rounded-xl border border-slate-200">
+                        ${cardsHtml}
+                    </div>
+                    <div class="bg-slate-900 text-white font-mono text-xs sm:text-sm p-3.5 rounded-xl flex flex-wrap items-center justify-between gap-2">
+                        <span>${
+                            isEven
+                                ? `Vì N = ${n} (Chẵn) → Lấy trung bình 2 số đứng giữa (#${mid} và #${mid + 1}): (${sorted[mid - 1].val} + ${sorted[mid].val}) / 2`
+                                : `Vì N = ${n} (Lẻ) → Lấy đúng số đứng chính giữa tại vị trí #${mid + 1}`
+                        }</span>
+                        <span class="text-amber-300 font-extrabold text-base">MEDIAN = ${fmt(med, 4)}</span>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Cơ chế tìm Trung vị MEDIAN trên ${n} phần tử số`;
+            stepExp.innerHTML = isEven
+                ? `Sau khi sắp xếp ${n} số theo thứ tự tăng dần, vì số lượng phần tử là số chẵn nên có 2 phần tử đứng giữa là <strong>${sorted[mid - 1].val}</strong> (vị trí #${mid}) và <strong>${sorted[mid].val}</strong> (vị trí #${mid + 1}). Trung vị bằng <code>(${sorted[mid - 1].val} + ${sorted[mid].val}) / 2 = <strong>${fmt(med, 4)}</strong></code>.`
+                : `Sau khi sắp xếp ${n} số tăng dần, phần tử đứng chính giữa tại vị trí <strong>#${mid + 1}</strong> có giá trị bằng <strong>${fmt(med, 4)}</strong>.`;
+        }
+
+        /**
+         * 3. MÔ PHỎNG HÀM MODE.SNGL (ĐẾM TẦN SUẤT XUẤT HIỆN)
+         */
+        function renderModeVisual(stage, stepBanner, stepExp) {
+            const entries = getNumericEntries();
+            const freqMap = new Map();
+            let bestVal = null, maxFreq = 0;
+
+            entries.forEach(e => {
+                const c = (freqMap.get(e.val) || 0) + 1;
+                freqMap.set(e.val, c);
+                if (c > maxFreq) {
+                    maxFreq = c;
+                    bestVal = e.val;
+                }
+            });
+
+            const barsHtml = Array.from(freqMap.entries()).map(([val, count]) => {
+                const isWinner = maxFreq >= 2 && val === bestVal;
+                const widthPct = Math.max(18, (count / Math.max(2, maxFreq)) * 100);
+                return `
+                    <div class="flex items-center gap-3 text-xs font-mono">
+                        <div class="w-16 text-right font-bold text-slate-700">Số ${val}:</div>
+                        <div class="flex-1 bg-slate-100 rounded-lg h-7 overflow-hidden border border-slate-200 flex items-center">
+                            <div style="width:${widthPct}%" class="h-full ${isWinner ? 'bg-amber-400 text-slate-950 font-extrabold' : 'bg-excel-600 text-white font-semibold'} flex items-center justify-between px-2.5 transition-all">
+                                <span>Xuất hiện ${count} lần</span>
+                                ${isWinner ? '<span>👑 MODE</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-3">
+                    <div class="text-xs font-bold uppercase text-slate-500">Biểu đồ thống kê tần suất lặp lại của từng giá trị:</div>
+                    <div class="space-y-1.5 bg-white p-3.5 rounded-xl border border-slate-200 max-h-56 overflow-y-auto">
+                        ${barsHtml || '<div class="text-slate-400 text-center py-4">Không có dữ liệu số</div>'}
+                    </div>
+                    <div class="bg-slate-900 text-white font-mono text-xs sm:text-sm p-3 rounded-xl flex items-center justify-between">
+                        <span>Tần suất cao nhất: ${maxFreq} lần</span>
+                        <span class="text-amber-300 font-extrabold">${maxFreq >= 2 ? `MODE.SNGL = ${bestVal}` : '#N/A (Chưa có số nào lặp lại ≥ 2 lần)'}</span>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = maxFreq >= 2
+                ? `Giá trị xuất hiện nhiều nhất: ${bestVal} (${maxFreq} lần)`
+                : `Không có giá trị nào lặp lại → #N/A`;
+            stepExp.innerHTML = maxFreq >= 2
+                ? `Hàm <code>MODE.SNGL</code> đếm số lần xuất hiện của từng con số trong <code>A1:A10</code>. Giá trị <strong>${bestVal}</strong> lặp lại nhiều nhất với <strong>${maxFreq} lần</strong> nên được chọn làm Mốt (Mode).`
+                : `Mọi con số trong danh sách chỉ xuất hiện đúng 1 lần nên không tồn tại Mốt → Excel trả về lỗi <code>#N/A</code>. Hãy bấm nút <strong>"👯 2. Có số trùng"</strong> để xem khi có số lặp lại!`;
+        }
+
+        /**
+         * 4. MÔ PHỎNG BỘ 3 HÀM ĐẾM: COUNT, COUNTA, COUNTBLANK
+         */
+        function renderCountingVisual(fn, stage, stepBanner, stepExp) {
+            let countNum = 0, countText = 0, countBlank = 0;
+
+            const cellsGridHtml = state.cells.map((raw, idx) => {
+                const info = inspectCell(raw);
+                if (info.type === 'NUMBER') countNum++;
+                else if (info.type === 'TEXT') countText++;
+                else countBlank++;
+
+                const matched = (fn.name === 'COUNT' && info.type === 'NUMBER')
+                    || (fn.name === 'COUNTA' && info.type !== 'BLANK')
+                    || (fn.name === 'COUNTBLANK' && info.type === 'BLANK');
+
+                return `
+                    <div class="p-2 rounded-xl border-2 text-center transition-all ${
+                        matched
+                            ? 'bg-emerald-50 border-emerald-500 text-emerald-950 shadow-sm scale-102'
+                            : 'bg-slate-100 border-slate-200 text-slate-400 opacity-60'
+                    }">
+                        <div class="flex items-center justify-between text-[10px] font-mono">
+                            <span class="font-bold">A${idx + 1}</span>
+                            <span class="font-extrabold ${matched ? 'text-emerald-700' : 'text-rose-400'}">${matched ? '✓ +1' : '✕ 0'}</span>
+                        </div>
+                        <div class="font-mono font-bold text-xs sm:text-sm truncate my-0.5">${info.display}</div>
+                        <div class="text-[10px] uppercase font-semibold">${info.type}</div>
+                    </div>
+                `;
+            }).join('');
+
+            const countA = countNum + countText;
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        ${cellsGridHtml}
+                    </div>
+
+                    <!-- Bảng đối chiếu trực tiếp cả 3 hàm đếm -->
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                        <div class="p-2.5 rounded-xl border-2 ${fn.name === 'COUNT' ? 'bg-excel-50 border-excel-600' : 'bg-white border-slate-200'}">
+                            <div class="font-mono font-bold text-slate-700">=COUNT(A1:A10)</div>
+                            <div class="font-mono text-xl font-extrabold text-excel-700">${countNum}</div>
+                            <div class="text-[11px] text-slate-500">Chỉ đếm ô SỐ</div>
+                        </div>
+                        <div class="p-2.5 rounded-xl border-2 ${fn.name === 'COUNTA' ? 'bg-excel-50 border-excel-600' : 'bg-white border-slate-200'}">
+                            <div class="font-mono font-bold text-slate-700">=COUNTA(A1:A10)</div>
+                            <div class="font-mono text-xl font-extrabold text-sky-700">${countA}</div>
+                            <div class="text-[11px] text-slate-500">Số (${countNum}) + Chữ (${countText})</div>
+                        </div>
+                        <div class="p-2.5 rounded-xl border-2 ${fn.name === 'COUNTBLANK' ? 'bg-excel-50 border-excel-600' : 'bg-white border-slate-200'}">
+                            <div class="font-mono font-bold text-slate-700">=COUNTBLANK(A1:A10)</div>
+                            <div class="font-mono text-xl font-extrabold text-amber-700">${countBlank}</div>
+                            <div class="text-[11px] text-slate-500">Chỉ đếm ô TRỐNG</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Kết quả phân loại 10 ô trong vùng A1:A10`;
+            stepExp.innerHTML = `Trong 10 ô <code>A1:A10</code> hiện có: <strong>${countNum} ô Số</strong>, <strong>${countText} ô Chữ</strong> và <strong>${countBlank} ô Trống</strong>. Do đó: <code>COUNT = ${countNum}</code>, <code>COUNTA = ${countA}</code> và <code>COUNTBLANK = ${countBlank}</code>.`;
+        }
+
+        /**
+         * 5. MÔ PHỎNG ĐỘ LỆCH CHUẨN & PHƯƠNG SAI (STDEV.S, STDEV.P, VAR.S, VAR.P)
+         */
+        function renderDispersionVisual(fn, stage, stepBanner, stepExp) {
+            const entries = getNumericEntries();
+            const n = entries.length;
+            if (n < 2) {
+                stage.innerHTML = `<div class="p-6 text-center text-rose-600 font-bold">Cần ít nhất 2 ô chứa số để tính độ phân tán!</div>`;
+                return;
+            }
+            const nums = entries.map(e => e.val);
+            const mean = nums.reduce((a, b) => a + b, 0) / n;
+            const sumSq = nums.reduce((acc, v) => acc + Math.pow(v - mean, 2), 0);
+
+            const varS = sumSq / (n - 1);
+            const varP = sumSq / n;
+            const stdevS = Math.sqrt(varS);
+            const stdevP = Math.sqrt(varP);
+
+            const maxDev = Math.max(...nums.map(v => Math.abs(v - mean)), 1);
+
+            const devBarsHtml = entries.map(e => {
+                const dev = e.val - mean;
+                const sq = dev * dev;
+                return `
+                    <div class="p-1.5 rounded-lg bg-white border border-slate-200 text-center font-mono text-[11px]">
+                        <div class="text-[10px] text-slate-400">${e.cellName}: <strong>${e.val}</strong></div>
+                        <div class="${dev >= 0 ? 'text-emerald-700' : 'text-rose-600'} font-bold">
+                            x-x̄: ${dev >= 0 ? '+' : ''}${fmt(dev, 1)}
+                        </div>
+                        <div class="text-[10px] bg-slate-100 rounded px-1 mt-0.5 text-slate-700">
+                            (x-x̄)² = ${fmt(sq, 1)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-3.5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-100 px-3.5 py-2 rounded-xl border border-slate-200 text-xs font-mono">
+                        <span>Số phần tử n = <strong>${n}</strong></span>
+                        <span>Trung bình x̄ = <strong>${fmt(mean, 2)}</strong></span>
+                        <span class="text-excel-700 font-bold">Tổng Σ(x - x̄)² = ${fmt(sumSq, 2)}</span>
+                    </div>
+
+                    <div class="text-[11px] font-bold uppercase text-slate-500">
+                        Độ lệch từng ô so với trung bình (x - x̄) và bình phương độ lệch (x - x̄)²:
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                        ${devBarsHtml}
+                    </div>
+
+                    <!-- Bảng so sánh Mẫu (.S chia n-1) và Tổng thể (.P chia n) -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs font-mono">
+                        <div class="p-2 rounded-xl border-2 ${fn.name === 'VAR.S' ? 'bg-amber-100 border-amber-500 font-extrabold' : 'bg-slate-50 border-slate-200'}">
+                            <div class="text-[10px] font-sans text-slate-500">VAR.S (Chia n-1 = ${n - 1})</div>
+                            <div class="text-sm font-extrabold text-slate-900">${fmt(varS, 2)}</div>
+                        </div>
+                        <div class="p-2 rounded-xl border-2 ${fn.name === 'VAR.P' ? 'bg-amber-100 border-amber-500 font-extrabold' : 'bg-slate-50 border-slate-200'}">
+                            <div class="text-[10px] font-sans text-slate-500">VAR.P (Chia n = ${n})</div>
+                            <div class="text-sm font-extrabold text-slate-900">${fmt(varP, 2)}</div>
+                        </div>
+                        <div class="p-2 rounded-xl border-2 ${fn.name === 'STDEV.S' ? 'bg-emerald-100 border-emerald-600 font-extrabold' : 'bg-slate-50 border-slate-200'}">
+                            <div class="text-[10px] font-sans text-emerald-800">STDEV.S = √VAR.S</div>
+                            <div class="text-sm font-extrabold text-emerald-900">${fmt(stdevS, 3)}</div>
+                        </div>
+                        <div class="p-2 rounded-xl border-2 ${fn.name === 'STDEV.P' ? 'bg-emerald-100 border-emerald-600 font-extrabold' : 'bg-slate-50 border-slate-200'}">
+                            <div class="text-[10px] font-sans text-emerald-800">STDEV.P = √VAR.P</div>
+                            <div class="text-sm font-extrabold text-emerald-900">${fmt(stdevP, 3)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const isSample = fn.name.endsWith('.S');
+            const isStdev = fn.name.startsWith('STDEV');
+            stepBanner.textContent = `Cơ chế tính ${fn.name}: Chia cho ${isSample ? `n - 1 = ${n - 1} (Mẫu)` : `n = ${n} (Tổng thể)`}`;
+            stepExp.innerHTML = `Bước 1: Tính trung bình <code>x̄ = ${fmt(mean, 2)}</code>. Bước 2: Tính tổng bình phương độ lệch <code>Σ(x - x̄)² = ${fmt(sumSq, 2)}</code>. Bước 3: Chia cho <strong>${isSample ? `n - 1 (${n - 1})` : `n (${n})`}</strong> được phương sai <code>${fmt(isSample ? varS : varP, 3)}</code>${isStdev ? `, rồi lấy căn bậc hai được độ lệch chuẩn <strong>${fmt(isSample ? stdevS : stdevP, 4)}</strong>` : ''}.`;
+        }
+
+        /**
+         * 6. MÔ PHỎNG MAX, MIN, LARGE, SMALL
+         */
+        function renderOrderExtremeVisual(fn, stage, stepBanner, stepExp) {
+            const entries = getNumericEntries();
+            const n = entries.length;
+            if (n === 0) {
+                stage.innerHTML = `<div class="p-6 text-center text-rose-600 font-bold">Không có dữ liệu số!</div>`;
+                return;
+            }
+
+            const isDesc = fn.name === 'MAX' || fn.name === 'LARGE';
+            const k = (fn.name === 'MAX' || fn.name === 'MIN') ? 1 : state.kRankOrder;
+            const ordered = [...entries].sort((a, b) => isDesc ? b.val - a.val : a.val - b.val);
+            const targetItem = ordered[k - 1];
+
+            const cardsHtml = ordered.map((item, idx) => {
+                const isPicked = idx === k - 1;
+                return `
+                    <div class="p-2.5 rounded-xl border-2 text-center font-mono transition-all ${
+                        isPicked
+                            ? 'bg-amber-300 border-amber-600 text-slate-950 scale-110 shadow-md font-extrabold'
+                            : 'bg-white border-slate-200 text-slate-700'
+                    }">
+                        <div class="text-[10px] font-sans font-bold ${isPicked ? 'text-amber-900' : 'text-slate-400'}">
+                            ${isDesc ? `Lớn #${idx + 1}` : `Nhỏ #${idx + 1}`}
+                        </div>
+                        <div class="text-base font-extrabold">${item.val}</div>
+                        <div class="text-[10px] text-slate-500">Ô ${item.cellName}</div>
+                    </div>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-xs font-bold uppercase text-slate-500">
+                        Dãy số xếp theo thứ tự ${isDesc ? 'GIẢM DẦN (Từ lớn nhất → nhỏ nhất)' : 'TĂNG DẦN (Từ nhỏ nhất → lớn nhất)'}:
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center gap-2 bg-slate-100 p-3.5 rounded-xl border border-slate-200">
+                        ${cardsHtml}
+                    </div>
+                    <div class="bg-slate-900 text-white font-mono text-xs sm:text-sm p-3 rounded-xl flex items-center justify-between">
+                        <span>Vị trí cần lấy: <strong>${isDesc ? `Lớn thứ k = ${k}` : `Nhỏ thứ k = ${k}`}</strong></span>
+                        <span class="text-amber-300 font-extrabold text-base">= ${targetItem ? targetItem.val : '#NUM!'} (Tại ô ${targetItem ? targetItem.cellName : '?'})</span>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Tìm phần tử ${isDesc ? `lớn thứ ${k}` : `nhỏ thứ ${k}`} bằng hàm ${fn.name}`;
+            stepExp.innerHTML = targetItem
+                ? `Sau khi xếp các ô số theo thứ tự ${isDesc ? 'từ lớn xuống nhỏ' : 'từ nhỏ lên lớn'}, phần tử đứng ở vị trí <strong>thứ ${k}</strong> là <strong>${targetItem.val}</strong> (nằm tại ô <code>${targetItem.cellName}</code>).`
+                : `Tham số <code>k = ${k}</code> nằm ngoài phạm vi số lượng phần tử hiện có (${n}) nên trả về lỗi <code>#NUM!</code>.`;
+        }
+
+        /**
+         * 7. MÔ PHỎNG HÀM RANK.EQ (XẾP HẠNG TRONG DANH SÁCH & ĐỒNG HẠNG)
+         */
+        function renderRankVisual(stage, stepBanner, stepExp) {
+            const entries = getNumericEntries();
+            const targetCellName = `A${state.rankTargetIdx + 1}`;
+            const targetInfo = inspectCell(state.cells[state.rankTargetIdx]);
+
+            if (targetInfo.type !== 'NUMBER') {
+                stage.innerHTML = `<div class="p-6 text-center text-rose-600 font-bold">Ô ${targetCellName} đang không phải là số → RANK.EQ trả về #VALUE!</div>`;
+                return;
+            }
+
+            const sortedVals = entries.map(e => e.val).sort((a, b) => state.rankAscOrder === 0 ? b - a : a - b);
+            const rankedItems = entries.map(e => {
+                const r = sortedVals.indexOf(e.val) + 1;
+                return { ...e, rank: r };
+            }).sort((a, b) => a.rank - b.rank);
+
+            const myRank = sortedVals.indexOf(targetInfo.num) + 1;
+
+            const cardsHtml = rankedItems.map(item => {
+                const isTarget = item.rowIndex === state.rankTargetIdx;
+                const isTie = item.val === targetInfo.num && !isTarget;
+                return `
+                    <div class="p-2.5 rounded-xl border-2 text-center font-mono transition-all ${
+                        isTarget
+                            ? 'bg-amber-300 border-amber-600 text-slate-950 scale-105 shadow-md font-extrabold'
+                            : isTie
+                                ? 'bg-amber-50 border-amber-400 text-amber-900 font-bold'
+                                : 'bg-white border-slate-200 text-slate-700'
+                    }">
+                        <div class="text-[11px] font-extrabold ${isTarget ? 'text-amber-950' : 'text-excel-700'}">Hạng #${item.rank}</div>
+                        <div class="text-sm font-bold my-0.5">${item.val}</div>
+                        <div class="text-[10px] text-slate-500">Ô ${item.cellName}</div>
+                    </div>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-xs font-bold uppercase text-slate-500">
+                        Bảng xếp hạng (${state.rankAscOrder === 0 ? 'Order = 0: Số lớn nhất xếp Hạng 1' : 'Order = 1: Số nhỏ nhất xếp Hạng 1'}):
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 bg-slate-100 p-3 rounded-xl border border-slate-200">
+                        ${cardsHtml}
+                    </div>
+                    <div class="bg-slate-900 text-white font-mono text-xs sm:text-sm p-3 rounded-xl flex items-center justify-between">
+                        <span>Đang tra cứu: <strong>Ô ${targetCellName} (Giá trị = ${targetInfo.num})</strong></span>
+                        <span class="text-amber-300 font-extrabold text-base">Xếp Hạng #${myRank}</span>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Xếp hạng ô ${targetCellName} (${targetInfo.num}) → Đạt Hạng ${myRank}`;
+            stepExp.innerHTML = `Với chế độ <code>order = ${state.rankAscOrder}</code> (${state.rankAscOrder === 0 ? 'Giảm dần' : 'Tăng dần'}), giá trị <strong>${targetInfo.num}</strong> tại ô <code>${targetCellName}</code> đứng ở <strong>Hạng ${myRank}</strong>. Nếu có các ô bằng điểm nhau, <code>RANK.EQ</code> sẽ trao cùng một thứ hạng và nhảy cách thứ hạng kế tiếp.`;
+        }
+
+        /**
+         * 8. MÔ PHỎNG PERCENTILE.EXC & QUARTILE.EXC (NỘI SUY VỊ TRÍ k*(n+1))
+         */
+        function renderPercentileQuartileVisual(fn, stage, stepBanner, stepExp) {
+            const entries = getNumericEntries().sort((a, b) => a.val - b.val);
+            const sortedNums = entries.map(e => e.val);
+            const n = sortedNums.length;
+            const k = fn.name === 'QUARTILE.EXC' ? state.quartileVal * 0.25 : state.percentileK;
+            const pObj = calcPercentileExc(sortedNums, k);
+
+            if (pObj.error) {
+                stage.innerHTML = `
+                    <div class="p-5 bg-rose-50 border-2 border-rose-300 rounded-xl text-center space-y-2">
+                        <div class="text-rose-700 font-extrabold text-base">Lỗi #NUM! do k = ${k} nằm ngoài khoảng cho phép của .EXC</div>
+                        <p class="text-xs text-slate-600">
+                            Với <code>n = ${n}</code> phần tử, hàm <code>${fn.name}</code> yêu cầu <code>1/(n+1) ≤ k ≤ n/(n+1)</code>, tức là <code>${fmt(pObj.minK, 3)} ≤ k ≤ ${fmt(pObj.maxK, 3)}</code>.
+                        </p>
+                    </div>
+                `;
+                stepBanner.textContent = `Vị trí p = k × (n + 1) = ${fmt(pObj.pos, 2)} nằm ngoài biên → #NUM!`;
+                stepExp.innerHTML = `Hãy điều chỉnh thanh trượt <code>k</code> vào trong khoảng từ <strong>${fmt(pObj.minK, 2)}</strong> đến <strong>${fmt(pObj.maxK, 2)}</strong> để phép nội suy hợp lệ.`;
+                return;
+            }
+
+            const cardsHtml = entries.map((item, idx) => {
+                const pos1Based = idx + 1;
+                const isBracketing = pos1Based === pObj.lowerIdx || pos1Based === pObj.lowerIdx + 1;
+                return `
+                    <div class="p-2 rounded-xl border-2 text-center font-mono transition-all ${
+                        isBracketing
+                            ? 'bg-amber-100 border-amber-500 text-slate-950 scale-105 shadow font-extrabold'
+                            : 'bg-white border-slate-200 text-slate-600'
+                    }">
+                        <div class="text-[10px] text-slate-400">Vị trí #${pos1Based}</div>
+                        <div class="text-sm font-bold">${item.val}</div>
+                    </div>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-xs font-bold uppercase text-slate-500">
+                        1. Dãy ${n} phần tử sắp xếp tăng dần & 2 mốc kẹp quanh vị trí p = k×(n+1) = ${fmt(pObj.pos, 2)}:
+                    </div>
+                    <div class="flex flex-wrap items-center justify-center gap-1.5 bg-slate-100 p-3 rounded-xl border border-slate-200">
+                        ${cardsHtml}
+                    </div>
+                    <div class="bg-emerald-50 border border-emerald-300 p-3 rounded-xl text-xs font-mono space-y-1 text-emerald-950">
+                        <div>• Vị trí thực <strong>p = k × (n + 1) = ${k} × (${n} + 1) = ${fmt(pObj.pos, 3)}</strong> (Nằm giữa vị trí #${pObj.lowerIdx} và #${Math.min(n, pObj.lowerIdx + 1)})</div>
+                        <div>• Nội suy tuyến tính: <strong>${pObj.vLow} + ${fmt(pObj.frac, 3)} × (${pObj.vHigh} - ${pObj.vLow}) = ${fmt(pObj.value, 4)}</strong></div>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Nội suy vị trí p = ${fmt(pObj.pos, 2)} → Kết quả = ${fmt(pObj.value, 4)}`;
+            stepExp.innerHTML = `Hàm <code>${fn.name}</code> tính vị trí chuẩn <code>p = k × (n + 1) = ${k} × ${n + 1} = <strong>${fmt(pObj.pos, 2)}</strong></code>. Lấy phần tử thứ #${pObj.lowerIdx} (<strong>${pObj.vLow}</strong>) cộng thêm <strong>${fmt(pObj.frac, 2)}</strong> lần khoảng cách tới phần tử thứ #${pObj.lowerIdx + 1} (<strong>${pObj.vHigh}</strong>), thu được kết quả <strong>${fmt(pObj.value, 4)}</strong>.`;
+        }
+
+        /**
+         * RENDER MODAL BẢNG TRA CỨU 17 HÀM THỐNG KÊ
+         */
+        function renderCatalogModal() {
+            const tbody = document.getElementById('catalogTableBody');
+            tbody.innerHTML = '';
+            FUNCTIONS_DB.forEach((fn, i) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-excel-50 cursor-pointer transition';
+                tr.innerHTML = `
+                    <td class="py-2 px-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500">${i + 1}</td>
+                    <td class="py-2 px-3 border-r border-slate-200 font-mono font-extrabold text-excel-700">
+                        ${fn.name}
+                        <div class="text-[11px] font-sans font-medium text-slate-500">${fn.shortVi}</div>
+                    </td>
+                    <td class="py-2 px-3 border-r border-slate-200 font-mono text-xs text-slate-700">${fn.syntax}</td>
+                    <td class="py-2 px-3 text-xs text-slate-600">${fn.purpose}</td>
+                `;
+                tr.addEventListener('click', () => {
+                    document.getElementById('catalogModal').classList.add('hidden');
+                    document.getElementById('catalogModal').classList.remove('flex');
+                    selectFunction(i);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * RENDER TẤT CẢ
+         */
+        function renderAll(skipSheetRebuild = false) {
+            renderExtraParamsPanel();
+            if (!skipSheetRebuild) {
+                renderSpreadsheet();
+            } else {
+                const evalObj = evaluateCurrentFunction();
+                document.getElementById('formulaBarText').textContent = evalObj.formula;
+                document.getElementById('formulaResultBadge').textContent = `= ${evalObj.result}`;
+            }
+            renderStepPills();
+            renderVisualStage();
+        }
+
+        /**
+         * ĐIỀU KHIỂN CHẠY HOẠT HỌA TỪNG BƯỚC
+         */
+        function startAutoPlay() {
+            state.isPlaying = true;
+            document.getElementById('playPauseIcon').textContent = '⏸';
+            document.getElementById('playPauseText').textContent = 'Tạm dừng';
+            state.timer = setInterval(() => {
+                if (state.stepIndex < state.maxSteps - 1) {
+                    state.stepIndex++;
+                    renderAll();
+                } else {
+                    stopAutoPlay();
+                }
+            }, 1300);
+        }
+
+        function stopAutoPlay() {
+            state.isPlaying = false;
+            if (state.timer) {
+                clearInterval(state.timer);
+                state.timer = null;
+            }
+            document.getElementById('playPauseIcon').textContent = '▶';
+            document.getElementById('playPauseText').textContent = 'Chạy từng bước';
+        }
+
+        /**
+         * KHỞI TẠO SỰ KIỆN
+         */
+        function initEvents() {
+            document.getElementById('btnPlayPause').addEventListener('click', () => {
+                if (state.isPlaying) {
+                    stopAutoPlay();
+                } else {
+                    state.stepIndex = 0;
+                    renderAll();
+                    startAutoPlay();
+                }
+            });
+
+            document.getElementById('btnStep').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = (state.stepIndex + 1) % state.maxSteps;
+                renderAll();
+            });
+
+            document.getElementById('btnReset').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = 0;
+                renderAll();
+            });
+
+            // 4 nút nạp dữ liệu mẫu chuyên biệt
+            document.getElementById('btnPresetRandom').addEventListener('click', () => {
+                state.cells = Array.from({ length: 10 }, () => Math.floor(Math.random() * 85) + 15);
+                renderAll();
+            });
+
+            document.getElementById('btnPresetDuplicates').addEventListener('click', () => {
+                state.cells = [75, 85, 60, 85, 50, 85, 60, 95, 75, 85];
+                renderAll();
+            });
+
+            document.getElementById('btnPresetMixed').addEventListener('click', () => {
+                state.cells = [50, 'Vắng', 80, '', 70, 'Miễn', 90, '', 60, 100];
+                renderAll();
+            });
+
+            document.getElementById('btnPresetSpread').addEventListener('click', () => {
+                state.cells = [10, 95, 15, 90, 5, 100, 20, 85, 12, 98];
+                renderAll();
+            });
+
+            // Modal bảng tra cứu 17 hàm
+            const modal = document.getElementById('catalogModal');
+            document.getElementById('btnOpenCatalogModal').addEventListener('click', () => {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+            document.getElementById('btnCloseCatalogModal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initEvents();
+            renderCatalogModal();
+            selectFunction(0);
+        });
+    </script>
+</body>
+</html>
