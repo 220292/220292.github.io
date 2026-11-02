@@ -1,0 +1,1663 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<script>
+  // Chạy ngay khi trang bắt đầu tải
+  // Thay thế thanh địa chỉ thành một chuỗi mã hóa giả hoặc ẩn tên file đi
+  window.history.replaceState(null, "", "/view-secure");
+</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Operations Sandbox - Mô Phỏng 10 Thao Tác Cơ Bản Trong Excel</title>
+    <!-- Tải Tailwind CSS qua CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Google Font Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        excel: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#21a366',
+                            600: '#107c41',
+                            700: '#0b5c30',
+                            800: '#064e27',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .excel-grid-shadow {
+            box-shadow: 0 4px 20px -2px rgba(16, 124, 65, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+        }
+        /* Hiệu ứng viền kiến bò (Marching Ants) cho Copy / Cut */
+        @keyframes marching-ants {
+            0% { background-position: 0 0, 100% 100%, 0 100%, 100% 0; }
+            100% { background-position: 16px 0, calc(100% - 16px) 100%, 0 calc(100% - 16px), 100% 16px; }
+        }
+        .marching-ants-cell {
+            background-image: 
+                linear-gradient(90deg, #107c41 50%, transparent 50%), 
+                linear-gradient(90deg, #107c41 50%, transparent 50%), 
+                linear-gradient(0deg, #107c41 50%, transparent 50%), 
+                linear-gradient(0deg, #107c41 50%, transparent 50%);
+            background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+            background-size: 8px 2.5px, 8px 2.5px, 2.5px 8px, 2.5px 8px;
+            background-position: 0 0, 100% 100%, 0 100%, 100% 0;
+            animation: marching-ants 0.45s infinite linear;
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.85); opacity: 0; }
+            70% { transform: scale(1.04); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop-in 0.28s ease-out forwards;
+        }
+        /* Nút bàn phím ảo 3D */
+        .kbd-key {
+            box-shadow: 0 3px 0 #cbd5e1, 0 4px 6px rgba(0,0,0,0.08);
+            transition: all 0.15s ease;
+        }
+        .kbd-key-active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #0b5c30, 0 2px 4px rgba(16,124,65,0.3);
+            background-color: #107c41 !important;
+            color: #ffffff !important;
+            border-color: #0b5c30 !important;
+        }
+        /* Thanh cuộn ngang gọn gàng cho danh sách 10 thao tác */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+            border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.35);
+            border-radius: 9999px;
+        }
+        /* Dấu cộng đen AutoFill ở góc dưới phải ô */
+        .autofill-cross-cursor {
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER CHUẨN PHONG CÁCH EXCEL -->
+    <header class="bg-excel-600 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-lg bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shadow-inner">
+                    <svg class="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-base sm:text-xl font-bold tracking-tight">TAThao-Excel Operations Sandbox</h1>
+                        <span class="hidden md:inline-block text-xs bg-excel-800/80 text-excel-100 px-2.5 py-0.5 rounded-full font-medium border border-excel-500/40">10 Thao Tác Cơ Bản</span>
+                    </div>
+                    <p class="text-xs text-excel-100/90">Mô phỏng trực quan từng bước các thao tác và phím tắt cốt lõi trong Microsoft Excel</p>
+                </div>
+            </div>
+
+            <!-- Nút Xem Bảng Tóm Tắt 10 Thao Tác -->
+            <div class="flex items-center gap-2">
+                <button id="btnToggleSummaryModal" class="bg-amber-400 hover:bg-amber-300 text-slate-900 active:scale-95 transition text-xs sm:text-sm font-bold px-3.5 py-2 rounded-lg flex items-center gap-1.5 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    <span>Bảng tóm tắt 10 thao tác</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- THANH MENU CHỌN 10 THAO TÁC (1 -> 10) -->
+        <div class="bg-excel-700/95 border-t border-excel-500/30">
+            <div id="topicTabsContainer" class="max-w-7xl mx-auto px-4 sm:px-6 flex items-center overflow-x-auto custom-scrollbar py-2 gap-1.5">
+                <!-- Các tab 1..10 được khởi tạo bằng JS -->
+            </div>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- CỘT TRÁI (7/12): CỬA SỐ MÔ PHỎNG EXCEL TƯƠNG TÁC -->
+        <section class="lg:col-span-7 bg-white rounded-xl border border-slate-300 excel-grid-shadow overflow-hidden flex flex-col relative">
+
+            <!-- 1. THANH TIÊU ĐỀ CỬA SỔ EXCEL (QUICK ACCESS TOOLBAR & TÊN FILE) -->
+            <div class="bg-excel-700 text-white px-3 py-2 flex items-center justify-between text-xs select-none">
+                <div class="flex items-center gap-2">
+                    <button id="qatSaveBtn" class="hover:bg-white/20 p-1 rounded transition flex items-center gap-1" title="Lưu (Ctrl + S)">
+                        <svg class="w-4 h-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/>
+                        </svg>
+                    </button>
+                    <span class="text-white/40">|</span>
+                    <span id="windowFileName" class="font-mono font-bold tracking-wide">Bang_Diem_Lop10A.xlsx</span>
+                    <span id="fileSaveStatusBadge" class="bg-amber-400/20 text-amber-200 border border-amber-300/40 px-2 py-0.5 rounded-full text-[10px] font-semibold">
+                        Đã lưu
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="hidden sm:inline text-[11px] text-excel-100" id="activeModeTag">Chế độ: Ready (Sẵn sàng)</span>
+                    <div class="flex gap-1">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. THANH RIBBON MINI (HOME / PAGE LAYOUT) -->
+            <div class="bg-slate-100 border-b border-slate-300 px-3 py-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-1">
+                    <span id="ribbonHomeTab" class="px-2.5 py-1 rounded font-bold bg-white text-excel-700 shadow-sm border border-slate-200">Home</span>
+                    <span id="ribbonPageLayoutTab" class="px-2.5 py-1 rounded font-medium text-slate-600">Page Layout</span>
+                    <span class="px-2.5 py-1 rounded font-medium text-slate-500 hidden sm:inline">Formulas</span>
+                </div>
+                <!-- Công cụ nhanh trên Ribbon thay đổi theo ngữ cảnh -->
+                <div id="ribbonQuickTools" class="flex items-center gap-2 text-[11px] text-slate-600 font-medium">
+                    <span class="bg-white px-2 py-0.5 rounded border border-slate-200">📋 Clipboard</span>
+                    <span class="bg-white px-2 py-0.5 rounded border border-slate-200">📐 Cells</span>
+                    <span class="bg-white px-2 py-0.5 rounded border border-slate-200">🔍 Editing</span>
+                </div>
+            </div>
+
+            <!-- 3. THANH CÔNG THỨC (NAME BOX & FORMULA BAR) -->
+            <div class="bg-white border-b border-slate-300 px-3 py-2 flex items-center gap-2">
+                <!-- Name Box -->
+                <div id="excelNameBox" class="w-20 bg-slate-100 border border-slate-300 rounded px-2.5 py-1 font-mono text-xs font-bold text-slate-800 flex items-center justify-between shrink-0">
+                    <span id="nameBoxText">B2</span>
+                    <svg class="w-3 h-3 text-slate-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                </div>
+
+                <div class="text-excel-600 font-serif italic font-bold text-base px-1 select-none">fx</div>
+
+                <!-- Formula Bar Input Display -->
+                <div id="formulaBarBox" class="flex-1 bg-slate-50 border border-slate-300 rounded px-3 py-1 font-mono text-xs sm:text-sm text-slate-800 flex items-center justify-between min-h-[30px]">
+                    <span id="formulaBarContent" class="font-semibold text-slate-800">Nguyễn Văn An</span>
+                    <span id="formulaBarHint" class="text-[11px] font-sans text-slate-400 italic">Nhấp vào ô để chọn</span>
+                </div>
+            </div>
+
+            <!-- 4. LƯỚI BẢNG TÍNH EXCEL (SPREADSHEET GRID + OVERLAY POPUPS) -->
+            <div class="p-3 sm:p-4 bg-slate-50 flex-1 relative min-h-[340px] flex flex-col justify-between">
+                <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-inner relative">
+                    <!-- Bảng lưới -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse table-fixed text-xs sm:text-sm select-none">
+                            <thead>
+                                <tr id="excelColHeaderRow" class="bg-slate-200/90 text-slate-700 font-bold border-b border-slate-300">
+                                    <!-- Render bằng JS: góc trống + cột A, B, C, D -->
+                                </tr>
+                            </thead>
+                            <tbody id="excelGridBody" class="divide-y divide-slate-200">
+                                <!-- Render các dòng 1..6 bằng JS -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- HỘP THOẠI NỔI TRONG BẢNG TÍNH (CONTEXT MENU / DIALOGS / PRINT PREVIEW) -->
+                    <div id="floatingOverlayContainer" class="pointer-events-none absolute inset-0 flex items-center justify-center p-3 z-20 hidden">
+                        <!-- Sẽ được điền động bằng JS khi mô phỏng Chuột phải, Ctrl+F/H, Ctrl+Shift+S, Move/Copy Sheet, Ctrl+P -->
+                    </div>
+                </div>
+
+                <!-- 5. THANH SHEET TABS Ở ĐÁY BẢNG TÍNH -->
+                <div class="mt-3 bg-slate-200/90 border border-slate-300 rounded-lg px-2 py-1.5 flex items-center justify-between text-xs select-none">
+                    <div class="flex items-center gap-1.5 overflow-x-auto" id="sheetTabsBar">
+                        <!-- Các Sheet tab được render bằng JS -->
+                    </div>
+                    <div class="text-[11px] text-slate-500 font-mono hidden sm:block" id="statusBarRightText">
+                        Zoom: 100%
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CỘT PHẢI (5/12): BỘ ĐIỀU KHIỂN + BÀN PHÍM/CHUỘT TRỰC QUAN + GIẢI THÍCH TỪNG BƯỚC -->
+        <section class="lg:col-span-5 flex flex-col gap-4">
+
+            <!-- 1. THẺ TIÊU ĐỀ THAO TÁC HIỆN TẠI (THEO ĐÚNG BẢNG SGK/GIÁO TRÌNH) -->
+            <div class="bg-white rounded-xl border border-slate-200 p-4 excel-grid-shadow">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span id="currentOpNumberBadge" class="w-8 h-8 rounded-lg bg-excel-600 text-white font-mono font-extrabold text-sm flex items-center justify-center shrink-0 shadow-sm">
+                            1
+                        </span>
+                        <div>
+                            <h2 id="currentOpTitle" class="font-bold text-slate-800 text-base leading-snug">
+                                Nhập và chỉnh sửa dữ liệu
+                            </h2>
+                            <p id="currentOpShortDesc" class="text-xs text-excel-700 font-semibold mt-0.5">
+                                Nhấp vào ô để nhập; Enter xuống dòng; Tab sang phải; F2 chỉnh sửa.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. BỘ ĐIỀU KHIỂN CHẠY MÔ PHỎNG & NÚT THỰC HÀNH NHANH -->
+            <div class="bg-white rounded-xl border border-slate-200 p-4 excel-grid-shadow space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <!-- Nút Play / Pause -->
+                        <button id="btnPlayPause" class="bg-excel-600 hover:bg-excel-700 active:scale-95 text-white font-semibold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
+                            <svg id="iconPlay" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+                            </svg>
+                            <svg id="iconPause" class="w-4 h-4 hidden" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span id="textPlayPause">Chạy tự động</span>
+                        </button>
+
+                        <!-- Nút Bước tiếp theo -->
+                        <button id="btnStep" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-semibold text-xs sm:text-sm px-3 py-2 rounded-lg border border-slate-300 flex items-center gap-1 transition">
+                            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                            </svg>
+                            <span>Từng bước</span>
+                        </button>
+
+                        <!-- Nút Đặt lại -->
+                        <button id="btnReset" class="bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:scale-95 text-slate-600 font-medium text-xs sm:text-sm px-2.5 py-2 rounded-lg border border-slate-300 transition" title="Đặt lại từ đầu">
+                            ↺ Đặt lại
+                        </button>
+                    </div>
+
+                    <span id="stepProgressBadge" class="text-xs font-mono font-bold text-excel-700 bg-excel-50 px-2.5 py-1 rounded border border-excel-200">
+                        Bước 0 / 4
+                    </span>
+                </div>
+
+                <!-- Các nút bấm chọn nhanh từng bước của thao tác đang mở -->
+                <div>
+                    <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                        Bấm trực tiếp vào từng thao tác nhỏ để quan sát:
+                    </div>
+                    <div id="interactiveStepButtons" class="flex flex-wrap gap-1.5">
+                        <!-- Render bằng JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. TRÌNH HIỂN THỊ PHÍM TẮT & THAO TÁC CHUỘT (KEYBOARD & MOUSE VISUALIZER) -->
+            <div class="bg-slate-900 text-white rounded-xl p-4 shadow-md border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span class="font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                        <span>⌨️</span> Phím tắt / Thao tác chuột đang kích hoạt
+                    </span>
+                    <span id="actionTypeBadge" class="bg-slate-800 text-amber-300 px-2 py-0.5 rounded font-mono text-[11px]">
+                        Sẵn sàng
+                    </span>
+                </div>
+
+                <!-- Khu vực hiển thị các phím bấm nổi bật -->
+                <div id="keyVisualizerBox" class="min-h-[64px] bg-slate-800/90 rounded-lg border border-slate-700 p-3 flex flex-wrap items-center justify-center gap-2">
+                    <!-- Sẽ được render động bằng JS -->
+                </div>
+            </div>
+
+            <!-- 4. HỘP THOẠI GIẢI THÍCH TIẾNG VIỆT ĐỘNG THEO TỪNG BƯỚC -->
+            <div class="bg-gradient-to-br from-excel-50 via-white to-emerald-50 rounded-xl border-2 border-excel-500/40 p-4 shadow-sm">
+                <div class="flex items-center justify-between mb-1.5">
+                    <span id="explanationStepTitle" class="text-xs font-bold uppercase tracking-wider text-excel-800 bg-excel-200/70 px-2.5 py-0.5 rounded-full">
+                        Hướng dẫn thực hành
+                    </span>
+                    <span class="text-xs text-slate-400 font-mono">Mô phỏng trực quan</span>
+                </div>
+                <p id="explanationStepBody" class="text-slate-800 text-sm leading-relaxed font-medium">
+                    Hãy nhấn nút <strong>"Chạy tự động"</strong> hoặc <strong>"Từng bước"</strong> để xem hoạt họa chi tiết.
+                </p>
+            </div>
+
+            <!-- 5. MẸO GHI NHỚ NHANH (PEDAGOGICAL NOTE) -->
+            <div class="bg-amber-50/90 rounded-xl p-3.5 border border-amber-200 flex items-start gap-2.5 text-xs text-slate-700">
+                <span class="text-base leading-none">💡</span>
+                <div id="pedagogicalTipBox" class="leading-relaxed">
+                    <strong>Mẹo ghi nhớ:</strong> Nhấn <code>F2</code> giúp bạn đặt con trỏ vào bên trong ô để sửa một vài ký tự mà không làm mất toàn bộ nội dung cũ.
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL BẢNG TÓM TẮT 10 THAO TÁC CƠ BẢN (ĐÚNG NHƯ ẢNH ĐÍNH KÈM) -->
+    <div id="summaryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-pop">
+            <div class="bg-excel-600 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📋</span>
+                    <h3 class="font-bold text-base sm:text-lg">Bảng Tổng Hợp 10 Thao Tác Cơ Bản Trong Excel</h3>
+                </div>
+                <button id="btnCloseSummaryModal" class="bg-white/15 hover:bg-white/25 text-white rounded-lg px-3 py-1 text-xs font-bold transition">
+                    Đóng ✕
+                </button>
+            </div>
+            <div class="p-4 sm:p-6 overflow-y-auto">
+                <p class="text-xs sm:text-sm text-slate-600 mb-3">
+                    Nhấp vào bất kỳ dòng nào trong bảng dưới đây để chuyển ngay sang màn hình mô phỏng tương ứng:
+                </p>
+                <div class="border border-slate-300 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-800 font-bold">
+                                <th class="py-2.5 px-3 border-r border-slate-300 w-12 text-center">TT</th>
+                                <th class="py-2.5 px-4 border-r border-slate-300 w-1/3">Thao tác</th>
+                                <th class="py-2.5 px-4">Mô tả chuẩn</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableBody" class="divide-y divide-slate-200">
+                            <!-- Điền bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-3 px-4 text-center text-xs text-slate-500">
+        Excel Operations Sandbox • Học trực quan 10 thao tác cơ bản trong Excel qua mô phỏng tương tác.
+    </footer>
+
+    <!-- JAVASCRIPT XỬ LÝ 10 KỊCH BẢN MÔ PHỎNG -->
+    <script>
+        /**
+         * DỮ LIỆU 10 THAO TÁC CƠ BẢN TRONG EXCEL (THEO ĐÚNG BẢNG TRONG ẢNH)
+         */
+        const operationsData = [
+            {
+                id: 1,
+                shortTab: '1. Nhập & Sửa',
+                title: 'Nhập và chỉnh sửa dữ liệu',
+                desc: 'Nhấp vào ô để nhập; Enter để xuống dòng; Tab để sang phải; F2 để chỉnh sửa.',
+                tip: '<strong>Mẹo thực hành:</strong> Nếu bạn chọn một ô đã có dữ liệu và gõ luôn, dữ liệu cũ sẽ bị ghi đè. Hãy nhấn phím <code>F2</code> (hoặc nhấp đúp chuột) để sửa nối tiếp nội dung trong ô!',
+                steps: [
+                    {
+                        btnLabel: '1. Click chọn ô B2 & Nhập',
+                        actionBadge: 'Chuột trái + Gõ phím',
+                        keys: ['🖱️ Nhấp chuột vào B2', 'Gõ: "Nguyễn Văn An"'],
+                        title: 'Bước 1: Nhấp chuột vào ô để nhập dữ liệu',
+                        explanation: 'Đưa con trỏ chuột nhấp vào ô <strong>B2</strong>. Khi viền xanh xuất hiện quanh ô B2, bạn bắt đầu gõ nội dung <code>Nguyễn Văn An</code>.',
+                        gridState: {
+                            activeCell: 'B2',
+                            mode: 'Typing (Đang nhập)',
+                            formulaBar: 'Nguyễn Văn An|',
+                            cells: {
+                                A1: 'STT', B1: 'Họ và tên', C1: 'Điểm Toán', D1: 'Xếp loại',
+                                A2: '1', B2: 'Nguyễn Văn An|', C2: '', D2: '',
+                                A3: '2', B3: 'Trần Thị Bình', C3: '8.5', D3: 'Giỏi',
+                                A4: '3', B4: 'Lê Hoàng Nam', C4: '7.0', D4: 'Khá',
+                                A5: '4', B5: 'Phạm Minh Tuấn', C5: '9.0', D5: 'Giỏi'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Nhấn Tab (Sang phải)',
+                        actionBadge: 'Phím tắt: Tab ⇥',
+                        keys: ['Tab ⇥'],
+                        title: 'Bước 2: Nhấn phím Tab để chuyển sang ô bên phải',
+                        explanation: 'Sau khi nhập xong Họ tên ở ô <strong>B2</strong>, nhấn phím <code>Tab</code>. Excel sẽ chốt dữ liệu ở B2 và tự động dịch chuyển khung chọn sang ô bên phải là <strong>C2</strong> để bạn nhập Điểm Toán.',
+                        gridState: {
+                            activeCell: 'C2',
+                            mode: 'Ready (Sẵn sàng)',
+                            formulaBar: '8.0',
+                            cells: {
+                                A1: 'STT', B1: 'Họ và tên', C1: 'Điểm Toán', D1: 'Xếp loại',
+                                A2: '1', B2: 'Nguyễn Văn An', C2: '8.0', D2: 'Giỏi',
+                                A3: '2', B3: 'Trần Thị Bình', C3: '8.5', D3: 'Giỏi',
+                                A4: '3', B4: 'Lê Hoàng Nam', C4: '7.0', D4: 'Khá',
+                                A5: '4', B5: 'Phạm Minh Tuấn', C5: '9.0', D5: 'Giỏi'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Nhấn Enter (Xuống dòng)',
+                        actionBadge: 'Phím tắt: Enter ↵',
+                        keys: ['Enter ↵'],
+                        title: 'Bước 3: Nhấn phím Enter để xuống dòng dưới',
+                        explanation: 'Khi nhấn phím <code>Enter</code>, Excel xác nhận hoàn tất nhập liệu và di chuyển ô hiện hành xuống dòng tiếp theo (ô <strong>C3</strong>).',
+                        gridState: {
+                            activeCell: 'C3',
+                            mode: 'Ready (Sẵn sàng)',
+                            formulaBar: '8.5',
+                            cells: {
+                                A1: 'STT', B1: 'Họ và tên', C1: 'Điểm Toán', D1: 'Xếp loại',
+                                A2: '1', B2: 'Nguyễn Văn An', C2: '8.0', D2: 'Giỏi',
+                                A3: '2', B3: 'Trần Thị Bình', C3: '8.5', D3: 'Giỏi',
+                                A4: '3', B4: 'Lê Hoàng Nam', C4: '7.0', D4: 'Khá',
+                                A5: '4', B5: 'Phạm Minh Tuấn', C5: '9.0', D5: 'Giỏi'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '4. Nhấn F2 (Chỉnh sửa)',
+                        actionBadge: 'Phím tắt: F2',
+                        keys: ['F2'],
+                        title: 'Bước 4: Nhấn phím F2 để chỉnh sửa nội dung trong ô',
+                        explanation: 'Giả sử cần sửa tên ở ô <strong>B3</strong> từ <em>"Trần Thị Bình"</em> thành <em>"Trần Thị Ngọc Bình"</em>: Chọn B3 và nhấn phím <code>F2</code>. Con trỏ nhấp nháy sẽ hiện ngay bên trong ô để bạn sửa mà không bị xóa mất chữ cũ.',
+                        gridState: {
+                            activeCell: 'B3',
+                            editingCell: 'B3',
+                            mode: 'Edit (Đang sửa - F2)',
+                            formulaBar: 'Trần Thị Ngọc Bình|',
+                            cells: {
+                                A1: 'STT', B1: 'Họ và tên', C1: 'Điểm Toán', D1: 'Xếp loại',
+                                A2: '1', B2: 'Nguyễn Văn An', C2: '8.0', D2: 'Giỏi',
+                                A3: '2', B3: 'Trần Thị Ngọc Bình|', C3: '8.5', D3: 'Giỏi',
+                                A4: '3', B4: 'Lê Hoàng Nam', C4: '7.0', D4: 'Khá',
+                                A5: '4', B5: 'Phạm Minh Tuấn', C5: '9.0', D5: 'Giỏi'
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 2,
+                shortTab: '2. Sao chép, Cắt, Dán',
+                title: 'Sao chép, cắt, dán dữ liệu',
+                desc: 'Ctrl + C (Sao chép) • Ctrl + X (Cắt) • Ctrl + V (Dán).',
+                tip: '<strong>Phân biệt Sao chép và Cắt:</strong> <code>Ctrl + C</code> giữ nguyên ô gốc và tạo bản sao ở ô mới; trong khi <code>Ctrl + X</code> sẽ <strong>di chuyển</strong> dữ liệu sang ô mới và làm trống ô gốc.',
+                steps: [
+                    {
+                        btnLabel: '1. Ctrl + C (Sao chép B2)',
+                        actionBadge: 'Ctrl + C (Copy)',
+                        keys: ['Ctrl', '+', 'C'],
+                        title: 'Bước 1: Nhấn Ctrl + C để sao chép ô B2',
+                        explanation: 'Chọn ô <strong>B2 ("Máy tính xách tay")</strong> và nhấn tổ hợp phím <code>Ctrl + C</code>. Một đường viền nét đứt chuyển động (hiệu ứng "kiến bò") sẽ bao quanh ô B2, báo hiệu dữ liệu đã được lưu vào bộ nhớ tạm (Clipboard).',
+                        gridState: {
+                            activeCell: 'B2',
+                            marchingAntsCell: 'B2',
+                            mode: 'Copy (Đã sao chép vào Clipboard)',
+                            formulaBar: 'Máy tính xách tay',
+                            cells: {
+                                A1: 'Mã SP', B1: 'Tên sản phẩm', C1: 'Kho nguồn', D1: 'Kho đích (Copy/Cut)',
+                                A2: 'SP01', B2: 'Máy tính xách tay', C2: 'Bàn phím cơ', D2: '',
+                                A3: 'SP02', B3: 'Chuột không dây', C3: 'Màn hình 24"', D3: '',
+                                A4: 'SP03', B4: 'Tai nghe Bluetooth', C4: '', D4: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Ctrl + V (Dán vào D2)',
+                        actionBadge: 'Ctrl + V (Paste)',
+                        keys: ['Ctrl', '+', 'V'],
+                        title: 'Bước 2: Chọn ô D2 và nhấn Ctrl + V để dán bản sao',
+                        explanation: 'Nhấp chọn ô <strong>D2</strong> rồi nhấn <code>Ctrl + V</code>. Nội dung <em>"Máy tính xách tay"</em> xuất hiện tại D2, đồng thời dữ liệu gốc ở ô <strong>B2 vẫn được giữ nguyên</strong>.',
+                        gridState: {
+                            activeCell: 'D2',
+                            highlightSuccessCells: ['D2'],
+                            mode: 'Paste (Đã dán bản sao)',
+                            formulaBar: 'Máy tính xách tay',
+                            cells: {
+                                A1: 'Mã SP', B1: 'Tên sản phẩm', C1: 'Kho nguồn', D1: 'Kho đích (Copy/Cut)',
+                                A2: 'SP01', B2: 'Máy tính xách tay', C2: 'Bàn phím cơ', D2: 'Máy tính xách tay',
+                                A3: 'SP02', B3: 'Chuột không dây', C3: 'Màn hình 24"', D3: '',
+                                A4: 'SP03', B4: 'Tai nghe Bluetooth', C4: '', D4: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Ctrl + X (Cắt ô C2)',
+                        actionBadge: 'Ctrl + X (Cut)',
+                        keys: ['Ctrl', '+', 'X'],
+                        title: 'Bước 3: Nhấn Ctrl + X để Cắt (di chuyển) ô C2',
+                        explanation: 'Chọn ô <strong>C2 ("Bàn phím cơ")</strong> và nhấn <code>Ctrl + X</code>. Đường viền kiến bò xuất hiện quanh C2 và dữ liệu chuẩn bị được di chuyển đi nơi khác.',
+                        gridState: {
+                            activeCell: 'C2',
+                            marchingAntsCell: 'C2',
+                            mode: 'Cut (Chuẩn bị di chuyển)',
+                            formulaBar: 'Bàn phím cơ',
+                            cells: {
+                                A1: 'Mã SP', B1: 'Tên sản phẩm', C1: 'Kho nguồn', D1: 'Kho đích (Copy/Cut)',
+                                A2: 'SP01', B2: 'Máy tính xách tay', C2: 'Bàn phím cơ', D2: 'Máy tính xách tay',
+                                A3: 'SP02', B3: 'Chuột không dây', C3: 'Màn hình 24"', D3: '',
+                                A4: 'SP03', B4: 'Tai nghe Bluetooth', C4: '', D4: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '4. Ctrl + V (Dán di chuyển sang D3)',
+                        actionBadge: 'Ctrl + V (Paste Cut)',
+                        keys: ['Ctrl', '+', 'V'],
+                        title: 'Bước 4: Nhấn Ctrl + V tại D3 để hoàn tất di chuyển',
+                        explanation: 'Chọn ô <strong>D3</strong> và nhấn <code>Ctrl + V</code>. Chuỗi <em>"Bàn phím cơ"</em> đã chuyển hẳn sang D3 và <strong>ô gốc C2 trở thành ô trống</strong>!',
+                        gridState: {
+                            activeCell: 'D3',
+                            highlightSuccessCells: ['D3'],
+                            highlightWarnCells: ['C2'],
+                            mode: 'Ready (Đã di chuyển xong)',
+                            formulaBar: 'Bàn phím cơ',
+                            cells: {
+                                A1: 'Mã SP', B1: 'Tên sản phẩm', C1: 'Kho nguồn', D1: 'Kho đích (Copy/Cut)',
+                                A2: 'SP01', B2: 'Máy tính xách tay', C2: '(Đã cắt đi)', D2: 'Máy tính xách tay',
+                                A3: 'SP02', B3: 'Chuột không dây', C3: 'Màn hình 24"', D3: 'Bàn phím cơ',
+                                A4: 'SP03', B4: 'Tai nghe Bluetooth', C4: '', D4: ''
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 3,
+                shortTab: '3. Chèn & Xóa dòng/cột',
+                title: 'Chèn và xóa dòng / cột',
+                desc: 'Chuột phải vào tiêu đề dòng/cột > Insert hoặc Delete.',
+                tip: '<strong>Quy tắc chèn trong Excel:</strong> Khi chèn dòng mới, Excel sẽ chèn <strong>phía trên</strong> dòng đang chọn. Khi chèn cột mới, Excel sẽ chèn <strong>bên trái</strong> cột đang chọn.',
+                steps: [
+                    {
+                        btnLabel: '1. Chuột phải vào Dòng 3',
+                        actionBadge: '🖱️ Chuột phải (Right-Click)',
+                        keys: ['🖱️ Chuột phải vào số Dòng 3', 'Menu: Insert / Delete'],
+                        title: 'Bước 1: Nhấp chuột phải vào tiêu đề Dòng 3',
+                        explanation: 'Đưa chuột vào <strong>số thứ tự dòng 3</strong> ở lề trái bảng tính và nhấp <strong>Chuột phải</strong>. Toàn bộ dòng 3 được bôi chọn và menu ngữ cảnh hiện ra với 2 lệnh quan trọng: <code>Insert</code> (Chèn) và <code>Delete</code> (Xóa).',
+                        gridState: {
+                            activeCell: 'A3',
+                            selectedRow: 3,
+                            overlayType: 'contextRow3',
+                            mode: 'Menu Chuột phải Dòng 3',
+                            formulaBar: '2',
+                            cells: {
+                                A1: 'STT', B1: 'Họ và tên', C1: 'Lớp', D1: 'Ghi chú',
+                                A2: '1', B2: 'Nguyễn Văn An', C2: '10A1', D2: '',
+                                A3: '2', B3: 'Lê Hoàng Nam', C3: '10A1', D3: 'Chuẩn bị đẩy xuống',
+                                A4: '3', B4: 'Phạm Minh Tuấn', C4: '10A2', D4: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Chọn Insert (Chèn dòng mới)',
+                        actionBadge: 'Chọn lệnh: Insert',
+                        keys: ['🖱️ Click "Insert"'],
+                        title: 'Bước 2: Chọn Insert để chèn 1 dòng trống vào vị trí Dòng 3',
+                        explanation: 'Khi nhấp chọn <code>Insert</code>, một <strong>dòng trống mới tinh xuất hiện tại Dòng 3</strong>, còn dữ liệu cũ của bạn Lê Hoàng Nam tự động được đẩy xuống thành Dòng 4!',
+                        gridState: {
+                            activeCell: 'B3',
+                            selectedRow: 3,
+                            highlightSuccessRow: 3,
+                            mode: 'Đã chèn dòng mới (Insert Row)',
+                            formulaBar: '(Dòng mới chèn)',
+                            cells: {
+                                A1: 'STT', B1: 'Họ và tên', C1: 'Lớp', D1: 'Ghi chú',
+                                A2: '1', B2: 'Nguyễn Văn An', C2: '10A1', D2: '',
+                                A3: '✨ Mới', B3: '(Dòng trống mới chèn)', C3: '10A1', D3: 'Vừa chèn bằng Insert',
+                                A4: '2', B4: 'Lê Hoàng Nam', C4: '10A1', D4: 'Đã đẩy xuống dòng 4',
+                                A5: '3', B5: 'Phạm Minh Tuấn', C5: '10A2', D5: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Chuột phải > Delete (Xóa dòng)',
+                        actionBadge: 'Chọn lệnh: Delete',
+                        keys: ['🖱️ Chuột phải Dòng 3', '🖱️ Click "Delete"'],
+                        title: 'Bước 3: Chuột phải vào Dòng 3 > Chọn Delete để xóa dòng',
+                        explanation: 'Nếu muốn xóa bỏ một dòng hoặc cột dư thừa, bạn nhấp <strong>Chuột phải vào tiêu đề dòng/cột đó</strong> và chọn <code>Delete</code>. Các dòng bên dưới sẽ tự động dồn lên lấp chỗ trống.',
+                        gridState: {
+                            activeCell: 'B3',
+                            mode: 'Đã xóa dòng (Delete Row)',
+                            formulaBar: 'Lê Hoàng Nam',
+                            cells: {
+                                A1: 'STT', B1: 'Họ và tên', C1: 'Lớp', D1: 'Ghi chú',
+                                A2: '1', B2: 'Nguyễn Văn An', C2: '10A1', D2: '',
+                                A3: '2', B3: 'Lê Hoàng Nam', C3: '10A1', D3: 'Đã dồn trở lại dòng 3',
+                                A4: '3', B4: 'Phạm Minh Tuấn', C4: '10A2', D4: ''
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 4,
+                shortTab: '4. Tự động điền (AutoFill)',
+                title: 'Tự động điền (AutoFill)',
+                desc: 'Chọn ô/vùng, đưa trỏ chuột vào góc dưới phải đợi hiện dấu + màu đen, kéo chuột để sao chép công thức hoặc điền dãy số.',
+                tip: '<strong>Nhận diện 3 hình dạng con trỏ chuột trong Excel:</strong> <strong>Dấu cộng trắng dày (➕)</strong> dùng để chọn ô; <strong>Mũi tên 4 chiều</strong> dùng để di chuyển ô; chỉ khi hiện <strong>Dấu cộng mảnh màu đen (+)</strong> ở góc dưới phải mới là AutoFill!',
+                steps: [
+                    {
+                        btnLabel: '1. Chọn vùng A2:A3 (Số 1, 2)',
+                        actionBadge: 'Chọn mẫu dãy số',
+                        keys: ['Chọn A2:A3 (Giá trị 1, 2)'],
+                        title: 'Bước 1: Chọn ô hoặc vùng làm quy luật mẫu',
+                        explanation: 'Để điền nhanh số thứ tự tăng dần (1, 2, 3, 4, 5), ta nhập <code>1</code> vào ô <strong>A2</strong>, <code>2</code> vào ô <strong>A3</strong> rồi bôi đen chọn vùng <code>A2:A3</code> để Excel hiểu quy luật cộng thêm 1.',
+                        gridState: {
+                            activeCell: 'A3',
+                            showFillHandle: true,
+                            mode: 'Đã chọn vùng mẫu A2:A3',
+                            formulaBar: '2',
+                            cells: {
+                                A1: 'STT (AutoFill)', B1: 'Tháng', C1: 'Doanh thu', D1: 'Công thức hoa hồng',
+                                A2: '1', B2: 'Tháng 1', C2: '100', D2: '=C2*10%',
+                                A3: '2', B3: 'Tháng 2', C3: '150', D3: '',
+                                A4: '', B4: '', C4: '200', D4: '',
+                                A5: '', B5: '', C5: '250', D5: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Đưa chuột vào góc dưới phải (+ đen)',
+                        actionBadge: 'Con trỏ biến thành dấu + đen',
+                        keys: ['🖱️ Trỏ vào chấm vuông góc dưới phải', 'Hiện dấu + màu đen'],
+                        title: 'Bước 2: Đưa trỏ chuột vào góc dưới bên phải ô chọn',
+                        explanation: 'Di chuyển chuột vào đúng chấm vuông nhỏ màu xanh (Fill Handle) ở góc dưới bên phải ô <strong>A3</strong>. Đợi đến khi con trỏ chuột biến thành <strong>hình dấu + mảnh màu đen</strong>.',
+                        gridState: {
+                            activeCell: 'A3',
+                            showFillHandle: true,
+                            showBlackCrossPopup: true,
+                            mode: 'Sẵn sàng kéo AutoFill (+ đen)',
+                            formulaBar: '2',
+                            cells: {
+                                A1: 'STT (AutoFill)', B1: 'Tháng', C1: 'Doanh thu', D1: 'Công thức hoa hồng',
+                                A2: '1', B2: 'Tháng 1', C2: '100', D2: '=C2*10%',
+                                A3: '2', B3: 'Tháng 2', C3: '150', D3: '',
+                                A4: '', B4: '', C4: '200', D4: '',
+                                A5: '', B5: '', C5: '250', D5: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Kéo chuột xuống để tự động điền',
+                        actionBadge: 'Kéo thả dấu + đen xuống A5',
+                        keys: ['🖱️ Giữ chuột trái & Kéo xuống A5'],
+                        title: 'Bước 3: Kéo chuột xuống để tự động điền dãy dữ liệu & công thức',
+                        explanation: 'Giữ chuột trái và kéo xuống đến dòng 5: Excel tự động điền tiếp <strong>3, 4</strong> ở cột A; điền <strong>Tháng 3, Tháng 4</strong> ở cột B và sao chép công thức tính hoa hồng ở cột D!',
+                        gridState: {
+                            activeCell: 'D5',
+                            highlightSuccessCells: ['A4', 'A5', 'B4', 'B5', 'D3', 'D4', 'D5'],
+                            mode: 'Hoàn tất AutoFill!',
+                            formulaBar: '=C5*10%',
+                            cells: {
+                                A1: 'STT (AutoFill)', B1: 'Tháng', C1: 'Doanh thu', D1: 'Công thức hoa hồng',
+                                A2: '1', B2: 'Tháng 1', C2: '100', D2: '10 (từ =C2*10%)',
+                                A3: '2', B3: 'Tháng 2', C3: '150', D3: '15 (từ =C3*10%)',
+                                A4: '3 ✨', B4: 'Tháng 3 ✨', C4: '200', D4: '20 (từ =C4*10%)',
+                                A5: '4 ✨', B5: 'Tháng 4 ✨', C5: '250', D5: '25 (từ =C5*10%)'
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 5,
+                shortTab: '5. Lưu file',
+                title: 'Lưu file bảng tính',
+                desc: 'Ctrl + S (Lưu) • Ctrl + Shift + S / F12 (Lưu với tên khác - Save As).',
+                tip: '<strong>Thói quen vàng:</strong> Hãy nhấn <code>Ctrl + S</code> thường xuyên sau mỗi vài phút làm việc để tránh mất dữ liệu khi mất điện hoặc máy tính gặp sự cố.',
+                steps: [
+                    {
+                        btnLabel: '1. Khi dữ liệu chưa lưu',
+                        actionBadge: 'Trạng thái: Chưa lưu (*)',
+                        keys: ['Gõ thêm dữ liệu mới...'],
+                        title: 'Bước 1: Bảng tính có thay đổi mới chưa được lưu',
+                        explanation: 'Khi bạn vừa nhập thêm dữ liệu vào bảng tính, thanh tiêu đề trên cùng hiển thị trạng thái <strong>"Chưa lưu thay đổi"</strong>.',
+                        gridState: {
+                            activeCell: 'C3',
+                            fileStatus: 'unsaved',
+                            fileName: 'Bao_Cao_Tai_Chinh.xlsx *',
+                            mode: 'Có thay đổi chưa lưu',
+                            formulaBar: '125,000,000',
+                            cells: {
+                                A1: 'Quý', B1: 'Chi nhánh', C1: 'Doanh thu (VNĐ)', D1: 'Trạng thái',
+                                A2: 'Quý 1', B2: 'Hà Nội', C2: '98,000,000', D2: 'Đã chốt',
+                                A3: 'Quý 2', B3: 'Đà Nẵng', C3: '125,000,000', D3: 'Vừa cập nhật'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Nhấn Ctrl + S (Lưu)',
+                        actionBadge: 'Phím tắt: Ctrl + S',
+                        keys: ['Ctrl', '+', 'S'],
+                        title: 'Bước 2: Nhấn Ctrl + S để lưu nhanh vào file hiện tại',
+                        explanation: 'Nhấn tổ hợp phím <code>Ctrl + S</code>. Excel lập tức ghi nhận mọi thay đổi vào file hiện tại (<code>Bao_Cao_Tai_Chinh.xlsx</code>) mà không cần mở thêm hộp thoại nào.',
+                        gridState: {
+                            activeCell: 'C3',
+                            fileStatus: 'saved',
+                            fileName: 'Bao_Cao_Tai_Chinh.xlsx',
+                            mode: 'Đã lưu thành công (Saved)',
+                            formulaBar: '125,000,000',
+                            cells: {
+                                A1: 'Quý', B1: 'Chi nhánh', C1: 'Doanh thu (VNĐ)', D1: 'Trạng thái',
+                                A2: 'Quý 1', B2: 'Hà Nội', C2: '98,000,000', D2: 'Đã chốt',
+                                A3: 'Quý 2', B3: 'Đà Nẵng', C3: '125,000,000', D3: '✓ Đã lưu (Ctrl+S)'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Ctrl + Shift + S (Lưu tên khác)',
+                        actionBadge: 'Ctrl + Shift + S (Save As)',
+                        keys: ['Ctrl', '+', 'Shift', '+', 'S'],
+                        title: 'Bước 3: Nhấn Ctrl + Shift + S để Lưu với tên khác (Save As)',
+                        explanation: 'Khi muốn tạo một bản sao mới với tên file khác (ví dụ đổi thành <code>Bao_Cao_Quy2_Final.xlsx</code>) hoặc lưu sang thư mục khác, nhấn <code>Ctrl + Shift + S</code> (hoặc <code>F12</code>). Hộp thoại <strong>Save As</strong> sẽ bật lên!',
+                        gridState: {
+                            activeCell: 'C3',
+                            fileStatus: 'saved',
+                            fileName: 'Bao_Cao_Quy2_Final.xlsx',
+                            overlayType: 'saveAsDialog',
+                            mode: 'Hộp thoại Save As',
+                            formulaBar: '125,000,000',
+                            cells: {
+                                A1: 'Quý', B1: 'Chi nhánh', C1: 'Doanh thu (VNĐ)', D1: 'Trạng thái',
+                                A2: 'Quý 1', B2: 'Hà Nội', C2: '98,000,000', D2: 'Đã chốt',
+                                A3: 'Quý 2', B3: 'Đà Nẵng', C3: '125,000,000', D3: '✓ Bản sao mới'
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 6,
+                shortTab: '6. Tìm & Thay thế',
+                title: 'Tìm kiếm và thay thế dữ liệu',
+                desc: 'Ctrl + F (Tìm kiếm - Find) • Ctrl + H (Tìm và thay thế - Replace).',
+                tip: '<strong>Ứng dụng thực tế:</strong> Khi bảng tính có hàng nghìn dòng bị viết sai tên phòng ban hoặc mã hàng, <code>Ctrl + H</code> (Replace All) giúp bạn sửa đồng loạt chỉ trong 1 giây!',
+                steps: [
+                    {
+                        btnLabel: '1. Nhấn Ctrl + F (Tìm kiếm)',
+                        actionBadge: 'Phím tắt: Ctrl + F (Find)',
+                        keys: ['Ctrl', '+', 'F'],
+                        title: 'Bước 1: Nhấn Ctrl + F để mở hộp thoại Tìm kiếm (Find)',
+                        explanation: 'Nhấn <code>Ctrl + F</code> và nhập từ khóa <code>"Chưa nộp"</code>. Excel sẽ quét toàn bộ bảng và làm nổi bật các ô chứa cụm từ <em>"Chưa nộp"</em> (ô <strong>D2</strong> và <strong>D4</strong>).',
+                        gridState: {
+                            activeCell: 'D2',
+                            highlightWarnCells: ['D2', 'D4'],
+                            overlayType: 'findDialog',
+                            mode: 'Đang tìm kiếm: "Chưa nộp"',
+                            formulaBar: 'Chưa nộp',
+                            cells: {
+                                A1: 'Mã HV', B1: 'Họ và tên', C1: 'Lớp học', D1: 'Học phí',
+                                A2: 'HV01', B2: 'Nguyễn Văn An', C2: 'Excel Cơ bản', D2: '🔍 Chưa nộp',
+                                A3: 'HV02', B3: 'Trần Thị Bình', C3: 'Excel Cơ bản', D3: 'Đã hoàn thành',
+                                A4: 'HV03', B4: 'Lê Hoàng Nam', C4: 'Excel Nâng cao', D4: '🔍 Chưa nộp'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Nhấn Ctrl + H (Tìm & Thay thế)',
+                        actionBadge: 'Phím tắt: Ctrl + H (Replace)',
+                        keys: ['Ctrl', '+', 'H'],
+                        title: 'Bước 2: Nhấn Ctrl + H để mở thẻ Replace (Thay thế)',
+                        explanation: 'Nhấn <code>Ctrl + H</code> để chuyển sang hộp thoại <strong>Find and Replace</strong>. Tại ô <em>Find what</em> nhập <code>Chưa nộp</code>, tại ô <em>Replace with</em> nhập <code>Đã thu tiền</code>.',
+                        gridState: {
+                            activeCell: 'D2',
+                            highlightWarnCells: ['D2', 'D4'],
+                            overlayType: 'replaceDialog',
+                            mode: 'Chuẩn bị thay thế đồng loạt',
+                            formulaBar: 'Chưa nộp',
+                            cells: {
+                                A1: 'Mã HV', B1: 'Họ và tên', C1: 'Lớp học', D1: 'Học phí',
+                                A2: 'HV01', B2: 'Nguyễn Văn An', C2: 'Excel Cơ bản', D2: 'Chưa nộp',
+                                A3: 'HV02', B3: 'Trần Thị Bình', C3: 'Excel Cơ bản', D3: 'Đã hoàn thành',
+                                A4: 'HV03', B4: 'Lê Hoàng Nam', C4: 'Excel Nâng cao', D4: 'Chưa nộp'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Bấm Replace All (Thay thế tất cả)',
+                        actionBadge: 'Replace All: 2 ô đã đổi',
+                        keys: ['🖱️ Click "Replace All"'],
+                        title: 'Bước 3: Hoàn tất thay thế hàng loạt',
+                        explanation: 'Ngay khi bấm <strong>Replace All</strong>, cả 2 ô <strong>D2</strong> và <strong>D4</strong> đều được đổi từ <em>"Chưa nộp"</em> sang <strong>"Đã thu tiền"</strong> cùng lúc!',
+                        gridState: {
+                            activeCell: 'D4',
+                            highlightSuccessCells: ['D2', 'D4'],
+                            mode: 'Đã thay thế 2 vị trí!',
+                            formulaBar: 'Đã thu tiền',
+                            cells: {
+                                A1: 'Mã HV', B1: 'Họ và tên', C1: 'Lớp học', D1: 'Học phí',
+                                A2: 'HV01', B2: 'Nguyễn Văn An', C2: 'Excel Cơ bản', D2: '✓ Đã thu tiền',
+                                A3: 'HV02', B3: 'Trần Thị Bình', C3: 'Excel Cơ bản', D3: 'Đã hoàn thành',
+                                A4: 'HV03', B4: 'Lê Hoàng Nam', C4: 'Excel Nâng cao', D4: '✓ Đã thu tiền'
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 7,
+                shortTab: '7. Nhập công thức (=)',
+                title: 'Nhập công thức trong Excel',
+                desc: 'Bắt đầu công thức bằng dấu: =  (Ví dụ: =SUM(A1:A5)).',
+                tip: '<strong>Nguyên tắc bắt buộc:</strong> Mọi công thức trong Excel <strong>luôn phải bắt đầu bằng dấu bằng (<code>=</code>)</strong>. Nếu quên dấu <code>=</code> mà chỉ gõ <code>SUM(A1:A5)</code>, Excel sẽ hiểu đó là một dòng chữ bình thường!',
+                steps: [
+                    {
+                        btnLabel: '1. Gõ dấu = bắt đầu công thức',
+                        actionBadge: 'Bắt đầu bằng dấu =',
+                        keys: ['='],
+                        title: 'Bước 1: Chọn ô kết quả và gõ dấu bằng (=)',
+                        explanation: 'Chọn ô <strong>A6</strong> (nơi cần tính tổng) và gõ dấu <code>=</code>. Ngay khi có dấu <code>=</code> ở đầu, Excel chuyển sang chế độ tính toán công thức.',
+                        gridState: {
+                            activeCell: 'A6',
+                            editingCell: 'A6',
+                            mode: 'Formula Mode (Chế độ công thức)',
+                            formulaBar: '=',
+                            cells: {
+                                A1: '10', B1: 'Khoản thu 1', C1: '', D1: '',
+                                A2: '20', B2: 'Khoản thu 2', C2: '', D2: '',
+                                A3: '30', B3: 'Khoản thu 3', C3: '', D2: '',
+                                A4: '40', B4: 'Khoản thu 4', C4: '', D4: '',
+                                A5: '50', B5: 'Khoản thu 5', C5: '', D5: '',
+                                A6: '=', B6: '← Đang gõ dấu =', C6: '', D6: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Nhập =SUM(A1:A5)',
+                        actionBadge: 'Công thức: =SUM(A1:A5)',
+                        keys: ['=SUM(', 'Quét chọn A1:A5', ')'],
+                        title: 'Bước 2: Nhập hàm và vùng tham chiếu =SUM(A1:A5)',
+                        explanation: 'Gõ tiếp <code>SUM(A1:A5)</code>. Bạn sẽ thấy Excel tự động tô khung màu xanh quanh vùng dữ liệu từ <strong>A1 đến A5</strong> để bạn kiểm tra xem đã chọn đúng vùng cần tính chưa.',
+                        gridState: {
+                            activeCell: 'A6',
+                            editingCell: 'A6',
+                            highlightRangeCells: ['A1', 'A2', 'A3', 'A4', 'A5'],
+                            mode: 'Đang tham chiếu vùng A1:A5',
+                            formulaBar: '=SUM(A1:A5)',
+                            cells: {
+                                A1: '10', B1: 'Khoản thu 1', C1: '', D1: '',
+                                A2: '20', B2: 'Khoản thu 2', C2: '', D2: '',
+                                A3: '30', B3: 'Khoản thu 3', C3: '', D3: '',
+                                A4: '40', B4: 'Khoản thu 4', C4: '', D4: '',
+                                A5: '50', B5: 'Khoản thu 5', C5: '', D5: '',
+                                A6: '=SUM(A1:A5)', B6: '← Công thức chuẩn', C6: '', D6: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Nhấn Enter xem kết quả',
+                        actionBadge: 'Nhấn Enter ↵ → Kết quả: 150',
+                        keys: ['Enter ↵'],
+                        title: 'Bước 3: Nhấn Enter để hiển thị kết quả tính toán',
+                        explanation: 'Nhấn <code>Enter</code>: Ô <strong>A6</strong> lập tức hiển thị kết quả tổng là <strong>150</strong>, trong khi Thanh công thức (<code>fx</code>) phía trên vẫn lưu giữ công thức gốc <code>=SUM(A1:A5)</code>.',
+                        gridState: {
+                            activeCell: 'A6',
+                            highlightSuccessCells: ['A6'],
+                            mode: 'Ready (Đã tính xong)',
+                            formulaBar: '=SUM(A1:A5)',
+                            cells: {
+                                A1: '10', B1: 'Khoản thu 1', C1: '', D1: '',
+                                A2: '20', B2: 'Khoản thu 2', C2: '', D2: '',
+                                A3: '30', B3: 'Khoản thu 3', C3: '', D3: '',
+                                A4: '40', B4: 'Khoản thu 4', C4: '', D4: '',
+                                A5: '50', B5: 'Khoản thu 5', C5: '', D5: '',
+                                A6: '150', B6: '✓ Tổng của A1:A5', C6: '', D6: ''
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 8,
+                shortTab: '8. Địa chỉ F4 ($A$1)',
+                title: 'Thay đổi kiểu địa chỉ: Tương đối → Tuyệt đối (Phím F4)',
+                desc: 'Nhấn phím F4 để chuyển đổi vòng tròn: A1 → $A$1 → A$1 → $A1.',
+                tip: '<strong>Ý nghĩa ký hiệu đô-la ($):</strong> Dấu <code>$</code> đứng trước chữ cái Cột hoặc số Dòng nào thì sẽ <strong>"khóa cứng"</strong> cột hoặc dòng đó lại khi bạn kéo sao chép công thức (AutoFill).',
+                steps: [
+                    {
+                        btnLabel: '1. Địa chỉ tương đối (A1)',
+                        actionBadge: 'Mặc định: A1 (Tương đối)',
+                        keys: ['Gõ: =B2*A1'],
+                        title: 'Trạng thái 1: Địa chỉ tương đối (A1)',
+                        explanation: 'Khi mới gõ <code>A1</code> trong công thức, đây là <strong>Địa chỉ tương đối</strong> (không có dấu <code>$</code>). Nếu kéo công thức xuống dưới, <code>A1</code> sẽ tự động nhảy thành <code>A2, A3...</code>',
+                        gridState: {
+                            activeCell: 'C2',
+                            editingCell: 'C2',
+                            highlightRangeCells: ['A1'],
+                            mode: 'Địa chỉ Tương đối: A1',
+                            formulaBar: '=B2 * A1',
+                            cells: {
+                                A1: '10% (Thuế suất)', B1: 'Đơn giá', C1: 'Tiền thuế (Đang gõ F4)', D1: 'Ý nghĩa khóa ($)',
+                                A2: '', B2: '500,000', C2: '=B2 * A1', D2: 'Tương đối (Tự nhảy dòng & cột)',
+                                A3: '', B3: '800,000', C3: '', D3: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Nhấn F4 lần 1 ($A$1)',
+                        actionBadge: 'Nhấn F4 (Lần 1): $A$1',
+                        keys: ['F4', '→ $A$1'],
+                        title: 'Trạng thái 2: Địa chỉ tuyệt đối ($A$1) - Khóa cả Cột A và Dòng 1',
+                        explanation: 'Nhấn phím <code>F4</code> lần thứ nhất: Địa chỉ biến thành <strong><code>$A$1</code> (Địa chỉ tuyệt đối)</strong>. Cả cột A và dòng 1 đều có dấu <code>$</code> khóa chặt, khi kéo công thức đi bất kỳ đâu vẫn luôn nhân đúng với ô A1!',
+                        gridState: {
+                            activeCell: 'C2',
+                            editingCell: 'C2',
+                            highlightSuccessCells: ['A1'],
+                            mode: 'Địa chỉ Tuyệt đối: $A$1',
+                            formulaBar: '=B2 * $A$1',
+                            cells: {
+                                A1: '🔒 10% ($A$1)', B1: 'Đơn giá', C1: 'Tiền thuế (Đang gõ F4)', D1: 'Ý nghĩa khóa ($)',
+                                A2: '', B2: '500,000', C2: '=B2 * $A$1', D2: '🔒 Khóa cả Cột A và Dòng 1',
+                                A3: '', B3: '800,000', C3: '=B3 * $A$1', D3: 'Kéo xuống dòng 3 vẫn giữ $A$1!'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Nhấn F4 lần 2 (A$1)',
+                        actionBadge: 'Nhấn F4 (Lần 2): A$1',
+                        keys: ['F4', '→ A$1'],
+                        title: 'Trạng thái 3: Địa chỉ hỗn hợp (A$1) - Chỉ khóa Dòng 1',
+                        explanation: 'Nhấn phím <code>F4</code> lần thứ hai: Địa chỉ chuyển thành <strong><code>A$1</code></strong>. Dấu <code>$</code> đứng trước số 1 nghĩa là <strong>chỉ cố định Dòng 1</strong>, còn Cột A được phép thay đổi khi kéo ngang.',
+                        gridState: {
+                            activeCell: 'C2',
+                            editingCell: 'C2',
+                            highlightWarnCells: ['A1'],
+                            mode: 'Hỗn hợp (Khóa dòng): A$1',
+                            formulaBar: '=B2 * A$1',
+                            cells: {
+                                A1: '🔒 10% (A$1)', B1: 'Đơn giá', C1: 'Tiền thuế (Đang gõ F4)', D1: 'Ý nghĩa khóa ($)',
+                                A2: '', B2: '500,000', C2: '=B2 * A$1', D2: '🔒 Cột A tự do, khóa Dòng 1',
+                                A3: '', B3: '800,000', C3: '', D3: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '4. Nhấn F4 lần 3 ($A1)',
+                        actionBadge: 'Nhấn F4 (Lần 3): $A1',
+                        keys: ['F4', '→ $A1'],
+                        title: 'Trạng thái 4: Địa chỉ hỗn hợp ($A1) - Chỉ khóa Cột A',
+                        explanation: 'Nhấn phím <code>F4</code> lần thứ ba: Địa chỉ chuyển thành <strong><code>$A1</code></strong> (chỉ khóa Cột A, dòng 1 tự do). Nếu nhấn <code>F4</code> thêm một lần nữa, nó sẽ quay vòng trở lại <code>A1</code> ban đầu.',
+                        gridState: {
+                            activeCell: 'C2',
+                            editingCell: 'C2',
+                            highlightWarnCells: ['A1'],
+                            mode: 'Hỗn hợp (Khóa cột): $A1',
+                            formulaBar: '=B2 * $A1',
+                            cells: {
+                                A1: '🔒 10% ($A1)', B1: 'Đơn giá', C1: 'Tiền thuế (Đang gõ F4)', D1: 'Ý nghĩa khóa ($)',
+                                A2: '', B2: '500,000', C2: '=B2 * $A1', D2: '🔒 Khóa Cột A, Dòng 1 tự do',
+                                A3: '', B3: '800,000', C3: '', D3: ''
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 9,
+                shortTab: '9. Di chuyển/Copy Sheet',
+                title: 'Di chuyển hoặc sao chép Sheet',
+                desc: 'Nhấp chuột phải vào tên Sheet > Chọn Move or Copy.',
+                tip: '<strong>Lưu ý cực kỳ quan trọng:</strong> Trong hộp thoại <em>Move or Copy</em>, nếu bạn muốn <strong>nhân bản (sao chép)</strong> thêm một Sheet giống hệt, nhớ phải tích chọn vào ô vuông <code>☑ Create a copy</code>!',
+                steps: [
+                    {
+                        btnLabel: '1. Chuột phải vào tên Sheet1',
+                        actionBadge: '🖱️ Chuột phải vào Sheet1',
+                        keys: ['🖱️ Chuột phải vào tab "Sheet1"', 'Chọn "Move or Copy..."'],
+                        title: 'Bước 1: Nhấp chuột phải vào tên Sheet ở thanh dưới cùng',
+                        explanation: 'Đưa trỏ chuột xuống thanh quản lý trang tính ở đáy màn hình, nhấp <strong>Chuột phải vào tên <code>Sheet1</code></strong> và chọn lệnh <strong>Move or Copy...</strong> trong menu hiện lên.',
+                        gridState: {
+                            activeCell: 'A1',
+                            sheets: ['Sheet1 (Đang chọn)', 'Sheet2', 'Sheet3'],
+                            activeSheetIdx: 0,
+                            overlayType: 'sheetContextMenu',
+                            mode: 'Menu Chuột phải tại Sheet1',
+                            formulaBar: 'Báo cáo Tháng 1',
+                            cells: {
+                                A1: 'Báo cáo Tháng 1', B1: 'Dữ liệu gốc tại Sheet1', C1: '', D1: '',
+                                A2: 'Doanh thu', B2: '500 Triệu', C2: '', D2: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Tích chọn Create a copy',
+                        actionBadge: 'Hộp thoại Move or Copy',
+                        keys: ['Chọn vị trí: (move to end)', '☑ Tích chọn "Create a copy"'],
+                        title: 'Bước 2: Thiết lập vị trí và tích chọn "Create a copy"',
+                        explanation: 'Trong hộp thoại <strong>Move or Copy</strong>: Chọn vị trí muốn đặt (ví dụ <em>(move to end)</em> để đưa xuống cuối) và tích vào ô <code>☑ Create a copy</code> nếu muốn tạo bản sao.',
+                        gridState: {
+                            activeCell: 'A1',
+                            sheets: ['Sheet1', 'Sheet2', 'Sheet3'],
+                            activeSheetIdx: 0,
+                            overlayType: 'moveCopySheetDialog',
+                            mode: 'Hộp thoại Move or Copy',
+                            formulaBar: 'Báo cáo Tháng 1',
+                            cells: {
+                                A1: 'Báo cáo Tháng 1', B1: 'Dữ liệu gốc tại Sheet1', C1: '', D1: '',
+                                A2: 'Doanh thu', B2: '500 Triệu', C2: '', D2: ''
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '3. Hoàn tất tạo Sheet1 (2)',
+                        actionBadge: 'Đã nhân bản Sheet1 (2)',
+                        keys: ['🖱️ Click "OK"'],
+                        title: 'Bước 3: Trang tính mới "Sheet1 (2)" đã xuất hiện ở cuối thanh Sheet',
+                        explanation: 'Sau khi nhấn OK, bạn hãy nhìn xuống thanh Sheet ở đáy bảng tính: một trang tính nhân bản mang tên <strong><code>Sheet1 (2)</code></strong> đã được tạo ra ở vị trí cuối cùng!',
+                        gridState: {
+                            activeCell: 'A1',
+                            sheets: ['Sheet1', 'Sheet2', 'Sheet3', '✨ Sheet1 (2)'],
+                            activeSheetIdx: 3,
+                            highlightSuccessCells: ['A1', 'B1'],
+                            mode: 'Đã tạo bản sao Sheet1 (2)',
+                            formulaBar: 'Báo cáo Tháng 1',
+                            cells: {
+                                A1: 'Báo cáo Tháng 1', B1: '✓ Bản sao tại Sheet1 (2)', C1: '', D1: '',
+                                A2: 'Doanh thu', B2: '500 Triệu', C2: '', D2: ''
+                            }
+                        }
+                    }
+                ]
+            },
+            {
+                id: 10,
+                shortTab: '10. In ấn (Ctrl+P)',
+                title: 'Thiết lập trang in và In ấn',
+                desc: 'Ctrl + P để in; Chỉnh cỡ giấy (Size), căn lề (Margins) ở thẻ Page Layout.',
+                tip: '<strong>Kinh nghiệm in Excel không bị tràn cột:</strong> Trước khi nhấn <code>Ctrl + P</code> để in, hãy kiểm tra thẻ <strong>Page Layout</strong> (chọn khổ giấy <code>A4</code>, lề <code>Narrow</code>) và xem trước bản in (Print Preview) để tránh bảng bị cắt đôi sang trang sau.',
+                steps: [
+                    {
+                        btnLabel: '1. Thẻ Page Layout (Cỡ giấy & Lề)',
+                        actionBadge: 'Ribbon: Page Layout',
+                        keys: ['Thẻ Page Layout', 'Size: A4', 'Margins: Narrow'],
+                        title: 'Bước 1: Chỉnh cỡ giấy (Size) và căn lề (Margins) tại thẻ Page Layout',
+                        explanation: 'Trên thanh Ribbon, chuyển sang thẻ <strong>Page Layout</strong>. Tại đây bạn chọn <strong>Size → A4</strong> và <strong>Margins (Lề trang) → Standard / Narrow</strong>. Đường kẻ nét đứt phân trang sẽ hiện trên bảng tính.',
+                        gridState: {
+                            activeCell: 'A1',
+                            activeRibbon: 'PageLayout',
+                            mode: 'Page Layout (Cỡ giấy A4, Lề chuẩn)',
+                            formulaBar: 'Bảng Lương Tháng 11',
+                            cells: {
+                                A1: 'Bảng Lương Tháng 11', B1: 'Phòng Kế Toán', C1: 'Khổ giấy: A4', D1: 'Lề: Narrow',
+                                A2: '1. Nguyễn Văn An', B2: '15,000,000', C2: 'Đã ký nhận', D2: '⋮ (Ranh giới trang in)',
+                                A3: '2. Trần Thị Bình', B3: '16,500,000', C3: 'Đã ký nhận', D3: '⋮ (Ranh giới trang in)'
+                            }
+                        }
+                    },
+                    {
+                        btnLabel: '2. Nhấn Ctrl + P (Mở cửa sổ In)',
+                        actionBadge: 'Phím tắt: Ctrl + P (Print)',
+                        keys: ['Ctrl', '+', 'P'],
+                        title: 'Bước 2: Nhấn tổ hợp phím Ctrl + P để mở màn hình In & Xem trước (Print Preview)',
+                        explanation: 'Nhấn <code>Ctrl + P</code>. Màn hình <strong>Print Preview</strong> hiện ra giúp bạn kiểm tra bố cục trang giấy A4, chọn máy in, số bản in (Copies) trước khi bấm nút <strong>Print</strong> chính thức.',
+                        gridState: {
+                            activeCell: 'A1',
+                            activeRibbon: 'PageLayout',
+                            overlayType: 'printPreviewModal',
+                            mode: 'Cửa sổ In ấn (Ctrl + P)',
+                            formulaBar: 'Bảng Lương Tháng 11',
+                            cells: {
+                                A1: 'Bảng Lương Tháng 11', B1: 'Phòng Kế Toán', C1: 'Khổ giấy: A4', D1: 'Lề: Narrow',
+                                A2: '1. Nguyễn Văn An', B2: '15,000,000', C2: 'Đã ký nhận', D2: '',
+                                A3: '2. Trần Thị Bình', B3: '16,500,000', C3: 'Đã ký nhận', D3: ''
+                            }
+                        }
+                    }
+                ]
+            }
+        ];
+
+        /**
+         * TRẠNG THÁI HIỆN TẠI CỦA ỨNG DỤNG
+         */
+        const appState = {
+            currentOpIndex: 0, // 0..9 tương ứng thao tác 1..10
+            currentStepIndex: 0,
+            isPlaying: false,
+            timerId: null
+        };
+
+        /**
+         * KHỞI TẠO THANH 10 TAB THAO TÁC TRÊN HEADER & BẢNG TÓM TẮT MODAL
+         */
+        function renderNavigationAndSummary() {
+            const tabContainer = document.getElementById('topicTabsContainer');
+            tabContainer.innerHTML = '';
+
+            operationsData.forEach((op, idx) => {
+                const isSelected = idx === appState.currentOpIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-lg text-xs font-bold transition shrink-0 flex items-center gap-1.5 ${
+                    isSelected
+                        ? 'bg-white text-excel-800 shadow-sm ring-2 ring-amber-300'
+                        : 'text-excel-100 hover:bg-white/15'
+                }`;
+                btn.innerHTML = `<span>${op.shortTab}</span>`;
+                btn.addEventListener('click', () => {
+                    selectOperation(idx);
+                });
+                tabContainer.appendChild(btn);
+            });
+
+            // Điền bảng tóm tắt trong Modal
+            const summaryBody = document.getElementById('summaryTableBody');
+            summaryBody.innerHTML = '';
+            operationsData.forEach((op, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-excel-50 cursor-pointer transition';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-bold text-excel-700">${op.id}</td>
+                    <td class="py-2.5 px-4 border-r border-slate-200 font-bold text-slate-800">${op.title}</td>
+                    <td class="py-2.5 px-4 text-slate-600">${op.desc}</td>
+                `;
+                tr.addEventListener('click', () => {
+                    document.getElementById('summaryModal').classList.add('hidden');
+                    document.getElementById('summaryModal').classList.remove('flex');
+                    selectOperation(idx);
+                });
+                summaryBody.appendChild(tr);
+            });
+        }
+
+        /**
+         * CHỌN 1 TRONG 10 THAO TÁC
+         */
+        function selectOperation(opIdx) {
+            stopAutoPlay();
+            appState.currentOpIndex = opIdx;
+            appState.currentStepIndex = 0;
+            renderNavigationAndSummary();
+            renderAll();
+        }
+
+        /**
+         * RENDER GIAO DIỆN CHÍNH DỰA TRÊN THAO TÁC & BƯỚC HIỆN TẠI
+         */
+        function renderAll() {
+            const op = operationsData[appState.currentOpIndex];
+            const step = op.steps[appState.currentStepIndex];
+            const gs = step.gridState;
+
+            // 1. Cập nhật thông tin chung của Thao tác ở cột phải
+            document.getElementById('currentOpNumberBadge').textContent = op.id;
+            document.getElementById('currentOpTitle').textContent = op.title;
+            document.getElementById('currentOpShortDesc').textContent = op.desc;
+            document.getElementById('pedagogicalTipBox').innerHTML = op.tip;
+
+            // 2. Cập nhật chỉ số bước & các nút bấm từng bước
+            document.getElementById('stepProgressBadge').textContent = `Bước ${appState.currentStepIndex + 1} / ${op.steps.length}`;
+            const stepBtnsContainer = document.getElementById('interactiveStepButtons');
+            stepBtnsContainer.innerHTML = '';
+            op.steps.forEach((s, idx) => {
+                const active = idx === appState.currentStepIndex;
+                const b = document.createElement('button');
+                b.className = `px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition ${
+                    active
+                        ? 'bg-excel-600 text-white border-excel-700 shadow-sm'
+                        : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+                }`;
+                b.textContent = s.btnLabel;
+                b.addEventListener('click', () => {
+                    stopAutoPlay();
+                    appState.currentStepIndex = idx;
+                    renderAll();
+                });
+                stepBtnsContainer.appendChild(b);
+            });
+
+            // 3. Cập nhật Trình hiển thị Phím tắt / Chuột (Keyboard & Mouse Visualizer)
+            document.getElementById('actionTypeBadge').textContent = step.actionBadge;
+            const keyBox = document.getElementById('keyVisualizerBox');
+            keyBox.innerHTML = '';
+            step.keys.forEach(k => {
+                if (k === '+') {
+                    const plus = document.createElement('span');
+                    plus.className = 'text-slate-400 font-bold text-sm px-1';
+                    plus.textContent = '+';
+                    keyBox.appendChild(plus);
+                } else {
+                    const keyEl = document.createElement('span');
+                    keyEl.className = 'kbd-key kbd-key-active px-3 py-1.5 rounded-lg bg-white text-slate-900 font-mono font-extrabold text-xs sm:text-sm border border-slate-300 animate-pop';
+                    keyEl.textContent = k;
+                    keyBox.appendChild(keyEl);
+                }
+            });
+
+            // 4. Cập nhật hộp giải thích tiếng Việt động
+            document.getElementById('explanationStepTitle').textContent = step.title;
+            document.getElementById('explanationStepBody').innerHTML = step.explanation;
+
+            // 5. Cập nhật Cửa sổ Excel (Header, Ribbon, Formula Bar, Grid, Overlays, Sheet Tabs)
+            renderExcelWindow(gs);
+        }
+
+        /**
+         * RENDER CỬA SỔ MÔ PHỎNG EXCEL Ở CỘT TRÁI
+         */
+        function renderExcelWindow(gs) {
+            // Tên file & Trạng thái lưu
+            document.getElementById('windowFileName').textContent = gs.fileName || 'Bang_Thuc_Hanh_Excel.xlsx';
+            const saveBadge = document.getElementById('fileSaveStatusBadge');
+            if (gs.fileStatus === 'unsaved') {
+                saveBadge.textContent = '● Chưa lưu thay đổi';
+                saveBadge.className = 'bg-rose-500 text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold animate-pulse';
+            } else {
+                saveBadge.textContent = '✓ Đã lưu';
+                saveBadge.className = 'bg-emerald-400/20 text-emerald-100 border border-emerald-300/40 px-2 py-0.5 rounded-full text-[10px] font-semibold';
+            }
+
+            // Chế độ Excel (Ready / Edit / Copy...)
+            document.getElementById('activeModeTag').textContent = `Chế độ: ${gs.mode || 'Ready'}`;
+
+            // Ribbon Tab (Home vs Page Layout)
+            const homeTab = document.getElementById('ribbonHomeTab');
+            const pageTab = document.getElementById('ribbonPageLayoutTab');
+            const ribbonTools = document.getElementById('ribbonQuickTools');
+            if (gs.activeRibbon === 'PageLayout') {
+                homeTab.className = 'px-2.5 py-1 rounded font-medium text-slate-600';
+                pageTab.className = 'px-2.5 py-1 rounded font-bold bg-white text-excel-700 shadow-sm border border-slate-200 ring-2 ring-amber-400';
+                ribbonTools.innerHTML = `
+                    <span class="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded border border-amber-300">📏 Margins: Narrow</span>
+                    <span class="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded border border-amber-300">📄 Size: A4</span>
+                    <span class="bg-white px-2 py-0.5 rounded border border-slate-200">🖨️ Print Area</span>
+                `;
+            } else {
+                homeTab.className = 'px-2.5 py-1 rounded font-bold bg-white text-excel-700 shadow-sm border border-slate-200';
+                pageTab.className = 'px-2.5 py-1 rounded font-medium text-slate-600';
+                ribbonTools.innerHTML = `
+                    <span class="bg-white px-2 py-0.5 rounded border border-slate-200">📋 Copy / Paste</span>
+                    <span class="bg-white px-2 py-0.5 rounded border border-slate-200">➕ Insert / Delete</span>
+                    <span class="bg-white px-2 py-0.5 rounded border border-slate-200">🔍 Find & Select</span>
+                `;
+            }
+
+            // Name Box & Formula Bar
+            document.getElementById('nameBoxText').textContent = gs.activeCell || 'A1';
+            document.getElementById('formulaBarContent').textContent = gs.formulaBar !== undefined ? gs.formulaBar : '';
+
+            // Render Tiêu đề Cột (A, B, C, D)
+            const cols = ['A', 'B', 'C', 'D'];
+            const colHeaderRow = document.getElementById('excelColHeaderRow');
+            colHeaderRow.innerHTML = `<th class="w-10 py-1.5 text-center border-r border-slate-300 bg-slate-200 text-slate-500">◢</th>`;
+            cols.forEach(c => {
+                const isActiveCol = (gs.activeCell || '').startsWith(c);
+                colHeaderRow.innerHTML += `
+                    <th class="py-1.5 text-center border-r border-slate-300 ${
+                        isActiveCol ? 'bg-excel-100 text-excel-800 border-b-2 border-b-excel-600' : ''
+                    }">${c}</th>
+                `;
+            });
+
+            // Render 6 Dòng dữ liệu (1..6)
+            const tbody = document.getElementById('excelGridBody');
+            tbody.innerHTML = '';
+
+            for (let r = 1; r <= 6; r++) {
+                const tr = document.createElement('tr');
+                const isSelectedWholeRow = gs.selectedRow === r;
+                const isSuccessRow = gs.highlightSuccessRow === r;
+
+                let rowClass = 'transition-colors ';
+                if (isSuccessRow) rowClass += 'bg-emerald-50/90 ';
+                else if (isSelectedWholeRow) rowClass += 'bg-amber-50/70 ';
+                else if (r === 1) rowClass += 'bg-slate-50/90 font-semibold ';
+
+                tr.className = rowClass;
+
+                // Ô số thứ tự dòng (1..6)
+                const isActiveRow = (gs.activeCell || '').endsWith(String(r));
+                const rowTh = document.createElement('td');
+                rowTh.className = `py-2 text-center font-mono text-xs border-r border-slate-300 font-bold ${
+                    isSelectedWholeRow
+                        ? 'bg-amber-400 text-slate-900'
+                        : isActiveRow
+                            ? 'bg-excel-100 text-excel-800'
+                            : 'bg-slate-100 text-slate-500'
+                }`;
+                rowTh.textContent = r;
+                tr.appendChild(rowTh);
+
+                // Các ô A, B, C, D trong dòng r
+                cols.forEach(c => {
+                    const cellId = `${c}${r}`;
+                    const val = (gs.cells && gs.cells[cellId]) ? gs.cells[cellId] : '';
+                    const isActive = gs.activeCell === cellId;
+                    const isEditing = gs.editingCell === cellId;
+                    const isMarching = gs.marchingAntsCell === cellId;
+                    const isSuccess = (gs.highlightSuccessCells || []).includes(cellId);
+                    const isWarn = (gs.highlightWarnCells || []).includes(cellId);
+                    const isRangeRef = (gs.highlightRangeCells || []).includes(cellId);
+
+                    const td = document.createElement('td');
+                    let tdClass = 'py-2 px-2.5 border-r border-slate-200 font-mono text-xs relative truncate ';
+
+                    if (isMarching) {
+                        tdClass += 'marching-ants-cell bg-emerald-50/60 font-bold text-excel-800 ';
+                    } else if (isActive) {
+                        tdClass += 'ring-2 ring-inset ring-excel-600 bg-white font-bold text-slate-900 z-10 ';
+                    } else if (isRangeRef) {
+                        tdClass += 'bg-sky-50 ring-2 ring-inset ring-sky-400 text-sky-900 font-bold ';
+                    } else if (isSuccess) {
+                        tdClass += 'bg-emerald-100/80 text-emerald-900 font-bold animate-pop ';
+                    } else if (isWarn) {
+                        tdClass += 'bg-amber-100/90 text-amber-900 font-bold ';
+                    } else {
+                        tdClass += 'text-slate-700 ';
+                    }
+
+                    if (isEditing) {
+                        tdClass += 'bg-amber-50/50 ';
+                    }
+
+                    td.className = tdClass;
+                    td.textContent = val;
+
+                    // Chấm vuông Fill Handle & Dấu cộng đen AutoFill
+                    if (isActive) {
+                        const handle = document.createElement('span');
+                        handle.className = 'w-2 h-2 bg-excel-600 border border-white absolute bottom-0 right-0';
+                        td.appendChild(handle);
+
+                        if (gs.showBlackCrossPopup) {
+                            const crossBadge = document.createElement('div');
+                            crossBadge.className = 'absolute -bottom-3 -right-3 bg-slate-900 text-white text-sm font-mono font-extrabold w-6 h-6 rounded-full flex items-center justify-center shadow-lg ring-2 ring-amber-400 animate-bounce z-20';
+                            crossBadge.textContent = '+';
+                            crossBadge.title = 'Con trỏ biến thành dấu + màu đen (AutoFill)';
+                            td.appendChild(crossBadge);
+                        }
+                    }
+
+                    // Cho phép người dùng nhấp trực tiếp vào ô để xem địa chỉ trên Name Box
+                    td.addEventListener('click', () => {
+                        document.getElementById('nameBoxText').textContent = cellId;
+                        document.getElementById('formulaBarContent').textContent = val;
+                    });
+
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            }
+
+            // Render các Sheet Tabs ở đáy bảng tính
+            const sheetsBar = document.getElementById('sheetTabsBar');
+            sheetsBar.innerHTML = '';
+            const sheetList = gs.sheets || ['Sheet1', 'Sheet2', 'Sheet3'];
+            const activeSheetIdx = gs.activeSheetIdx !== undefined ? gs.activeSheetIdx : 0;
+
+            sheetList.forEach((shName, sIdx) => {
+                const isAct = sIdx === activeSheetIdx;
+                const shBtn = document.createElement('div');
+                shBtn.className = `px-3 py-1 rounded-t-md text-xs font-bold border transition flex items-center gap-1 ${
+                    isAct
+                        ? 'bg-white text-excel-700 border-slate-300 border-b-2 border-b-excel-600 shadow-sm'
+                        : 'bg-slate-100 text-slate-600 border-transparent hover:bg-white/60'
+                }`;
+                shBtn.innerHTML = `<span>📄</span><span>${shName}</span>`;
+                sheetsBar.appendChild(shBtn);
+            });
+
+            // Nút dấu + thêm Sheet
+            const addSheetBtn = document.createElement('div');
+            addSheetBtn.className = 'w-6 h-6 rounded-full bg-white border border-slate-300 flex items-center justify-center text-slate-600 font-bold text-xs';
+            addSheetBtn.textContent = '+';
+            sheetsBar.appendChild(addSheetBtn);
+
+            // Render Hộp thoại nổi (Overlay Modals: Context Menu, Find/Replace, Save As, Move/Copy, Print)
+            renderFloatingOverlay(gs.overlayType);
+        }
+
+        /**
+         * RENDER CÁC HỘP THOẠI MÔ PHỎNG BÊN TRONG MÀN HÌNH EXCEL
+         */
+        function renderFloatingOverlay(overlayType) {
+            const container = document.getElementById('floatingOverlayContainer');
+            if (!overlayType) {
+                container.classList.add('hidden');
+                container.innerHTML = '';
+                return;
+            }
+
+            container.classList.remove('hidden');
+
+            if (overlayType === 'contextRow3') {
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl border-2 border-slate-300 shadow-2xl w-56 py-1.5 text-xs text-slate-800 animate-pop">
+                        <div class="px-3 py-1 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-100">Menu Chuột Phải (Dòng 3)</div>
+                        <div class="px-3 py-1.5 hover:bg-slate-100 flex items-center justify-between"><span>✂️ Cut</span><span class="text-slate-400 font-mono">Ctrl+X</span></div>
+                        <div class="px-3 py-1.5 hover:bg-slate-100 flex items-center justify-between"><span>📋 Copy</span><span class="text-slate-400 font-mono">Ctrl+C</span></div>
+                        <div class="my-1 border-t border-slate-200"></div>
+                        <div class="px-3 py-2 bg-excel-50 text-excel-800 font-bold border-l-4 border-excel-600 flex items-center justify-between">
+                            <span>➕ Insert (Chèn dòng)</span><span>◀</span>
+                        </div>
+                        <div class="px-3 py-2 bg-rose-50/70 text-rose-700 font-bold flex items-center justify-between">
+                            <span>🗑️ Delete (Xóa dòng)</span><span>◀</span>
+                        </div>
+                    </div>
+                `;
+            } else if (overlayType === 'saveAsDialog') {
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl border-2 border-excel-600 shadow-2xl w-80 overflow-hidden text-xs animate-pop">
+                        <div class="bg-excel-600 text-white px-3.5 py-2 font-bold flex items-center justify-between">
+                            <span>💾 Save As (Lưu với tên khác - Ctrl+Shift+S)</span>
+                            <span>✕</span>
+                        </div>
+                        <div class="p-3.5 space-y-2.5">
+                            <div>
+                                <div class="text-[11px] text-slate-500 font-semibold mb-1">File name (Tên file mới):</div>
+                                <div class="bg-amber-50 border border-amber-400 rounded px-2.5 py-1.5 font-mono font-bold text-slate-800">
+                                    Bao_Cao_Quy2_Final.xlsx
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-[11px] text-slate-500 font-semibold mb-1">Save as type (Định dạng):</div>
+                                <div class="bg-slate-100 border border-slate-300 rounded px-2.5 py-1 text-slate-700">
+                                    Excel Workbook (*.xlsx)
+                                </div>
+                            </div>
+                            <div class="flex justify-end gap-2 pt-1">
+                                <span class="bg-excel-600 text-white font-bold px-3 py-1 rounded">Save (Lưu)</span>
+                                <span class="bg-slate-200 text-slate-700 px-3 py-1 rounded">Cancel</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (overlayType === 'findDialog' || overlayType === 'replaceDialog') {
+                const isReplace = overlayType === 'replaceDialog';
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl border-2 border-slate-400 shadow-2xl w-80 overflow-hidden text-xs animate-pop">
+                        <div class="bg-slate-800 text-white px-3.5 py-2 font-bold flex items-center justify-between">
+                            <span>🔍 Find and Replace (${isReplace ? 'Ctrl + H' : 'Ctrl + F'})</span>
+                            <span>✕</span>
+                        </div>
+                        <div class="flex border-b border-slate-200 bg-slate-100 font-bold">
+                            <div class="flex-1 py-1.5 text-center ${!isReplace ? 'bg-white text-excel-700 border-b-2 border-excel-600' : 'text-slate-500'}">Find (Ctrl+F)</div>
+                            <div class="flex-1 py-1.5 text-center ${isReplace ? 'bg-white text-excel-700 border-b-2 border-excel-600' : 'text-slate-500'}">Replace (Ctrl+H)</div>
+                        </div>
+                        <div class="p-3.5 space-y-2.5">
+                            <div>
+                                <div class="text-[11px] text-slate-500 font-semibold mb-0.5">Find what (Tìm chữ):</div>
+                                <div class="bg-white border border-slate-300 rounded px-2.5 py-1 font-mono font-bold text-rose-600">Chưa nộp</div>
+                            </div>
+                            ${isReplace ? `
+                            <div>
+                                <div class="text-[11px] text-slate-500 font-semibold mb-0.5">Replace with (Thay bằng):</div>
+                                <div class="bg-emerald-50 border border-emerald-400 rounded px-2.5 py-1 font-mono font-bold text-emerald-800">Đã thu tiền</div>
+                            </div>
+                            ` : ''}
+                            <div class="flex justify-end gap-1.5 pt-1">
+                                ${isReplace ? `<span class="bg-excel-600 text-white font-bold px-2.5 py-1 rounded shadow">Replace All</span>` : ''}
+                                <span class="bg-slate-800 text-white font-semibold px-2.5 py-1 rounded">Find Next</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (overlayType === 'sheetContextMenu') {
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl border-2 border-slate-300 shadow-2xl w-56 py-1.5 text-xs text-slate-800 animate-pop">
+                        <div class="px-3 py-1 text-[10px] font-bold uppercase text-slate-400 border-b border-slate-100">Chuột phải vào Sheet1</div>
+                        <div class="px-3 py-1.5 hover:bg-slate-100">Insert...</div>
+                        <div class="px-3 py-1.5 hover:bg-slate-100">Delete</div>
+                        <div class="px-3 py-1.5 hover:bg-slate-100">Rename</div>
+                        <div class="px-3 py-2 bg-excel-50 text-excel-800 font-bold border-l-4 border-excel-600 flex items-center justify-between">
+                            <span>📑 Move or Copy...</span><span>◀</span>
+                        </div>
+                    </div>
+                `;
+            } else if (overlayType === 'moveCopySheetDialog') {
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl border-2 border-excel-600 shadow-2xl w-72 overflow-hidden text-xs animate-pop">
+                        <div class="bg-excel-600 text-white px-3.5 py-2 font-bold flex items-center justify-between">
+                            <span>📑 Move or Copy Sheet</span>
+                            <span>✕</span>
+                        </div>
+                        <div class="p-3.5 space-y-2.5">
+                            <div class="text-[11px] text-slate-600 font-semibold">Before sheet (Đặt trước trang):</div>
+                            <div class="border border-slate-300 rounded bg-slate-50 p-1.5 space-y-1 font-mono text-[11px]">
+                                <div class="px-2 py-0.5 text-slate-600">Sheet1</div>
+                                <div class="px-2 py-0.5 text-slate-600">Sheet2</div>
+                                <div class="px-2 py-0.5 bg-excel-100 text-excel-800 font-bold rounded">(move to end)</div>
+                            </div>
+                            <div class="flex items-center gap-2 bg-amber-50 border border-amber-300 p-2 rounded font-bold text-amber-900">
+                                <span>☑</span>
+                                <span>Create a copy (Tạo bản sao)</span>
+                            </div>
+                            <div class="flex justify-end gap-2">
+                                <span class="bg-excel-600 text-white font-bold px-3 py-1 rounded">OK</span>
+                                <span class="bg-slate-200 text-slate-700 px-3 py-1 rounded">Cancel</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (overlayType === 'printPreviewModal') {
+                container.innerHTML = `
+                    <div class="bg-slate-800 text-white rounded-xl border-2 border-slate-600 shadow-2xl w-full max-w-md overflow-hidden text-xs animate-pop grid grid-cols-12">
+                        <div class="col-span-5 bg-slate-900 p-3 space-y-2 border-r border-slate-700">
+                            <div class="font-bold text-sm text-emerald-400">🖨️ Print (Ctrl+P)</div>
+                            <div class="bg-excel-600 text-white font-bold py-1.5 px-2 rounded text-center">Print (In ngay)</div>
+                            <div class="space-y-1 text-[11px] text-slate-300 pt-1">
+                                <div>• Máy in: <span class="text-white font-semibold">LaserJet Pro</span></div>
+                                <div>• Khổ giấy: <span class="text-amber-300 font-bold">A4 (210x297mm)</span></div>
+                                <div>• Căn lề: <span class="text-amber-300 font-bold">Narrow (Hẹp)</span></div>
+                            </div>
+                        </div>
+                        <div class="col-span-7 bg-slate-200 p-3 flex items-center justify-center">
+                            <div class="bg-white text-slate-800 w-full h-36 rounded shadow-md p-2.5 flex flex-col justify-between border border-slate-300">
+                                <div>
+                                    <div class="text-[10px] font-bold text-excel-700 border-b border-slate-300 pb-1 mb-1.5">BẢNG LƯƠNG THÁNG 11 (Trang A4)</div>
+                                    <div class="grid grid-cols-2 gap-1 text-[9px] font-mono bg-slate-50 p-1 rounded border border-slate-200">
+                                        <span>1. Nguyễn Văn An</span><span class="text-right font-bold">15,000,000</span>
+                                        <span>2. Trần Thị Bình</span><span class="text-right font-bold">16,500,000</span>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] text-center text-slate-400">Trang 1 / 1</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * ĐIỀU KHIỂN CHẠY TỰ ĐỘNG / TỪNG BƯỚC / ĐẶT LẠI
+         */
+        function stepNext() {
+            const op = operationsData[appState.currentOpIndex];
+            if (appState.currentStepIndex < op.steps.length - 1) {
+                appState.currentStepIndex++;
+            } else {
+                appState.currentStepIndex = 0;
+            }
+            renderAll();
+        }
+
+        function startAutoPlay() {
+            appState.isPlaying = true;
+            updatePlayPauseUI();
+            appState.timerId = setInterval(() => {
+                const op = operationsData[appState.currentOpIndex];
+                if (appState.currentStepIndex < op.steps.length - 1) {
+                    appState.currentStepIndex++;
+                    renderAll();
+                } else {
+                    stopAutoPlay();
+                }
+            }, 2200);
+        }
+
+        function stopAutoPlay() {
+            appState.isPlaying = false;
+            if (appState.timerId) {
+                clearInterval(appState.timerId);
+                appState.timerId = null;
+            }
+            updatePlayPauseUI();
+        }
+
+        function updatePlayPauseUI() {
+            const iconPlay = document.getElementById('iconPlay');
+            const iconPause = document.getElementById('iconPause');
+            const textPlayPause = document.getElementById('textPlayPause');
+
+            if (appState.isPlaying) {
+                iconPlay.classList.add('hidden');
+                iconPause.classList.remove('hidden');
+                textPlayPause.textContent = 'Tạm dừng';
+            } else {
+                iconPlay.classList.remove('hidden');
+                iconPause.classList.add('hidden');
+                textPlayPause.textContent = 'Chạy tự động';
+            }
+        }
+
+        /**
+         * KHỞI TẠO SỰ KIỆN
+         */
+        function initEvents() {
+            document.getElementById('btnPlayPause').addEventListener('click', () => {
+                if (appState.isPlaying) {
+                    stopAutoPlay();
+                } else {
+                    const op = operationsData[appState.currentOpIndex];
+                    if (appState.currentStepIndex >= op.steps.length - 1) {
+                        appState.currentStepIndex = 0;
+                        renderAll();
+                    }
+                    startAutoPlay();
+                }
+            });
+
+            document.getElementById('btnStep').addEventListener('click', () => {
+                stopAutoPlay();
+                stepNext();
+            });
+
+            document.getElementById('btnReset').addEventListener('click', () => {
+                stopAutoPlay();
+                appState.currentStepIndex = 0;
+                renderAll();
+            });
+
+            // Nút mở/đóng Bảng Tóm Tắt 10 Thao Tác
+            const modal = document.getElementById('summaryModal');
+            document.getElementById('btnToggleSummaryModal').addEventListener('click', () => {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+            document.getElementById('btnCloseSummaryModal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initEvents();
+            renderNavigationAndSummary();
+            renderAll();
+        });
+    </script>
+</body>
+</html>
