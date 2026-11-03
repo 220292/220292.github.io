@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Lookup & Reference Sandbox - Mô Phỏng 8 Hàm Dò Tìm</title>
+    <!-- Tải Tailwind CSS qua CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Google Font Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        excel: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#21a366',
+                            600: '#107c41',
+                            700: '#0b5c30',
+                            800: '#064e27',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .excel-grid-shadow {
+            box-shadow: 0 4px 20px -2px rgba(16, 124, 65, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.95); opacity: 0; }
+            70% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop-in 0.25s ease-out forwards;
+        }
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+            50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+        .target-cell-glow {
+            animation: pulse-border 1.5s infinite;
+        }
+        /* Viền mảng động Spill của Excel 365 */
+        .dynamic-spill-border {
+            border: 2px solid #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        button:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER CHUẨN EXCEL + BỘ CHỌN 8 HÀM DÒ TÌM TỰ ĐỘNG XUỐNG DÒNG (KHÔNG THANH TRƯỢT NGANG) -->
+    <header class="bg-excel-600 text-white shadow-md z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shadow-inner shrink-0">
+                    <span class="font-serif italic font-extrabold text-xl text-amber-300">fx</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-xl font-extrabold tracking-tight">Excel Lookup & Reference Sandbox</h1>
+                        <span class="text-xs bg-amber-400 text-slate-900 px-2.5 py-0.5 rounded-full font-bold shadow-sm">8 Hàm Dò Tìm & Tham Chiếu</span>
+                    </div>
+                    <p class="text-xs text-excel-100/90">Mô phỏng trực quan tia quét VLOOKUP/HLOOKUP, tọa độ INDEX-MATCH, dò ngược XLOOKUP & mảng động FILTER</p>
+                </div>
+            </div>
+
+            <!-- Bộ lọc nhóm hàm + Nút mở bảng tra cứu 8 hàm -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <div id="categoryFilterBar" class="flex flex-wrap items-center gap-1 bg-excel-800/60 p-1 rounded-lg border border-excel-500/30 text-xs">
+                    <!-- Render bằng JS -->
+                </div>
+                <button id="btnOpenCatalogModal" class="bg-amber-400 hover:bg-amber-300 text-slate-900 active:scale-95 transition text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                    <span>📋 Bảng tra cứu 8 hàm Dò tìm</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH 8 HÀM TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP, TUYỆT ĐỐI KHÔNG DÙNG THANH TRƯỢT NGANG) -->
+        <div class="bg-excel-700/95 border-t border-excel-500/30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
+                <div id="functionButtonsGrid" class="flex flex-wrap gap-2 items-center">
+                    <!-- 8 nút hàm dò tìm sẽ tự động xuống dòng tại đây -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- CỘT TRÁI (5/12): BẢNG DỮ LIỆU EXCEL GỐC (A1:D6 & BẢNG NGANG F1:I2) -->
+        <section class="lg:col-span-5 bg-white rounded-xl border border-slate-300 excel-grid-shadow overflow-hidden flex flex-col">
+            <!-- Thanh tiêu đề bảng tính & Nút kịch bản dữ liệu nhanh -->
+            <div class="bg-excel-700 text-white px-3.5 py-2.5 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <span class="font-mono font-bold">Danh_Muc_San_Pham_Lookup.xlsx</span>
+                    </div>
+                    <span id="funcCategoryBadge" class="bg-white/15 px-2 py-0.5 rounded text-[11px] font-semibold">Dò tìm cổ điển</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
+                    <button id="btnPresetStandard" class="bg-emerald-500/30 hover:bg-emerald-500/50 border border-emerald-300/30 px-2 py-1 rounded font-semibold transition text-left truncate">
+                        🎯 1. Dò chuẩn "SP03"
+                    </button>
+                    <button id="btnPresetNotFound" class="bg-rose-400/90 hover:bg-rose-300 text-slate-950 px-2 py-1 rounded font-bold transition text-left truncate">
+                        🔍 2. Mã "SP99" (#N/A)
+                    </button>
+                    <button id="btnPresetLeftLookup" class="bg-amber-400/90 hover:bg-amber-300 text-slate-900 px-2 py-1 rounded font-bold transition text-left truncate">
+                        ⬅️ 3. Dò ngược sang trái
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh Công Thức (Name Box & Formula Bar) -->
+            <div class="bg-slate-50 border-b border-slate-300 px-3 py-2 flex items-center gap-2">
+                <div class="w-12 bg-white border border-slate-300 rounded px-1.5 py-1 font-mono text-xs font-bold text-center text-excel-800 shadow-inner" id="nameBoxDisplay">
+                    G4
+                </div>
+                <div class="text-excel-600 font-serif italic font-extrabold text-base px-0.5 select-none">fx</div>
+                <div class="flex-1 bg-white border border-excel-500/60 rounded px-2.5 py-1 font-mono text-xs sm:text-sm font-bold text-slate-800 flex items-center justify-between shadow-inner overflow-x-auto">
+                    <span id="formulaBarText" class="text-excel-700">=VLOOKUP("SP03", A2:D6, 4, 0)</span>
+                    <span id="formulaResultBadge" class="ml-2 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-extrabold shrink-0">
+                        = 1200
+                    </span>
+                </div>
+            </div>
+
+            <!-- KHUNG ĐIỀU CHỈNH ĐỐI SỐ ĐỘNG THEO TỪNG HÀM -->
+            <div id="dynamicParamsPanel" class="bg-emerald-50/90 border-b border-emerald-200 px-3.5 py-2.5 space-y-2">
+                <!-- Render động bằng JS -->
+            </div>
+
+            <!-- Bảng Lưới Excel (Bảng dọc A1:D6 + Bảng ngang F1:I2) -->
+            <div class="p-3 bg-slate-100 flex-1 space-y-3">
+                <!-- Bảng chính A1:D6 -->
+                <div>
+                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1 px-0.5">
+                        <span>📊 Bảng Dọc Chính (Vùng <code>A1:D6</code> - Dữ liệu ở <code>A2:D6</code>)</span>
+                        <span class="text-excel-700 font-mono">Nhấp vào hàng để chọn nhanh mã</span>
+                    </div>
+                    <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                        <table class="w-full border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-200 text-slate-700 font-mono font-bold border-b border-slate-300 select-none text-center">
+                                    <th class="w-8 py-1 border-r border-slate-300 bg-slate-300/70">#</th>
+                                    <th class="py-1 px-1.5 border-r border-slate-300">A <span class="text-[10px] font-sans font-normal text-slate-500">(Cột 1)</span></th>
+                                    <th class="py-1 px-1.5 border-r border-slate-300">B <span class="text-[10px] font-sans font-normal text-slate-500">(Cột 2)</span></th>
+                                    <th class="py-1 px-1.5 border-r border-slate-300">C <span class="text-[10px] font-sans font-normal text-slate-500">(Cột 3)</span></th>
+                                    <th class="py-1 px-1.5">D <span class="text-[10px] font-sans font-normal text-slate-500">(Cột 4)</span></th>
+                                </tr>
+                            </thead>
+                            <tbody id="verticalTableBody" class="divide-y divide-slate-200">
+                                <!-- Render A1:D6 bằng JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Bảng ngang phụ F1:I2 (Dành cho HLOOKUP) -->
+                <div>
+                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1 px-0.5">
+                        <span>📐 Bảng Ngang Phụ (Vùng <code>F1:I2</code> - Chuyên dùng cho <code>HLOOKUP</code>)</span>
+                        <span class="font-mono text-slate-500">Hàng 1: Mã | Hàng 2: Chiết khấu</span>
+                    </div>
+                    <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                        <table class="w-full border-collapse text-xs text-center font-mono">
+                            <thead>
+                                <tr class="bg-slate-200 text-slate-700 font-bold border-b border-slate-300">
+                                    <th class="w-10 py-1 border-r border-slate-300 bg-slate-300/70">#</th>
+                                    <th class="py-1 border-r border-slate-300">F</th>
+                                    <th class="py-1 border-r border-slate-300">G</th>
+                                    <th class="py-1 border-r border-slate-300">H</th>
+                                    <th class="py-1">I</th>
+                                </tr>
+                            </thead>
+                            <tbody id="horizontalTableBody" class="divide-y divide-slate-200">
+                                <!-- Render F1:I2 bằng JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cú pháp & Ý nghĩa của Hàm -->
+            <div class="p-3.5 bg-white border-t border-slate-200 space-y-1.5">
+                <div class="flex items-center justify-between flex-wrap gap-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cú pháp chuẩn Excel</span>
+                    <span id="funcSyntaxTag" class="font-mono text-[11px] sm:text-xs font-bold text-excel-700 bg-excel-50 px-2 py-0.5 rounded border border-excel-200">
+                        =VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])
+                    </span>
+                </div>
+                <p id="funcPurposeText" class="text-xs text-slate-600 leading-relaxed">
+                    Dò tìm giá trị theo cột dọc đầu tiên bên trái của bảng, sau đó lấy giá trị nằm trên cùng hàng ở cột thứ col_index_num.
+                </p>
+            </div>
+        </section>
+
+        <!-- CỘT PHẢI (7/12): SÂN KHẤU HOẠT HỌA TIA QUÉT & GIAO ĐIỂM DÒ TÌM -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+
+            <!-- 1. Thanh Điều Khiển Hoạt Họa Từng Bước + Tốc độ -->
+            <div class="bg-white rounded-xl border border-slate-200 p-3.5 excel-grid-shadow flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btnPlayPause" class="bg-excel-600 hover:bg-excel-700 active:scale-95 text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
+                        <span id="playPauseIcon">▶</span>
+                        <span id="playPauseText">Chạy tia quét</span>
+                    </button>
+                    <button id="btnStep" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg border border-slate-300 flex items-center gap-1 transition">
+                        <span>⏭</span>
+                        <span>Bước tiếp</span>
+                    </button>
+                    <button id="btnReset" class="bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:scale-95 text-slate-600 font-semibold text-xs sm:text-sm px-2.5 py-2 rounded-lg border border-slate-300 transition">
+                        ↺ Đặt lại
+                    </button>
+                    <div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 pl-2 border-l border-slate-200">
+                        <span>Tốc độ:</span>
+                        <select id="speedSelect" class="bg-slate-100 border border-slate-300 rounded px-1.5 py-1 font-semibold text-slate-700">
+                            <option value="1300">Chậm (Giảng bài)</option>
+                            <option value="850" selected>Vừa phải</option>
+                            <option value="500">Nhanh</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Các nút nhảy nhanh vào Bước 1, Bước 2, Bước 3 -->
+                <div class="flex flex-wrap items-center gap-1.5" id="stepPillsContainer">
+                    <!-- Render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 2. SÂN KHẤU ĐỒ HỌA TRỰC QUAN CƠ CHẾ DÒ TÌM -->
+            <div class="bg-white rounded-xl border border-slate-200 excel-grid-shadow overflow-hidden flex flex-col">
+                <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 text-sm">🎯</span>
+                        <span class="font-bold tracking-wide uppercase" id="visualStageHeader">Mô phỏng Cơ Chế Tia Quét & Tham Chiếu</span>
+                    </div>
+                    <span id="visualStepBadge" class="bg-white/15 text-emerald-300 font-mono px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                        Bước 3 / 3
+                    </span>
+                </div>
+
+                <!-- Khu vực hiển thị đồ họa động tùy biến theo từng hàm Dò tìm -->
+                <div id="visualStageCanvas" class="p-4 sm:p-5 min-h-[370px] bg-gradient-to-b from-slate-50 to-white flex flex-col justify-center">
+                    <!-- Nội dung đồ họa render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 3. HỘP THOẠI GIẢI THÍCH TIẾNG VIỆT ĐỘNG THEO TỪNG BƯỚC -->
+            <div class="bg-gradient-to-br from-excel-50 via-white to-emerald-50 rounded-xl border-2 border-excel-500/40 p-4 shadow-sm space-y-2">
+                <div class="flex items-center justify-between flex-wrap gap-1">
+                    <span id="stepTitleBanner" class="text-xs font-extrabold uppercase tracking-wider text-excel-800 bg-excel-200/80 px-2.5 py-0.5 rounded-full">
+                        Giải thích cơ chế dò tìm từng bước
+                    </span>
+                    <span class="text-[11px] font-mono text-slate-500">Tọa độ hàng & cột tính từ 1 trong vùng chọn</span>
+                </div>
+                <div id="stepExplanationText" class="text-slate-800 text-sm leading-relaxed font-medium">
+                    <!-- Giải thích tiếng Việt chi tiết theo từng bước -->
+                </div>
+            </div>
+
+            <!-- 4. LƯU Ý BẪY THƯỜNG GẶP & SO SÁNH HÀM DÒ TÌM -->
+            <div class="bg-amber-50/90 rounded-xl p-3.5 border border-amber-200 flex items-start gap-2.5 text-xs text-slate-700">
+                <span class="text-base leading-none shrink-0">💡</span>
+                <div id="funcNoteBox" class="leading-relaxed">
+                    <!-- Mẹo & lưu ý thực tế -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL BẢNG TRA CỨU NHANH 8 HÀM DÒ TÌM & THAM CHIẾU -->
+    <div id="catalogModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-pop">
+            <div class="bg-excel-600 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📚</span>
+                    <h3 class="font-bold text-base sm:text-lg">Bảng Tổng Hợp 8 Hàm Dò Tìm & Tham Chiếu Trong Excel</h3>
+                </div>
+                <button id="btnCloseCatalogModal" class="bg-white/15 hover:bg-white/25 text-white rounded-lg px-3 py-1 text-xs font-bold transition">
+                    Đóng ✕
+                </button>
+            </div>
+            <div class="p-4 sm:p-5 overflow-y-auto">
+                <p class="text-xs text-slate-600 mb-3">Nhấp vào bất kỳ hàm nào trong bảng để chuyển ngay tới sân khấu mô phỏng trực quan của hàm đó:</p>
+                <div class="border border-slate-300 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-800 font-bold">
+                                <th class="py-2 px-3 border-r border-slate-300 w-10 text-center">STT</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-32">Tên hàm</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-72">Cú pháp chuẩn</th>
+                                <th class="py-2 px-3">Đặc điểm cốt lõi & Khi nào nên dùng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogTableBody" class="divide-y divide-slate-200">
+                            <!-- Điền bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-3 px-4 text-center text-xs text-slate-500">
+        Excel Lookup & Reference Functions Sandbox • Mô phỏng trực quan 8 hàm Dò tìm & Tham chiếu trong Microsoft Excel.
+    </footer>
+
+    <!-- JAVASCRIPT ENGINE CHO 8 HÀM DÒ TÌM & THAM CHIẾU -->
+    <script>
+        /**
+         * DANH MỤC 3 NHÓM HÀM DÒ TÌM & THAM CHIẾU
+         */
+        const CATEGORIES = [
+            { id: 'ALL', name: 'Tất cả (8)' },
+            { id: 'CLASSIC', name: '1. Dò tìm cổ điển (3)' },
+            { id: 'COORDINATE', name: '2. Tọa độ & Chọn lựa (3)' },
+            { id: 'MODERN', name: '3. Thế hệ mới & Mảng động (2)' }
+        ];
+
+        /**
+         * DỮ LIỆU BẢNG DỌC CHÍNH A2:D6 (Hàng 1 là tiêu đề A1:D1)
+         */
+        const PRODUCTS_DATA = [
+            { excelRow: 2, relRow: 1, code: 'SP01', name: 'Laptop Pro', dept: 'IT', price: 25000 },
+            { excelRow: 3, relRow: 2, code: 'SP02', name: 'Chuột Quang', dept: 'Sales', price: 350 },
+            { excelRow: 4, relRow: 3, code: 'SP03', name: 'Bàn Phím Cơ', dept: 'IT', price: 1200 },
+            { excelRow: 5, relRow: 4, code: 'SP04', name: 'Màn Hình 4K', dept: 'Design', price: 8500 },
+            { excelRow: 6, relRow: 5, code: 'SP05', name: 'Tai Nghe ANC', dept: 'Sales', price: 2100 }
+        ];
+
+        /**
+         * DỮ LIỆU BẢNG NGANG PHỤ F1:I2 (Dành cho HLOOKUP)
+         */
+        const HORIZ_DATA = [
+            { colLetter: 'F', colIndex: 1, tierCode: 'VIP', rate: '20%' },
+            { colLetter: 'G', colIndex: 2, tierCode: 'GOLD', rate: '12%' },
+            { colLetter: 'H', colIndex: 3, tierCode: 'STD', rate: '5%' },
+            { colLetter: 'I', colIndex: 4, tierCode: 'NEW', rate: '0%' }
+        ];
+
+        /**
+         * CƠ SỞ DỮ LIỆU ĐẦY ĐỦ 8 HÀM DÒ TÌM THEO ĐÚNG THỨ TỰ YÊU CẦU:
+         * VLOOKUP, HLOOKUP, LOOKUP, INDEX, MATCH, XLOOKUP, FILTER, CHOOSE
+         */
+        const FUNCTIONS_DB = [
+            // 1. VLOOKUP
+            {
+                name: 'VLOOKUP',
+                shortVi: 'Dò dọc theo cột trái',
+                category: 'CLASSIC',
+                syntax: '=VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])',
+                purpose: 'Quét từ trên xuống dưới ở CỘT ĐẦU TIÊN bên trái của bảng (table_array). Khi tìm thấy mã khớp, tia quét bẻ ngang sang phải đến cột thứ col_index_num để lấy kết quả.',
+                note: '<strong>Hạn chế lớn nhất của VLOOKUP:</strong> Giá trị cần tìm bắt buộc phải nằm ở <strong>cột ngoài cùng bên trái</strong> của vùng chọn (không thể dò ngược sang trái) và bạn phải đếm số thứ tự cột thủ công (2, 3, 4...).'
+            },
+            // 2. HLOOKUP
+            {
+                name: 'HLOOKUP',
+                shortVi: 'Dò ngang theo hàng đầu',
+                category: 'CLASSIC',
+                syntax: '=HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])',
+                purpose: 'Quét từ trái sang phải ở HÀNG ĐẦU TIÊN trên cùng của bảng ngang (F1:I2). Khi gặp ô khớp, tia quét phóng thẳng xuống dưới tới hàng thứ row_index_num.',
+                note: '<strong>Khi nào dùng HLOOKUP?</strong> Dùng khi bảng tham chiếu được thiết kế nằm ngang (tiêu đề nằm ở cột bên trái, dữ liệu trải dài sang phải theo các cột F, G, H, I).'
+            },
+            // 3. LOOKUP
+            {
+                name: 'LOOKUP',
+                shortVi: 'Dò 2 vector độc lập',
+                category: 'CLASSIC',
+                syntax: '=LOOKUP(lookup_value, lookup_vector, [result_vector])',
+                purpose: 'Tìm vị trí của lookup_value trong vùng 1 chiều lookup_vector, rồi trả về phần tử ở CÙNG VỊ TRÍ TƯƠNG ỨNG trong vùng result_vector (có thể nằm bên trái hoặc bên phải).',
+                note: '<strong>Cảnh báo cực kỳ quan trọng:</strong> Hàm <code>LOOKUP</code> cổ điển sử dụng thuật toán tìm kiếm nhị phân (xấp xỉ), nên <code>lookup_vector</code> <strong>bắt buộc phải được sắp xếp tăng dần (A→Z, nhỏ→lớn)</strong> thì mới luôn chính xác!'
+            },
+            // 4. INDEX
+            {
+                name: 'INDEX',
+                shortVi: 'Lấy giá trị theo Tọa Độ (Hàng, Cột)',
+                category: 'COORDINATE',
+                syntax: '=INDEX(array, row_num, [column_num])',
+                purpose: 'Trả về giá trị của ô nằm tại giao điểm giữa Hàng thứ row_num và Cột thứ column_num bên trong vùng dữ liệu array.',
+                note: '<strong>Mẹo thực chiến:</strong> Bản thân <code>INDEX</code> giống như trò chơi bắn tàu tọa độ (Hàng X, Cột Y). Khi kết hợp <code>=INDEX(vùng_kết_quả, MATCH(mã, vùng_dò, 0))</code>, bạn tạo ra công thức dò tìm 2 chiều siêu linh hoạt!'
+            },
+            // 5. MATCH
+            {
+                name: 'MATCH',
+                shortVi: 'Tìm Số Thứ Tự Vị Trí (#1, #2...)',
+                category: 'COORDINATE',
+                syntax: '=MATCH(lookup_value, lookup_array, [match_type])',
+                purpose: 'Quét dọc (hoặc ngang) một vùng 1 chiều và trả về SỐ THỨ TỰ VỊ TRÍ TƯƠNG ĐỐI (1, 2, 3...) của giá trị cần tìm, chứ không trả về giá trị bên trong ô.',
+                note: '<strong>Phân biệt rõ:</strong> <code>MATCH("SP03", A2:A6, 0)</code> trả về số <strong>3</strong> (vì SP03 đứng ở vị trí thứ 3 trong vùng <code>A2:A6</code>, dù nó nằm ở dòng số 4 của trang tính Excel).'
+            },
+            // 6. XLOOKUP
+            {
+                name: 'XLOOKUP',
+                shortVi: 'Dò tìm thế hệ mới (Dò cả Trái & Phải)',
+                category: 'MODERN',
+                syntax: '=XLOOKUP(lookup_value, lookup_array, return_array, [if_not_found])',
+                purpose: 'Hàm dò tìm hiện đại thay thế hoàn toàn VLOOKUP/HLOOKUP/INDEX-MATCH: chọn riêng cột dò (lookup_array) và cột lấy kết quả (return_array), hỗ trợ dò ngược sang trái và tích hợp sẵn bẫy lỗi [if_not_found].',
+                note: '<strong>3 Ưu điểm vượt trội so với VLOOKUP:</strong> (1) Mặc định dò chính xác 100% không cần gõ số <code>0</code> cuối; (2) Dò sang trái hay sang phải đều được; (3) Chèn thêm cột vào bảng không làm sai lệch kết quả!'
+            },
+            // 7. FILTER
+            {
+                name: 'FILTER',
+                shortVi: 'Lọc trả về NHIỀU DÒNG (Spill)',
+                category: 'MODERN',
+                syntax: '=FILTER(array, include, [if_empty])',
+                purpose: 'Kiểm tra điều kiện (include) trên từng dòng của bảng array và trích xuất TẤT CẢ CÁC DÒNG THỎA MÃN, tự động tràn (Spill) thành một bảng kết quả động.',
+                note: '<strong>Khác biệt hoàn toàn với VLOOKUP/XLOOKUP:</strong> Trong khi VLOOKUP và XLOOKUP chỉ lấy được <strong>dòng đầu tiên</strong> khớp mã, hàm <code>FILTER</code> lấy ra <strong>toàn bộ các dòng</strong> cùng thuộc Phòng Ban <code>"IT"</code> hoặc có Đơn giá <code>&gt; 2000</code>!'
+            },
+            // 8. CHOOSE
+            {
+                name: 'CHOOSE',
+                shortVi: 'Chọn phần tử theo số thứ tự k',
+                category: 'COORDINATE',
+                syntax: '=CHOOSE(index_num, value1, [value2], [value3], ...)',
+                purpose: 'Dùng số thứ tự index_num (1, 2, 3...) như một công tắc chuyển mạch để bốc đúng phần tử đứng ở vị trí tương ứng trong danh sách liệt kê.',
+                note: '<strong>Ứng dụng nâng cao:</strong> Ngoài việc chọn tên Quý/Thứ hay phương án kịch bản tài chính, các chuyên gia còn dùng <code>CHOOSE({1,2}, Cột_B, Cột_A)</code> để đảo cột ảo cho VLOOKUP.'
+            }
+        ];
+
+        /**
+         * TRẠNG THÁI ỨNG DỤNG
+         */
+        const state = {
+            selectedCategory: 'ALL',
+            funcIndex: 0,           // 0..7
+            stepIndex: 0,           // Bắt đầu từ bước 1
+            maxSteps: 3,
+            speedMs: 850,
+            isPlaying: false,
+            timer: null,
+
+            // Tham số điều khiển tương tác
+            lookupCode: 'SP03',     // 'SP01'..'SP05' hoặc 'SP99' (Không tồn tại)
+            vlookupColIndex: 4,     // 2: Tên SP, 3: Phòng Ban, 4: Đơn Giá
+            hlookupTier: 'GOLD',    // 'VIP', 'GOLD', 'STD', 'NEW', 'PLATINUM' (#N/A)
+            indexRowNum: 3,         // 1..5 trong vùng A2:D6
+            indexColNum: 4,         // 1..4 trong vùng A2:D6
+            indexComboMatch: false, // Bật chế độ giải thích INDEX + MATCH kết hợp
+            xlookupDirection: 'LEFT_TO_RIGHT', // 'LEFT_TO_RIGHT' (Mã A -> Giá D) hoặc 'RIGHT_TO_LEFT' (Tên B -> Mã A)
+            xlookupLookupName: 'Bàn Phím Cơ',
+            xlookupIfNotFound: '"Không có mã này"',
+            filterDept: 'IT',       // 'IT', 'Sales', 'Design', 'HR' (Rỗng)
+            chooseIndexNum: 2       // 1..4
+        };
+
+        function currentFunc() {
+            return FUNCTIONS_DB[state.funcIndex];
+        }
+
+        /**
+         * ĐÁNH GIÁ KẾT QUẢ VÀ DỮ LIỆU TRUNG GIAN CHO HÀM ĐANG CHỌN
+         */
+        function evaluateLookupFunction() {
+            const fn = currentFunc();
+            const colNames = { 1: 'Mã SP', 2: 'Tên Sản Phẩm', 3: 'Phòng Ban', 4: 'Đơn Giá' };
+            const colLetters = { 1: 'A', 2: 'B', 3: 'C', 4: 'D' };
+
+            switch (fn.name) {
+                case 'VLOOKUP': {
+                    const foundIdx = PRODUCTS_DATA.findIndex(r => r.code === state.lookupCode);
+                    const rowObj = foundIdx !== -1 ? PRODUCTS_DATA[foundIdx] : null;
+                    let val = '#N/A';
+                    if (rowObj) {
+                        if (state.vlookupColIndex === 2) val = `"${rowObj.name}"`;
+                        if (state.vlookupColIndex === 3) val = `"${rowObj.dept}"`;
+                        if (state.vlookupColIndex === 4) val = rowObj.price;
+                    }
+                    return {
+                        formula: `=VLOOKUP("${state.lookupCode}", A2:D6, ${state.vlookupColIndex}, 0)`,
+                        result: val,
+                        foundIdx,
+                        rowObj,
+                        targetColLetter: colLetters[state.vlookupColIndex],
+                        targetColName: colNames[state.vlookupColIndex]
+                    };
+                }
+                case 'HLOOKUP': {
+                    const foundIdx = HORIZ_DATA.findIndex(c => c.tierCode === state.hlookupTier);
+                    const colObj = foundIdx !== -1 ? HORIZ_DATA[foundIdx] : null;
+                    return {
+                        formula: `=HLOOKUP("${state.hlookupTier}", F1:I2, 2, 0)`,
+                        result: colObj ? `"${colObj.rate}"` : '#N/A',
+                        foundIdx,
+                        colObj
+                    };
+                }
+                case 'LOOKUP': {
+                    const foundIdx = PRODUCTS_DATA.findIndex(r => r.code === state.lookupCode);
+                    const rowObj = foundIdx !== -1 ? PRODUCTS_DATA[foundIdx] : PRODUCTS_DATA[PRODUCTS_DATA.length - 1];
+                    return {
+                        formula: `=LOOKUP("${state.lookupCode}", A2:A6, D2:D6)`,
+                        result: rowObj.price,
+                        foundIdx: foundIdx !== -1 ? foundIdx : PRODUCTS_DATA.length - 1,
+                        exactFound: foundIdx !== -1,
+                        rowObj
+                    };
+                }
+                case 'INDEX': {
+                    const rIdx = Math.max(0, Math.min(4, state.indexRowNum - 1));
+                    const cNum = state.indexColNum;
+                    const rowObj = PRODUCTS_DATA[rIdx];
+                    let val = rowObj.code;
+                    if (cNum === 2) val = `"${rowObj.name}"`;
+                    else if (cNum === 3) val = `"${rowObj.dept}"`;
+                    else if (cNum === 4) val = rowObj.price;
+                    else val = `"${rowObj.code}"`;
+
+                    const formulaStr = state.indexComboMatch
+                        ? `=INDEX(A2:D6, MATCH("${rowObj.code}",A2:A6,0), ${cNum})`
+                        : `=INDEX(A2:D6, ${state.indexRowNum}, ${cNum})`;
+
+                    return {
+                        formula: formulaStr,
+                        result: val,
+                        rIdx,
+                        cNum,
+                        rowObj,
+                        cellCoord: `${colLetters[cNum]}${rowObj.excelRow}`
+                    };
+                }
+                case 'MATCH': {
+                    const foundIdx = PRODUCTS_DATA.findIndex(r => r.code === state.lookupCode);
+                    return {
+                        formula: `=MATCH("${state.lookupCode}", A2:A6, 0)`,
+                        result: foundIdx !== -1 ? (foundIdx + 1) : '#N/A',
+                        foundIdx
+                    };
+                }
+                case 'XLOOKUP': {
+                    if (state.xlookupDirection === 'RIGHT_TO_LEFT') {
+                        // Dò ngược từ cột B (Tên SP) sang cột A (Mã SP)
+                        const foundIdx = PRODUCTS_DATA.findIndex(r => r.name === state.xlookupLookupName);
+                        const rowObj = foundIdx !== -1 ? PRODUCTS_DATA[foundIdx] : null;
+                        return {
+                            formula: `=XLOOKUP("${state.xlookupLookupName}", B2:B6, A2:A6, ${state.xlookupIfNotFound})`,
+                            result: rowObj ? `"${rowObj.code}"` : state.xlookupIfNotFound,
+                            foundIdx,
+                            rowObj,
+                            isReverse: true
+                        };
+                    } else {
+                        const foundIdx = PRODUCTS_DATA.findIndex(r => r.code === state.lookupCode);
+                        const rowObj = foundIdx !== -1 ? PRODUCTS_DATA[foundIdx] : null;
+                        return {
+                            formula: `=XLOOKUP("${state.lookupCode}", A2:A6, D2:D6, ${state.xlookupIfNotFound})`,
+                            result: rowObj ? rowObj.price : state.xlookupIfNotFound,
+                            foundIdx,
+                            rowObj,
+                            isReverse: false
+                        };
+                    }
+                }
+                case 'FILTER': {
+                    const matchedRows = PRODUCTS_DATA.filter(r => r.dept === state.filterDept);
+                    return {
+                        formula: `=FILTER(A2:D6, C2:C6="${state.filterDept}", "Không có dữ liệu")`,
+                        result: matchedRows.length > 0 ? `Tràn ${matchedRows.length} dòng` : '"Không có dữ liệu"',
+                        matchedRows
+                    };
+                }
+                case 'CHOOSE': {
+                    const options = [
+                        { idx: 1, label: '"Quý 1 - Xuân"', desc: 'Phần tử #1 (value1)' },
+                        { idx: 2, label: '"Quý 2 - Hạ"', desc: 'Phần tử #2 (value2)' },
+                        { idx: 3, label: '"Quý 3 - Thu"', desc: 'Phần tử #3 (value3)' },
+                        { idx: 4, label: '"Quý 4 - Đông"', desc: 'Phần tử #4 (value4)' }
+                    ];
+                    const chosen = options[state.chooseIndexNum - 1] || options[0];
+                    return {
+                        formula: `=CHOOSE(${state.chooseIndexNum}, "Quý 1 - Xuân", "Quý 2 - Hạ", "Quý 3 - Thu", "Quý 4 - Đông")`,
+                        result: chosen.label,
+                        options,
+                        chosenIdx: state.chooseIndexNum - 1
+                    };
+                }
+            }
+        }
+
+        /**
+         * RENDER THANH LỌC NHÓM HÀM & LƯỚI 8 NÚT HÀM TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP)
+         */
+        function renderHeaderButtons() {
+            const catBar = document.getElementById('categoryFilterBar');
+            catBar.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const active = state.selectedCategory === cat.id;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md font-bold transition ${
+                    active ? 'bg-white text-excel-800 shadow-sm' : 'text-excel-100 hover:bg-white/10'
+                }`;
+                btn.textContent = cat.name;
+                btn.addEventListener('click', () => {
+                    state.selectedCategory = cat.id;
+                    renderHeaderButtons();
+                });
+                catBar.appendChild(btn);
+            });
+
+            const grid = document.getElementById('functionButtonsGrid');
+            grid.innerHTML = '';
+
+            FUNCTIONS_DB.forEach((fn, idx) => {
+                if (state.selectedCategory !== 'ALL' && fn.category !== state.selectedCategory) return;
+
+                const isSelected = idx === state.funcIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border ${
+                    isSelected
+                        ? 'bg-amber-400 text-slate-950 font-extrabold border-amber-300 shadow-md ring-2 ring-white'
+                        : 'bg-excel-800/80 hover:bg-excel-800 text-white border-excel-500/40 font-semibold'
+                }`;
+                btn.innerHTML = `
+                    <span class="font-mono tracking-tight text-sm">${fn.name}</span>
+                    <span class="text-[11px] ${isSelected ? 'text-slate-900 font-bold' : 'text-excel-100 font-normal'}">• ${fn.shortVi}</span>
+                `;
+                btn.addEventListener('click', () => selectFunction(idx));
+                grid.appendChild(btn);
+            });
+        }
+
+        function selectFunction(idx) {
+            stopAutoPlay();
+            state.funcIndex = idx;
+            state.maxSteps = 3;
+            state.stepIndex = 0;
+            renderHeaderButtons();
+            renderAll();
+        }
+
+        /**
+         * RENDER KHUNG THAM SỐ ĐỘNG THEO TỪNG HÀM DÒ TÌM
+         */
+        function renderDynamicParamsPanel() {
+            const fn = currentFunc();
+            const panel = document.getElementById('dynamicParamsPanel');
+            const codes = ['SP01', 'SP02', 'SP03', 'SP04', 'SP05', 'SP99'];
+
+            if (fn.name === 'VLOOKUP') {
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-bold text-emerald-950">🔍 Mã tìm (<code>lookup_value</code>):</span>
+                            <select id="selLookupCode" class="font-mono font-bold bg-white border border-emerald-400 rounded px-2 py-1 text-slate-900">
+                                ${codes.map(c => `<option value="${c}" ${state.lookupCode === c ? 'selected' : ''}>"${c}"${c === 'SP99' ? ' (Không có)' : ''}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-bold text-emerald-950">➡️ Cột trả về (<code>col_index_num</code>):</span>
+                            <select id="selVlookupCol" class="font-mono font-bold bg-white border border-emerald-400 rounded px-2 py-1 text-slate-900">
+                                <option value="2" ${state.vlookupColIndex === 2 ? 'selected' : ''}>Cột 2 (B - Tên SP)</option>
+                                <option value="3" ${state.vlookupColIndex === 3 ? 'selected' : ''}>Cột 3 (C - Phòng Ban)</option>
+                                <option value="4" ${state.vlookupColIndex === 4 ? 'selected' : ''}>Cột 4 (D - Đơn Giá)</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('selLookupCode').addEventListener('change', e => {
+                    state.lookupCode = e.target.value;
+                    renderAll();
+                });
+                document.getElementById('selVlookupCol').addEventListener('change', e => {
+                    state.vlookupColIndex = Number(e.target.value);
+                    renderAll();
+                });
+            } else if (fn.name === 'HLOOKUP') {
+                const tiers = ['VIP', 'GOLD', 'STD', 'NEW', 'PLATINUM'];
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">📐 Chọn Mã Hạng dò trên Hàng 1 (<code>F1:I1</code>):</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${tiers.map(t => `
+                                <button data-htier="${t}" class="btn-htier px-2.5 py-1 rounded-lg font-mono font-bold border transition ${
+                                    state.hlookupTier === t
+                                        ? 'bg-excel-600 text-white border-excel-700 shadow-sm'
+                                        : 'bg-white text-slate-700 border-emerald-300 hover:bg-emerald-100'
+                                }">"${t}"${t === 'PLATINUM' ? ' (#N/A)' : ''}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-htier').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.hlookupTier = btn.getAttribute('data-htier');
+                        renderAll();
+                    });
+                });
+            } else if (fn.name === 'LOOKUP' || fn.name === 'MATCH') {
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">🎯 Chọn giá trị cần dò trong cột <code>A2:A6</code>:</span>
+                        <div class="flex flex-wrap gap-1">
+                            ${codes.map(c => `
+                                <button data-mcode="${c}" class="btn-mcode px-2.5 py-1 rounded-lg font-mono font-bold border transition ${
+                                    state.lookupCode === c
+                                        ? 'bg-excel-600 text-white border-excel-700 shadow-sm'
+                                        : 'bg-white text-slate-700 border-emerald-300 hover:bg-emerald-100'
+                                }">"${c}"</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-mcode').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.lookupCode = btn.getAttribute('data-mcode');
+                        renderAll();
+                    });
+                });
+            } else if (fn.name === 'INDEX') {
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-emerald-950">Hàng (<code>row_num</code>):</span>
+                            <select id="selIdxRow" class="font-mono font-bold bg-white border border-emerald-400 rounded px-2 py-1">
+                                ${[1, 2, 3, 4, 5].map(r => `<option value="${r}" ${state.indexRowNum === r ? 'selected' : ''}>Hàng ${r} (${PRODUCTS_DATA[r-1].code})</option>`).join('')}
+                            </select>
+                            <span class="font-bold text-emerald-950">Cột (<code>col_num</code>):</span>
+                            <select id="selIdxCol" class="font-mono font-bold bg-white border border-emerald-400 rounded px-2 py-1">
+                                <option value="1" ${state.indexColNum === 1 ? 'selected' : ''}>Cột 1 (Mã SP)</option>
+                                <option value="2" ${state.indexColNum === 2 ? 'selected' : ''}>Cột 2 (Tên SP)</option>
+                                <option value="3" ${state.indexColNum === 3 ? 'selected' : ''}>Cột 3 (Phòng Ban)</option>
+                                <option value="4" ${state.indexColNum === 4 ? 'selected' : ''}>Cột 4 (Đơn Giá)</option>
+                            </select>
+                        </div>
+                        <label class="flex items-center gap-1.5 font-bold text-emerald-900 bg-white px-2.5 py-1 rounded border border-emerald-300 cursor-pointer">
+                            <input id="chkIndexMatch" type="checkbox" ${state.indexComboMatch ? 'checked' : ''} class="accent-excel-600" />
+                            <span>Ghép <code>INDEX + MATCH</code></span>
+                        </label>
+                    </div>
+                `;
+                document.getElementById('selIdxRow').addEventListener('change', e => {
+                    state.indexRowNum = Number(e.target.value);
+                    renderAll();
+                });
+                document.getElementById('selIdxCol').addEventListener('change', e => {
+                    state.indexColNum = Number(e.target.value);
+                    renderAll();
+                });
+                document.getElementById('chkIndexMatch').addEventListener('change', e => {
+                    state.indexComboMatch = e.target.checked;
+                    renderAll();
+                });
+            } else if (fn.name === 'XLOOKUP') {
+                const isRev = state.xlookupDirection === 'RIGHT_TO_LEFT';
+                panel.innerHTML = `
+                    <div class="space-y-2 text-xs">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-bold text-emerald-950">🚀 Hướng dò của <code>XLOOKUP</code>:</span>
+                            <div class="flex gap-1.5">
+                                <button id="btnXDirRight" class="px-2.5 py-1 rounded-lg font-bold border transition ${
+                                    !isRev ? 'bg-excel-600 text-white border-excel-700' : 'bg-white text-slate-700 border-emerald-300'
+                                }">➡️ Dò Thuận (Mã A → Giá D)</button>
+                                <button id="btnXDirLeft" class="px-2.5 py-1 rounded-lg font-bold border transition ${
+                                    isRev ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-sm' : 'bg-white text-slate-700 border-emerald-300'
+                                }">⬅️ Dò Ngược Trái (Tên B → Mã A)</button>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-emerald-200/70">
+                            ${!isRev ? `
+                                <span>Chọn Mã SP:</span>
+                                <select id="selXCode" class="font-mono font-bold bg-white border border-emerald-400 rounded px-2 py-1">
+                                    ${codes.map(c => `<option value="${c}" ${state.lookupCode === c ? 'selected' : ''}>"${c}"${c === 'SP99' ? ' (Thử bẫy if_not_found)' : ''}</option>`).join('')}
+                                </select>
+                            ` : `
+                                <span>Chọn Tên SP ở Cột B để lấy Mã ở Cột A:</span>
+                                <select id="selXName" class="font-mono font-bold bg-white border border-emerald-400 rounded px-2 py-1">
+                                    ${PRODUCTS_DATA.map(p => `<option value="${p.name}" ${state.xlookupLookupName === p.name ? 'selected' : ''}>"${p.name}"</option>`).join('')}
+                                    <option value="Webcam 8K" ${state.xlookupLookupName === 'Webcam 8K' ? 'selected' : ''}>"Webcam 8K" (Không có)</option>
+                                </select>
+                            `}
+                        </div>
+                    </div>
+                `;
+                document.getElementById('btnXDirRight').addEventListener('click', () => {
+                    state.xlookupDirection = 'LEFT_TO_RIGHT';
+                    renderAll();
+                });
+                document.getElementById('btnXDirLeft').addEventListener('click', () => {
+                    state.xlookupDirection = 'RIGHT_TO_LEFT';
+                    renderAll();
+                });
+                const selXCode = document.getElementById('selXCode');
+                if (selXCode) {
+                    selXCode.addEventListener('change', e => {
+                        state.lookupCode = e.target.value;
+                        renderAll();
+                    });
+                }
+                const selXName = document.getElementById('selXName');
+                if (selXName) {
+                    selXName.addEventListener('change', e => {
+                        state.xlookupLookupName = e.target.value;
+                        renderAll();
+                    });
+                }
+            } else if (fn.name === 'FILTER') {
+                const depts = ['IT', 'Sales', 'Design', 'HR'];
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">🌪️ Lọc toàn bộ sản phẩm thuộc Phòng Ban (<code>C2:C6=...</code>):</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${depts.map(d => `
+                                <button data-fdept="${d}" class="btn-fdept px-2.5 py-1 rounded-lg font-mono font-bold border transition ${
+                                    state.filterDept === d
+                                        ? 'bg-excel-600 text-white border-excel-700 shadow-sm'
+                                        : 'bg-white text-slate-700 border-emerald-300 hover:bg-emerald-100'
+                                }">"${d}"${d === 'HR' ? ' (Trống)' : ''}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-fdept').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.filterDept = btn.getAttribute('data-fdept');
+                        renderAll();
+                    });
+                });
+            } else if (fn.name === 'CHOOSE') {
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">🎛️ Chọn công tắc vị trí <code>index_num</code> (1..4):</span>
+                        <div class="flex gap-1.5">
+                            ${[1, 2, 3, 4].map(n => `
+                                <button data-cnum="${n}" class="btn-cnum px-3 py-1 rounded-lg font-mono font-extrabold border transition ${
+                                    state.chooseIndexNum === n
+                                        ? 'bg-excel-600 text-white border-excel-700 shadow-sm'
+                                        : 'bg-white text-slate-700 border-emerald-300 hover:bg-emerald-100'
+                                }">Vị trí #${n}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-cnum').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.chooseIndexNum = Number(btn.getAttribute('data-cnum'));
+                        renderAll();
+                    });
+                });
+            }
+        }
+
+        /**
+         * RENDER 2 BẢNG DỮ LIỆU EXCEL BÊN CỘT TRÁI
+         */
+        function renderSpreadsheetTables() {
+            const fn = currentFunc();
+            const evalObj = evaluateLookupFunction();
+
+            document.getElementById('formulaBarText').textContent = evalObj.formula;
+            document.getElementById('formulaResultBadge').textContent = `= ${evalObj.result}`;
+            document.getElementById('funcSyntaxTag').textContent = fn.syntax;
+            document.getElementById('funcPurposeText').textContent = fn.purpose;
+            document.getElementById('funcNoteBox').innerHTML = fn.note;
+
+            const catObj = CATEGORIES.find(c => c.id === fn.category);
+            document.getElementById('funcCategoryBadge').textContent = catObj ? catObj.name : 'Hàm Dò Tìm';
+
+            // 1. Render Bảng Dọc A1:D6
+            const vBody = document.getElementById('verticalTableBody');
+            let vHtml = `
+                <tr class="bg-slate-100 font-bold text-slate-700 border-b border-slate-300">
+                    <td class="py-1.5 text-center font-mono bg-slate-200 border-r border-slate-300">1</td>
+                    <td class="py-1.5 px-2 border-r border-slate-200">Mã SP</td>
+                    <td class="py-1.5 px-2 border-r border-slate-200">Tên Sản Phẩm</td>
+                    <td class="py-1.5 px-2 border-r border-slate-200 text-center">Phòng Ban</td>
+                    <td class="py-1.5 px-2 text-right">Đơn Giá</td>
+                </tr>
+            `;
+
+            PRODUCTS_DATA.forEach((row, idx) => {
+                const isRowActive =
+                    (fn.name === 'INDEX' && state.indexRowNum === row.relRow) ||
+                    (fn.name === 'FILTER' && row.dept === state.filterDept) ||
+                    (fn.name === 'XLOOKUP' && state.xlookupDirection === 'RIGHT_TO_LEFT' && row.name === state.xlookupLookupName) ||
+                    (['VLOOKUP', 'LOOKUP', 'MATCH', 'XLOOKUP'].includes(fn.name) && state.xlookupDirection !== 'RIGHT_TO_LEFT' && row.code === state.lookupCode);
+
+                vHtml += `
+                    <tr data-code="${row.code}" data-rnum="${row.relRow}" data-name="${row.name}" data-dept="${row.dept}"
+                        class="row-product cursor-pointer transition ${
+                            isRowActive ? 'bg-amber-100/90 font-bold text-slate-950' : 'hover:bg-emerald-50/70 text-slate-700'
+                        }">
+                        <td class="py-1.5 text-center font-mono bg-slate-100 text-slate-500 font-bold border-r border-slate-300">${row.excelRow}</td>
+                        <td class="py-1.5 px-2 font-mono font-bold border-r border-slate-200 text-excel-800">${row.code}</td>
+                        <td class="py-1.5 px-2 border-r border-slate-200">${row.name}</td>
+                        <td class="py-1.5 px-2 border-r border-slate-200 text-center">
+                            <span class="px-1.5 py-0.5 rounded text-[11px] font-mono font-semibold bg-slate-100 border border-slate-300">${row.dept}</span>
+                        </td>
+                        <td class="py-1.5 px-2 font-mono text-right font-semibold">${row.price.toLocaleString('en-US')}</td>
+                    </tr>
+                `;
+            });
+            vBody.innerHTML = vHtml;
+
+            // Cho phép nhấp vào hàng bất kỳ trên bảng A2:D6 để đổi nhanh mã đang dò
+            vBody.querySelectorAll('.row-product').forEach(tr => {
+                tr.addEventListener('click', () => {
+                    const code = tr.getAttribute('data-code');
+                    const rnum = Number(tr.getAttribute('data-rnum'));
+                    const name = tr.getAttribute('data-name');
+                    const dept = tr.getAttribute('data-dept');
+
+                    state.lookupCode = code;
+                    state.indexRowNum = rnum;
+                    state.xlookupLookupName = name;
+                    if (fn.name === 'FILTER') state.filterDept = dept;
+                    renderAll();
+                });
+            });
+
+            // 2. Render Bảng Ngang F1:I2
+            const hBody = document.getElementById('horizontalTableBody');
+            hBody.innerHTML = `
+                <tr>
+                    <td class="py-1 bg-slate-200 font-bold text-slate-600 border-r border-slate-300">1</td>
+                    ${HORIZ_DATA.map(c => `
+                        <td data-ht="${c.tierCode}" class="cell-htier py-1 px-1.5 border-r border-slate-200 cursor-pointer font-bold ${
+                            fn.name === 'HLOOKUP' && state.hlookupTier === c.tierCode ? 'bg-amber-200 text-slate-950' : 'bg-slate-50 text-slate-700'
+                        }">${c.tierCode}</td>
+                    `).join('')}
+                </tr>
+                <tr>
+                    <td class="py-1 bg-slate-200 font-bold text-slate-600 border-r border-slate-300">2</td>
+                    ${HORIZ_DATA.map(c => `
+                        <td data-ht="${c.tierCode}" class="cell-htier py-1 px-1.5 border-r border-slate-200 cursor-pointer font-extrabold ${
+                            fn.name === 'HLOOKUP' && state.hlookupTier === c.tierCode ? 'bg-emerald-200 text-emerald-950' : 'bg-white text-emerald-700'
+                        }">${c.rate}</td>
+                    `).join('')}
+                </tr>
+            `;
+            hBody.querySelectorAll('.cell-htier').forEach(td => {
+                td.addEventListener('click', () => {
+                    state.hlookupTier = td.getAttribute('data-ht');
+                    if (fn.name !== 'HLOOKUP') selectFunction(1);
+                    else renderAll();
+                });
+            });
+        }
+
+        /**
+         * RENDER CÁC NÚT BƯỚC (STEP 1, STEP 2, STEP 3)
+         */
+        function getTeachingSteps() {
+            const map = {
+                VLOOKUP: ['Xác định vùng & cột dò', 'Quét cột đầu tiên', 'Trả về giá trị cùng hàng'],
+                HLOOKUP: ['Xác định hàng dò', 'Quét từ trái sang phải', 'Chiếu xuống hàng kết quả'],
+                LOOKUP: ['Đọc hai vector', 'Xác định vị trí phù hợp', 'Lấy phần tử tương ứng'],
+                INDEX: ['Xác định vùng dữ liệu', 'Chọn hàng và cột', 'Lấy ô giao điểm'],
+                MATCH: ['Đọc giá trị cần tìm', 'Kiểm tra từng vị trí', 'Trả về vị trí tương đối'],
+                XLOOKUP: ['Xác định vùng dò & trả về', 'Quét theo hướng đã chọn', 'Trả kết quả hoặc giá trị thay thế'],
+                FILTER: ['Đánh giá điều kiện từng dòng', 'Giữ các dòng TRUE', 'Tràn bảng kết quả'],
+                CHOOSE: ['Đọc index_num', 'Định vị đối số tương ứng', 'Trả về phần tử được chọn']
+            };
+            return map[currentFunc().name] || ['Chuẩn bị dữ liệu', 'Thực hiện thao tác', 'Trả về kết quả'];
+        }
+
+        function renderStepPills() {
+            const container = document.getElementById('stepPillsContainer');
+            container.innerHTML = '';
+            const labels = getTeachingSteps();
+            state.maxSteps = labels.length;
+            state.stepIndex = Math.max(0, Math.min(state.stepIndex, state.maxSteps - 1));
+            labels.forEach((label, s) => {
+                const active = s === state.stepIndex;
+                const done = s < state.stepIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md text-xs font-bold transition ${
+                    active ? 'bg-excel-600 text-white shadow-sm ring-2 ring-emerald-200' :
+                    done ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                    'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`;
+                btn.textContent = `${done ? '✓ ' : ''}${label}`;
+                btn.setAttribute('aria-current', active ? 'step' : 'false');
+                btn.addEventListener('click', () => {
+                    stopAutoPlay();
+                    state.stepIndex = s;
+                    renderAll(true);
+                });
+                container.appendChild(btn);
+            });
+            document.getElementById('visualStepBadge').textContent = `Bước ${state.stepIndex + 1} / ${state.maxSteps}`;
+        }
+
+        /**
+         * ĐIỀU PHỐI SÂN KHẤU ĐỒ HỌA TRỰC QUAN CHO 8 HÀM DÒ TÌM
+         */
+        function renderVisualStage() {
+            const fn = currentFunc();
+            const stage = document.getElementById('visualStageCanvas');
+            const header = document.getElementById('visualStageHeader');
+            const stepBanner = document.getElementById('stepTitleBanner');
+            const stepExp = document.getElementById('stepExplanationText');
+            header.textContent = `Mô phỏng trực quan: Hàm ${fn.name} (${fn.shortVi})`;
+
+            switch (fn.name) {
+                case 'VLOOKUP': renderVlookupStage(stage, stepBanner, stepExp); break;
+                case 'HLOOKUP': renderHlookupStage(stage, stepBanner, stepExp); break;
+                case 'LOOKUP': renderLookupVectorStage(stage, stepBanner, stepExp); break;
+                case 'INDEX': renderIndexCrosshairStage(stage, stepBanner, stepExp); break;
+                case 'MATCH': renderMatchPositionStage(stage, stepBanner, stepExp); break;
+                case 'XLOOKUP': renderXlookupTwinVectorStage(stage, stepBanner, stepExp); break;
+                case 'FILTER': renderFilterSpillStage(stage, stepBanner, stepExp); break;
+                case 'CHOOSE': renderChooseSwitchStage(stage, stepBanner, stepExp); break;
+            }
+
+            const steps = getTeachingSteps();
+            const descriptions = {
+                VLOOKUP: [
+                    'Excel nhận lookup_value, table_array và số thứ tự cột cần trả về.',
+                    'Excel kiểm tra lần lượt các ô trong cột đầu tiên của vùng A2:D6.',
+                    'Khi tìm thấy dòng phù hợp, Excel lấy giá trị tại cột được chỉ định trên chính dòng đó.'
+                ],
+                HLOOKUP: [
+                    'Excel xác định hàng đầu tiên của vùng F1:I2 là hàng chứa khóa dò.',
+                    'Các mã hạng được kiểm tra lần lượt từ trái sang phải.',
+                    'Tại cột khớp, Excel lấy giá trị ở hàng có row_index_num = 2.'
+                ],
+                LOOKUP: [
+                    'lookup_vector chứa khóa tìm kiếm; result_vector chứa kết quả tương ứng theo cùng thứ tự.',
+                    'LOOKUP xác định vị trí phù hợp theo cơ chế dò xấp xỉ của hàm.',
+                    'Giá trị ở cùng vị trí trong result_vector được trả về.'
+                ],
+                INDEX: [
+                    'Vùng A2:D6 được xem như một ma trận gồm 5 hàng và 4 cột.',
+                    'row_num xác định hàng; column_num xác định cột trong vùng đã chọn.',
+                    'Ô tại giao điểm hàng và cột được lấy làm kết quả.'
+                ],
+                MATCH: [
+                    'MATCH nhận giá trị cần tìm và vùng một chiều A2:A6.',
+                    'Với match_type = 0, từng phần tử được so sánh để tìm kết quả khớp chính xác.',
+                    'MATCH trả về thứ tự tương đối trong vùng, không trả về nội dung ô.'
+                ],
+                XLOOKUP: [
+                    'XLOOKUP tách riêng lookup_array và return_array; hai vùng phải tương ứng về kích thước.',
+                    'Hàm dò theo hướng đã chọn và dừng khi tìm thấy giá trị phù hợp.',
+                    'Nếu tìm thấy, trả về phần tử cùng vị trí; nếu không, dùng if_not_found.'
+                ],
+                FILTER: [
+                    'Biểu thức điều kiện được đánh giá riêng cho từng dòng trong vùng dữ liệu.',
+                    'Các dòng có kết quả TRUE được giữ lại; dòng FALSE bị loại khỏi kết quả.',
+                    'Toàn bộ dòng phù hợp được trả về thành mảng động (Spill).'
+                ],
+                CHOOSE: [
+                    'index_num là số thứ tự dùng để chọn một đối số trong danh sách.',
+                    'Excel xác định đối số value tương ứng với số thứ tự đã nhập.',
+                    'Giá trị của đối số được chọn được trả về.'
+                ]
+            };
+            const description = descriptions[fn.name][state.stepIndex];
+            const guide = document.createElement('div');
+            guide.className = 'mt-4 rounded-xl border border-sky-200 bg-sky-50 p-3 sm:p-4';
+            guide.innerHTML = `
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <span class="text-[11px] font-extrabold uppercase tracking-wide text-sky-800">Tiến trình xử lý</span>
+                    <span class="text-[11px] font-mono font-bold text-sky-700">${state.stepIndex + 1}/${steps.length}</span>
+                </div>
+                <div class="flex gap-1.5 mb-3">
+                    ${steps.map((_, i) => `<div class="h-1.5 flex-1 rounded-full ${i <= state.stepIndex ? 'bg-sky-500' : 'bg-sky-100'}"></div>`).join('')}
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="w-7 h-7 shrink-0 rounded-lg bg-sky-600 text-white flex items-center justify-center text-xs font-extrabold">${state.stepIndex + 1}</span>
+                    <div>
+                        <div class="text-sm font-extrabold text-sky-950">${steps[state.stepIndex]}</div>
+                        <p class="text-xs sm:text-sm text-sky-900 mt-1 leading-relaxed">${description}</p>
+                    </div>
+                </div>`;
+            stage.appendChild(guide);
+            stepBanner.textContent = `${fn.name} • ${steps[state.stepIndex]}`;
+            stepExp.innerHTML = description;
+        }
+
+        /**
+         * 1. SÂN KHẤU TIA QUÉT CHỮ L CỦA VLOOKUP
+         */
+        function renderVlookupStage(stage, stepBanner, stepExp) {
+            const evalObj = evaluateLookupFunction();
+            const step = state.stepIndex;
+            const targetCol = state.vlookupColIndex;
+
+            const rowsHtml = PRODUCTS_DATA.map((row, idx) => {
+                const isMatchRow = idx === evalObj.foundIdx;
+                const isScannedDown = evalObj.foundIdx === -1 ? true : idx <= evalObj.foundIdx;
+
+                return `
+                    <tr class="border-b border-slate-200 font-mono text-xs transition-all">
+                        <td class="py-2 px-2 bg-slate-100 text-center text-slate-500 font-bold border-r border-slate-300">Dòng ${row.excelRow}</td>
+                        <!-- Cột 1 (A): Cột dò bắt buộc -->
+                        <td class="py-2 px-3 border-r border-slate-200 font-extrabold ${
+                            step >= 1 && isMatchRow
+                                ? 'bg-amber-300 text-slate-950 ring-2 ring-amber-500'
+                                : step >= 1 && isScannedDown
+                                    ? 'bg-amber-50 text-amber-900'
+                                    : 'bg-white text-slate-700'
+                        }">
+                            <div class="flex items-center justify-between">
+                                <span>${row.code}</span>
+                                ${step >= 1 && isMatchRow ? '<span class="text-[10px] bg-emerald-700 text-white px-1.5 py-0.5 rounded">✓ Khớp!</span>' : ''}
+                                ${step >= 1 && !isMatchRow && isScannedDown ? '<span class="text-[10px] text-slate-400">↓ Quét qua</span>' : ''}
+                            </div>
+                        </td>
+                        <!-- Cột 2 (B) -->
+                        <td class="py-2 px-3 border-r border-slate-200 font-sans ${
+                            step >= 2 && isMatchRow && targetCol === 2
+                                ? 'bg-emerald-500 text-white font-extrabold target-cell-glow'
+                                : step >= 2 && isMatchRow && targetCol > 2
+                                    ? 'bg-emerald-100 text-emerald-900 font-bold'
+                                    : 'bg-white text-slate-600'
+                        }">
+                            ${row.name} ${step >= 2 && isMatchRow && targetCol > 2 ? '→' : ''}
+                        </td>
+                        <!-- Cột 3 (C) -->
+                        <td class="py-2 px-3 border-r border-slate-200 text-center ${
+                            step >= 2 && isMatchRow && targetCol === 3
+                                ? 'bg-emerald-500 text-white font-extrabold target-cell-glow'
+                                : step >= 2 && isMatchRow && targetCol > 3
+                                    ? 'bg-emerald-100 text-emerald-900 font-bold'
+                                    : 'bg-white text-slate-600'
+                        }">
+                            ${row.dept} ${step >= 2 && isMatchRow && targetCol > 3 ? '→' : ''}
+                        </td>
+                        <!-- Cột 4 (D) -->
+                        <td class="py-2 px-3 text-right ${
+                            step >= 2 && isMatchRow && targetCol === 4
+                                ? 'bg-emerald-500 text-white font-extrabold target-cell-glow'
+                                : 'bg-white text-slate-700'
+                        }">
+                            ${row.price.toLocaleString('en-US')}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-slate-600">Đường đi chữ <strong>L</strong> của <code>VLOOKUP</code>: Quét dọc Cột 1 (A) → Bẻ ngang sang Cột ${targetCol} (${evalObj.targetColLetter})</span>
+                        <span class="font-mono font-extrabold px-2.5 py-0.5 rounded ${evalObj.foundIdx !== -1 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-700'}">
+                            Kết quả: ${evalObj.result}
+                        </span>
+                    </div>
+
+                    <div class="border-2 border-slate-300 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full border-collapse text-left">
+                            <thead>
+                                <tr class="bg-slate-800 text-white font-mono text-[11px] text-center">
+                                    <th class="py-2 px-2 border-r border-slate-700">Tọa độ</th>
+                                    <th class="py-2 px-2 border-r border-slate-700 bg-amber-500 text-slate-950 font-extrabold">Cột 1 (A) • Cột Dò</th>
+                                    <th class="py-2 px-2 border-r border-slate-700 ${targetCol === 2 ? 'bg-emerald-500 text-white font-extrabold' : ''}">Cột 2 (B)</th>
+                                    <th class="py-2 px-2 border-r border-slate-700 ${targetCol === 3 ? 'bg-emerald-500 text-white font-extrabold' : ''}">Cột 3 (C)</th>
+                                    <th class="py-2 px-2 ${targetCol === 4 ? 'bg-emerald-500 text-white font-extrabold' : ''}">Cột 4 (D)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            if (evalObj.foundIdx === -1) {
+                stepBanner.textContent = `VLOOKUP quét hết Cột 1 (A2:A6) không thấy "${state.lookupCode}" → Trả về #N/A`;
+                stepExp.innerHTML = `Với đối số cuối <code>range_lookup = 0</code> (dò chính xác), <code>VLOOKUP</code> kiểm tra lần lượt từ <code>A2</code> xuống <code>A6</code>. Vì mã <strong>"${state.lookupCode}"</strong> không tồn tại, hàm báo lỗi <strong>#N/A</strong>.`;
+            } else if (step === 0) {
+                stepBanner.textContent = `Bước 1: Nạp mã "${state.lookupCode}" và vùng bảng A2:D6 (gồm 4 cột)`;
+                stepExp.innerHTML = `Excel xác định cột ngoài cùng bên trái của vùng <code>A2:D6</code> là <strong>Cột 1 (Cột A)</strong> để chuẩn bị phóng tia quét dọc từ trên xuống.`;
+            } else if (step === 1) {
+                stepBanner.textContent = `Bước 2: Tia quét dọc dừng tại dòng ${evalObj.rowObj.excelRow} vì phát hiện "${state.lookupCode}"`;
+                stepExp.innerHTML = `Tia quét đi từ <code>A2</code> xuống <code>A${evalObj.rowObj.excelRow}</code> và khớp chính xác với mã <strong>"${state.lookupCode}"</strong> ở vị trí hàng thứ ${evalObj.foundIdx + 1} của bảng.`;
+            } else {
+                stepBanner.textContent = `Bước 3: Bẻ ngang sang phải tới Cột thứ ${targetCol} (${evalObj.targetColName}) → Lấy ${evalObj.result}`;
+                stepExp.innerHTML = `Từ ô <code>A${evalObj.rowObj.excelRow}</code>, <code>VLOOKUP</code> dịch sang phải đến <strong>Cột số ${targetCol} (ô ${evalObj.targetColLetter}${evalObj.rowObj.excelRow})</strong> và trả về kết quả <strong>${evalObj.result}</strong>.`;
+            }
+        }
+
+        /**
+         * 2. SÂN KHẤU TIA QUÉT NGANG CỦA HLOOKUP
+         */
+        function renderHlookupStage(stage, stepBanner, stepExp) {
+            const evalObj = evaluateLookupFunction();
+            const step = state.stepIndex;
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-xs font-bold text-slate-600">
+                        Tia quét ngang của <code>HLOOKUP("${state.hlookupTier}", F1:I2, 2, 0)</code> trên bảng ngang <code>F1:I2</code>:
+                    </div>
+
+                    <div class="border-2 border-slate-300 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full border-collapse text-center font-mono text-xs sm:text-sm">
+                            <thead>
+                                <tr class="bg-slate-800 text-white text-xs">
+                                    <th class="py-2 px-3 border-r border-slate-700">Hàng bảng</th>
+                                    ${HORIZ_DATA.map(c => `<th class="py-2 px-3 border-r border-slate-700">Cột ${c.colLetter}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Hàng 1: Hàng dò ngang -->
+                                <tr class="border-b border-slate-300">
+                                    <td class="py-3 px-2 bg-amber-100 text-amber-950 font-sans font-bold text-xs border-r border-slate-300">
+                                        Hàng 1 (Dò ngang →)
+                                    </td>
+                                    ${HORIZ_DATA.map((c, idx) => {
+                                        const isMatch = idx === evalObj.foundIdx;
+                                        const isScanned = evalObj.foundIdx === -1 ? true : idx <= evalObj.foundIdx;
+                                        return `
+                                            <td class="py-3 px-3 border-r border-slate-200 font-extrabold ${
+                                                step >= 1 && isMatch
+                                                    ? 'bg-amber-300 text-slate-950 ring-2 ring-amber-500'
+                                                    : step >= 1 && isScanned
+                                                        ? 'bg-amber-50 text-amber-900'
+                                                        : 'bg-white text-slate-700'
+                                            }">
+                                                <div>"${c.tierCode}"</div>
+                                                <div class="text-[10px] font-sans mt-0.5">
+                                                    ${step >= 1 && isMatch ? '✓ Khớp mã!' : (step >= 1 && isScanned ? '→ Đã quét' : '')}
+                                                </div>
+                                            </td>
+                                        `;
+                                    }).join('')}
+                                </tr>
+                                <!-- Hàng 2: Hàng lấy kết quả -->
+                                <tr>
+                                    <td class="py-3 px-2 bg-emerald-100 text-emerald-950 font-sans font-bold text-xs border-r border-slate-300">
+                                        Hàng 2 (Lấy kết quả ↓)
+                                    </td>
+                                    ${HORIZ_DATA.map((c, idx) => {
+                                        const isMatch = idx === evalObj.foundIdx;
+                                        return `
+                                            <td class="py-3 px-3 border-r border-slate-200 font-extrabold ${
+                                                step >= 2 && isMatch
+                                                    ? 'bg-emerald-500 text-white target-cell-glow text-base'
+                                                    : 'bg-white text-slate-600'
+                                            }">
+                                                ${step >= 2 && isMatch ? `↓ ${c.rate}` : c.rate}
+                                            </td>
+                                        `;
+                                    }).join('')}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            if (evalObj.foundIdx === -1) {
+                stepBanner.textContent = `HLOOKUP quét hết Hàng 1 (F1:I1) không thấy "${state.hlookupTier}" → #N/A`;
+                stepExp.innerHTML = `Tia quét chạy ngang từ <code>F1</code> sang <code>I1</code> nhưng không có ô nào khớp với <strong>"${state.hlookupTier}"</strong>, nên hàm trả về lỗi <strong>#N/A</strong>.`;
+            } else {
+                stepBanner.textContent = `HLOOKUP khớp "${state.hlookupTier}" tại ô ${evalObj.colObj.colLetter}1 → Nhảy xuống Hàng 2 (${evalObj.colObj.colLetter}2) lấy ${evalObj.result}`;
+                stepExp.innerHTML = `Hàm <code>HLOOKUP</code> dò ngang trên <strong>Hàng 1</strong>, bắt gặp <strong>"${state.hlookupTier}"</strong> ở cột <code>${evalObj.colObj.colLetter}</code>, sau đó chiếu thẳng xuống <strong>Hàng thứ 2 (row_index_num = 2)</strong> để trả về mức chiết khấu <strong>${evalObj.result}</strong>.`;
+            }
+        }
+
+        /**
+         * 3. SÂN KHẤU SONG SONG 2 VECTOR CỦA HÀM LOOKUP
+         */
+        function renderLookupVectorStage(stage, stepBanner, stepExp) {
+            const evalObj = evaluateLookupFunction();
+
+            stage.innerHTML = `
+                <div class="space-y-3">
+                    <div class="text-xs font-bold text-slate-600 flex flex-wrap items-center justify-between gap-2">
+                        <span>Ánh xạ vị trí 1-1 giữa <code>lookup_vector (A2:A6)</code> và <code>result_vector (D2:D6)</code>:</span>
+                        <span class="text-[11px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded font-mono font-bold">
+                            ⚠️ Yêu cầu A2:A6 đã sắp xếp tăng dần
+                        </span>
+                    </div>
+
+                    <div class="space-y-1.5 font-mono text-xs">
+                        ${PRODUCTS_DATA.map((r, idx) => {
+                            const isTarget = idx === evalObj.foundIdx;
+                            return `
+                                <div class="grid grid-cols-12 items-center gap-2 p-2 rounded-xl border ${
+                                    isTarget ? 'bg-emerald-50 border-emerald-500 font-extrabold shadow-sm' : 'bg-white border-slate-200 opacity-75'
+                                }">
+                                    <div class="col-span-4 px-2.5 py-1.5 rounded bg-slate-100 text-slate-800 flex justify-between">
+                                        <span>A${r.excelRow}: "${r.code}"</span>
+                                        <span class="text-slate-400">#${idx + 1}</span>
+                                    </div>
+                                    <div class="col-span-4 text-center text-xs font-sans font-bold ${isTarget ? 'text-emerald-700' : 'text-slate-400'}">
+                                        ${isTarget ? '═══ Khớp vị trí #' + (idx + 1) + ' ═══▶' : '--- Ánh xạ ngang ---▶'}
+                                    </div>
+                                    <div class="col-span-4 px-2.5 py-1.5 rounded text-right ${
+                                        isTarget ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-700'
+                                    }">
+                                        D${r.excelRow}: ${r.price.toLocaleString('en-US')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            if (evalObj.exactFound) {
+                stepBanner.textContent = `LOOKUP tìm thấy "${state.lookupCode}" ở phần tử thứ #${evalObj.foundIdx + 1} → Lấy phần tử #${evalObj.foundIdx + 1} bên cột D = ${evalObj.result}`;
+                stepExp.innerHTML = `Hàm <code>LOOKUP</code> tìm vị trí của <strong>"${state.lookupCode}"</strong> trong vector <code>A2:A6</code> (vị trí thứ <strong>#${evalObj.foundIdx + 1}</strong>), rồi lấy giá trị tương ứng ở vị trí <strong>#${evalObj.foundIdx + 1}</strong> trong vector kết quả <code>D2:D6</code> là <strong>${evalObj.result}</strong>.`;
+            } else {
+                stepBanner.textContent = `Chú ý: Mã "${state.lookupCode}" không có, nhưng LOOKUP KHÔNG báo #N/A mà lấy giá trị lớn nhất nhỏ hơn nó ("SP05" = 2100)!`;
+                stepExp.innerHTML = `Đây là điểm khác biệt quan trọng: Hàm <code>LOOKUP</code> luôn <strong>dò xấp xỉ</strong>. Vì <code>"SP99" &gt; "SP05"</code>, nó tự động lùi về phần tử cuối cùng <code>"SP05"</code> và trả về <strong>2100</strong> thay vì báo lỗi <code>#N/A</code>.`;
+            }
+        }
+
+        /**
+         * 4. SÂN KHẤU TỌA ĐỘ GIAO ĐIỂM 2 CHIỀU CỦA HÀM INDEX (KÈM INDEX + MATCH)
+         */
+        function renderIndexCrosshairStage(stage, stepBanner, stepExp) {
+            const evalObj = evaluateLookupFunction();
+            const targetR = state.indexRowNum; // 1..5
+            const targetC = state.indexColNum; // 1..4
+            const step = state.stepIndex;
+
+            stage.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-slate-600">
+                            Tọa độ 2 chiều trong vùng <code>A2:D6</code>: <strong>Hàng ${targetR}</strong> × <strong>Cột ${targetC}</strong> (Giao điểm tại ô <code>${evalObj.cellCoord}</code>)
+                        </span>
+                        <span class="font-mono font-extrabold bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded">
+                            Giao điểm = ${evalObj.result}
+                        </span>
+                    </div>
+
+                    <div class="border-2 border-slate-300 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full border-collapse text-xs font-mono">
+                            <thead>
+                                <tr class="bg-slate-800 text-white text-center">
+                                    <th class="py-2 px-2 border-r border-slate-700">Hàng \\ Cột</th>
+                                    ${[1, 2, 3, 4].map(c => `
+                                        <th class="py-2 px-2 border-r border-slate-700 ${
+                                            step >= 1 && targetC === c ? 'bg-sky-500 text-white font-extrabold' : ''
+                                        }">Cột ${c}</th>
+                                    `).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${PRODUCTS_DATA.map(row => {
+                                    const isRowHit = row.relRow === targetR;
+                                    const cells = [row.code, row.name, row.dept, row.price.toLocaleString('en-US')];
+                                    return `
+                                        <tr class="border-b border-slate-200">
+                                            <td class="py-2 px-2 text-center font-bold border-r border-slate-300 ${
+                                                step >= 0 && isRowHit ? 'bg-amber-400 text-slate-950 font-extrabold' : 'bg-slate-100 text-slate-600'
+                                            }">Hàng ${row.relRow} <span class="text-[10px] font-normal">(Dòng ${row.excelRow})</span></td>
+                                            ${cells.map((cellVal, cIdx) => {
+                                                const cNum = cIdx + 1;
+                                                const isColHit = cNum === targetC;
+                                                const isIntersection = isRowHit && isColHit;
+                                                let cellClass = 'bg-white text-slate-600';
+                                                if (step >= 2 && isIntersection) {
+                                                    cellClass = 'bg-emerald-600 text-white font-extrabold text-sm target-cell-glow';
+                                                } else if (step >= 0 && isRowHit) {
+                                                    cellClass = 'bg-amber-100 text-amber-950 font-bold';
+                                                } else if (step >= 1 && isColHit) {
+                                                    cellClass = 'bg-sky-100 text-sky-950 font-bold';
+                                                }
+                                                return `
+                                                    <td class="py-2 px-2.5 border-r border-slate-200 text-center transition-all ${cellClass}">
+                                                        ${isIntersection && step >= 2 ? '🎯 ' : ''}${cellVal}
+                                                    </td>
+                                                `;
+                                            }).join('')}
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `INDEX lấy ô giao điểm giữa Hàng ${targetR} và Cột ${targetC} trong vùng A2:D6 → Ô ${evalObj.cellCoord} = ${evalObj.result}`;
+            stepExp.innerHTML = state.indexComboMatch
+                ? `Khi kết hợp <code>INDEX + MATCH</code>: Hàm <code>MATCH("${evalObj.rowObj.code}", A2:A6, 0)</code> tự động tìm ra <strong>Hàng số ${targetR}</strong>, sau đó <code>INDEX</code> lấy giao điểm với <strong>Cột số ${targetC}</strong> để trả về <strong>${evalObj.result}</strong>.`
+                : `Trong vùng <code>A2:D6</code> (không tính dòng tiêu đề 1), hàm <code>INDEX</code> chiếu ngang theo <strong>Hàng thứ ${targetR}</strong> và chiếu dọc theo <strong>Cột thứ ${targetC}</strong>. Ô nằm ngay ngã tư giao điểm trả về <strong>${evalObj.result}</strong>.`;
+        }
+
+        /**
+         * 5. SÂN KHẤU ĐẾM VỊ TRÍ TƯƠNG ĐỐI CỦA HÀM MATCH
+         */
+        function renderMatchPositionStage(stage, stepBanner, stepExp) {
+            const evalObj = evaluateLookupFunction();
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-xs font-bold text-slate-600 text-center">
+                        Bộ đếm vị trí tương đối của <code>=MATCH("${state.lookupCode}", A2:A6, 0)</code> (Đếm từ #1 tại ô đầu tiên của vùng chọn):
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-5 gap-2.5 font-mono">
+                        ${PRODUCTS_DATA.map((r, idx) => {
+                            const isHit = idx === evalObj.foundIdx;
+                            const isPassed = evalObj.foundIdx === -1 ? true : idx < evalObj.foundIdx;
+                            return `
+                                <div class="p-3.5 rounded-xl border-2 text-center transition-all ${
+                                    isHit
+                                        ? 'bg-emerald-50 border-emerald-500 shadow-lg scale-105 target-cell-glow'
+                                        : isPassed
+                                            ? 'bg-amber-50/70 border-amber-300'
+                                            : 'bg-white border-slate-200 opacity-60'
+                                }">
+                                    <div class="text-[11px] font-sans font-bold text-slate-400">Ô Excel A${r.excelRow}</div>
+                                    <div class="text-base font-extrabold text-slate-900 my-1">"${r.code}"</div>
+                                    <div class="inline-block px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                                        isHit ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
+                                    }">
+                                        Vị trí #${idx + 1}
+                                    </div>
+                                    <div class="text-[10px] font-sans font-bold mt-1.5 ${isHit ? 'text-emerald-700' : 'text-slate-400'}">
+                                        ${isHit ? '🎯 Dừng & Trả về ' + (idx + 1) : (isPassed ? '✕ Chưa khớp' : 'Chờ quét')}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            if (evalObj.foundIdx === -1) {
+                stepBanner.textContent = `MATCH quét hết 5 vị trí trong A2:A6 không thấy "${state.lookupCode}" → #N/A`;
+                stepExp.innerHTML = `Với <code>match_type = 0</code> (dò chính xác), hàm <code>MATCH</code> kiểm tra từ vị trí #1 đến #5 nhưng không gặp mã <strong>"${state.lookupCode}"</strong> nên báo lỗi <strong>#N/A</strong>.`;
+            } else {
+                stepBanner.textContent = `MATCH phát hiện "${state.lookupCode}" đứng ở vị trí thứ #${evalObj.result} trong vùng A2:A6`;
+                stepExp.innerHTML = `Lưu ý quan trọng: Dù ô <code>A${PRODUCTS_DATA[evalObj.foundIdx].excelRow}</code> nằm ở dòng thứ ${PRODUCTS_DATA[evalObj.foundIdx].excelRow} của bảng tính, nhưng bên trong vùng <code>A2:A6</code> nó là phần tử đứng thứ <strong>${evalObj.result}</strong>. Vì vậy <code>MATCH</code> trả về con số <strong>${evalObj.result}</strong>.`;
+            }
+        }
+
+        /**
+         * 6. SÂN KHẤU XLOOKUP: DÒ THUẬN & DÒ NGƯỢC SANG TRÁI + BẪY LỖI TÍCH HỢP
+         */
+        function renderXlookupTwinVectorStage(stage, stepBanner, stepExp) {
+            const evalObj = evaluateLookupFunction();
+            const isRev = evalObj.isReverse;
+
+            stage.innerHTML = `
+                <div class="space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-slate-700">
+                            ${isRev
+                                ? '⬅️ <strong>Dò Ngược Sang Trái:</strong> Tìm trong <code>B2:B6 (Tên SP)</code> → Trả về <code>A2:A6 (Mã SP bên trái)</code>'
+                                : '➡️ <strong>Dò Thuận:</strong> Tìm trong <code>A2:A6 (Mã SP)</code> → Trả về <code>D2:D6 (Đơn Giá)</code>'}
+                        </span>
+                        <span class="font-mono font-extrabold bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded">
+                            Kết quả: ${evalObj.result}
+                        </span>
+                    </div>
+
+                    <div class="space-y-1.5 font-mono text-xs">
+                        ${PRODUCTS_DATA.map((r, idx) => {
+                            const isHit = idx === evalObj.foundIdx;
+                            return `
+                                <div class="grid grid-cols-12 items-center gap-2 p-2 rounded-xl border transition-all ${
+                                    isHit ? 'bg-emerald-50 border-emerald-500 font-extrabold shadow-sm scale-[1.01]' : 'bg-white border-slate-200 opacity-75'
+                                }">
+                                    <!-- Cột A -->
+                                    <div class="col-span-4 px-2.5 py-1.5 rounded ${
+                                        isRev
+                                            ? (isHit ? 'bg-emerald-600 text-white target-cell-glow' : 'bg-emerald-50 text-emerald-900')
+                                            : (isHit ? 'bg-amber-300 text-slate-950' : 'bg-slate-100 text-slate-800')
+                                    }">
+                                        A${r.excelRow}: "${r.code}" ${isRev ? '(Cột Trả Về)' : '(Cột Dò)'}
+                                    </div>
+
+                                    <!-- Mũi tên hướng dò -->
+                                    <div class="col-span-4 text-center font-sans font-bold ${isHit ? 'text-emerald-700' : 'text-slate-400'}">
+                                        ${isRev
+                                            ? (isHit ? '◀═══ DÒ NGƯỢC TRÁI ═══' : '◀--- Ánh xạ ngược ---')
+                                            : (isHit ? '═══ DÒ THUẬN ═══▶' : '--- Ánh xạ thuận ---▶')}
+                                    </div>
+
+                                    <!-- Cột B hoặc D -->
+                                    <div class="col-span-4 px-2.5 py-1.5 rounded text-right ${
+                                        isRev
+                                            ? (isHit ? 'bg-amber-300 text-slate-950' : 'bg-slate-100 text-slate-800')
+                                            : (isHit ? 'bg-emerald-600 text-white target-cell-glow' : 'bg-emerald-50 text-emerald-900')
+                                    }">
+                                        ${isRev ? `B${r.excelRow}: "${r.name}"` : `D${r.excelRow}: ${r.price.toLocaleString('en-US')}`}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            if (evalObj.foundIdx === -1) {
+                stepBanner.textContent = `XLOOKUP không tìm thấy mã → Kích hoạt ngay đối số thứ 4 [if_not_found] = ${evalObj.result}`;
+                stepExp.innerHTML = `Không cần bọc hàm <code>IFERROR</code> hay <code>IFNA</code> bên ngoài! Khi không tìm thấy giá trị trong <code>lookup_array</code>, <code>XLOOKUP</code> tự động trả về đối số thứ 4 <code>[if_not_found]</code> là <strong>${evalObj.result}</strong>.`;
+            } else if (isRev) {
+                stepBanner.textContent = `XLOOKUP dò ngược từ Cột B ("${state.xlookupLookupName}") sang Cột A bên trái → Lấy mã ${evalObj.result}`;
+                stepExp.innerHTML = `Điều mà <code>VLOOKUP</code> bó tay: <code>XLOOKUP</code> tách rời hoàn toàn vùng dò (<code>B2:B6</code>) và vùng trả về (<code>A2:A6</code>), nên việc lấy dữ liệu nằm <strong>bên trái</strong> cột dò diễn ra cực kỳ tự nhiên!`;
+            } else {
+                stepBanner.textContent = `XLOOKUP khớp "${state.lookupCode}" ở dòng ${evalObj.rowObj.excelRow} → Trả về ${evalObj.result}`;
+                stepExp.innerHTML = `Hàm <code>XLOOKUP</code> mặc định dò chính xác 100% mà không cần truyền số <code>0</code> ở cuối, tìm vị trí của <strong>"${state.lookupCode}"</strong> trong <code>A2:A6</code> và lấy ngay giá trị tương ứng ở <code>D2:D6</code>.`;
+            }
+        }
+
+        /**
+         * 7. SÂN KHẤU LỌC MẢNG ĐỘNG TRÀN Ô (DYNAMIC ARRAY SPILL) CỦA HÀM FILTER
+         */
+        function renderFilterSpillStage(stage, stepBanner, stepExp) {
+            const evalObj = evaluateLookupFunction();
+
+            stage.innerHTML = `
+                <div class="space-y-3.5">
+                    <!-- Bộ kiểm tra điều kiện từng hàng -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div class="border border-slate-300 rounded-xl p-3 bg-white">
+                            <div class="text-xs font-bold text-slate-700 mb-2">1. Kiểm tra điều kiện <code>C2:C6 = "${state.filterDept}"</code>:</div>
+                            <div class="space-y-1.5 font-mono text-xs">
+                                ${PRODUCTS_DATA.map(r => {
+                                    const keep = r.dept === state.filterDept;
+                                    return `
+                                        <div class="flex items-center justify-between px-2.5 py-1 rounded border ${
+                                            keep ? 'bg-emerald-50 border-emerald-400 text-emerald-950 font-bold' : 'bg-rose-50/60 border-rose-200 text-slate-400'
+                                        }">
+                                            <span>${r.code} (${r.dept})</span>
+                                            <span class="px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                                                keep ? 'bg-emerald-600 text-white' : 'bg-rose-200 text-rose-800'
+                                            }">${keep ? '✓ TRUE (Giữ)' : '✕ FALSE (Loại)'}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Bảng kết quả tràn mảng động (Dynamic Array Spill) -->
+                        <div class="rounded-xl p-3 bg-blue-50/40 dynamic-spill-border flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between text-xs font-bold text-blue-900 mb-2">
+                                    <span>2. Vùng tràn mảng động (Dynamic Spill):</span>
+                                    <span class="bg-blue-600 text-white font-mono text-[10px] px-2 py-0.5 rounded">Spill Range</span>
+                                </div>
+                                ${evalObj.matchedRows.length > 0 ? `
+                                    <table class="w-full text-xs font-mono bg-white border border-blue-300 rounded overflow-hidden">
+                                        <thead>
+                                            <tr class="bg-blue-600 text-white text-[11px]">
+                                                <th class="py-1 px-2 text-left">Mã</th>
+                                                <th class="py-1 px-2 text-left">Tên SP</th>
+                                                <th class="py-1 px-2">Phòng</th>
+                                                <th class="py-1 px-2 text-right">Giá</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-blue-100">
+                                            ${evalObj.matchedRows.map(m => `
+                                                <tr class="text-slate-800 font-bold">
+                                                    <td class="py-1.5 px-2 text-excel-700">${m.code}</td>
+                                                    <td class="py-1.5 px-2 font-sans">${m.name}</td>
+                                                    <td class="py-1.5 px-2 text-center">${m.dept}</td>
+                                                    <td class="py-1.5 px-2 text-right">${m.price.toLocaleString('en-US')}</td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                ` : `
+                                    <div class="p-6 text-center font-mono font-extrabold text-amber-800 bg-amber-50 rounded-lg border border-amber-300">
+                                        "Không có dữ liệu" (Kích hoạt đối số [if_empty])
+                                    </div>
+                                `}
+                            </div>
+                            <div class="text-[11px] text-blue-800 mt-2">
+                                💡 Chỉ viết công thức tại <strong>1 ô duy nhất</strong>, kết quả tự động tràn xuống ${evalObj.matchedRows.length} dòng!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = evalObj.matchedRows.length > 0
+                ? `FILTER lọc được ${evalObj.matchedRows.length} dòng thuộc phòng "${state.filterDept}" và tràn tự động ra bảng kết quả`
+                : `FILTER không tìm thấy dòng nào thuộc phòng "${state.filterDept}" → Trả về [if_empty] = "Không có dữ liệu"`;
+            stepExp.innerHTML = `Khác với <code>VLOOKUP</code> hay <code>XLOOKUP</code> chỉ trả về 1 kết quả đầu tiên, hàm <code>FILTER</code> đánh giá biểu thức <code>C2:C6="${state.filterDept}"</code> thành mảng <code>TRUE/FALSE</code> và trích xuất <strong>tất cả các dòng đạt TRUE</strong>.`;
+        }
+
+        /**
+         * 8. SÂN KHẤU CÔNG TẮC CHỌN VỊ TRÍ CỦA HÀM CHOOSE
+         */
+        function renderChooseSwitchStage(stage, stepBanner, stepExp) {
+            const evalObj = evaluateLookupFunction();
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="bg-slate-900 text-white p-3.5 rounded-xl flex flex-wrap items-center justify-between gap-2 font-mono text-xs sm:text-sm">
+                        <span>Số thứ tự chọn (<code>index_num</code>): <strong class="text-amber-300 text-base">#${state.chooseIndexNum}</strong></span>
+                        <span>Phần tử được bốc ra: <strong class="text-emerald-300">${evalObj.result}</strong></span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 font-mono">
+                        ${evalObj.options.map((opt, idx) => {
+                            const isPicked = idx === evalObj.chosenIdx;
+                            return `
+                                <div class="p-4 rounded-2xl border-2 text-center transition-all ${
+                                    isPicked
+                                        ? 'bg-emerald-50 border-emerald-500 shadow-lg scale-105 target-cell-glow'
+                                        : 'bg-white border-slate-200 opacity-60'
+                                }">
+                                    <div class="text-[11px] font-sans font-bold uppercase text-slate-400">${opt.desc}</div>
+                                    <div class="my-2 inline-block px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                                        isPicked ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
+                                    }">index_num = ${opt.idx}</div>
+                                    <div class="text-sm font-extrabold text-slate-900">${opt.label}</div>
+                                    <div class="text-[10px] font-sans font-bold mt-1.5 ${isPicked ? 'text-emerald-700' : 'text-slate-400'}">
+                                        ${isPicked ? '⚡ Đang được chọn' : 'Bỏ qua'}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Hàm CHOOSE nhận index_num = ${state.chooseIndexNum} → Bốc ngay đối số value${state.chooseIndexNum} là ${evalObj.result}`;
+            stepExp.innerHTML = `Hàm <code>CHOOSE</code> không dò tìm trên bảng mà hoạt động như một <strong>công tắc chọn theo số thứ tự</strong>: khi đối số đầu tiên <code>index_num = ${state.chooseIndexNum}</code>, hàm nhảy thẳng đến phần tử thứ <strong>#${state.chooseIndexNum}</strong> trong danh sách và trả về <strong>${evalObj.result}</strong>.`;
+        }
+
+        /**
+         * RENDER MODAL BẢNG TRA CỨU 8 HÀM DÒ TÌM
+         */
+        function renderCatalogModal() {
+            const tbody = document.getElementById('catalogTableBody');
+            tbody.innerHTML = '';
+            FUNCTIONS_DB.forEach((fn, i) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-excel-50 cursor-pointer transition';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500">${i + 1}</td>
+                    <td class="py-2.5 px-3 border-r border-slate-200 font-mono font-extrabold text-excel-700">
+                        ${fn.name}
+                        <div class="text-[11px] font-sans font-medium text-slate-500">${fn.shortVi}</div>
+                    </td>
+                    <td class="py-2.5 px-3 border-r border-slate-200 font-mono text-xs text-slate-700">${fn.syntax}</td>
+                    <td class="py-2.5 px-3 text-xs text-slate-600">${fn.purpose}</td>
+                `;
+                tr.addEventListener('click', () => {
+                    document.getElementById('catalogModal').classList.add('hidden');
+                    document.getElementById('catalogModal').classList.remove('flex');
+                    selectFunction(i);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderAll(skipPanelRebuild = false) {
+            if (!skipPanelRebuild) {
+                renderDynamicParamsPanel();
+            }
+            renderSpreadsheetTables();
+            renderStepPills();
+            renderVisualStage();
+        }
+
+        function startAutoPlay() {
+            state.isPlaying = true;
+            document.getElementById('playPauseIcon').textContent = '⏸';
+            document.getElementById('playPauseText').textContent = 'Tạm dừng';
+            state.timer = setInterval(() => {
+                if (state.stepIndex < state.maxSteps - 1) {
+                    state.stepIndex++;
+                    renderAll(true);
+                } else {
+                    stopAutoPlay();
+                }
+            }, state.speedMs);
+        }
+
+        function stopAutoPlay() {
+            state.isPlaying = false;
+            if (state.timer) {
+                clearInterval(state.timer);
+                state.timer = null;
+            }
+            document.getElementById('playPauseIcon').textContent = '▶';
+            document.getElementById('playPauseText').textContent = 'Chạy tia quét';
+        }
+
+        function initEvents() {
+            document.getElementById('btnPlayPause').addEventListener('click', () => {
+                if (state.isPlaying) {
+                    stopAutoPlay();
+                } else {
+                    state.stepIndex = 0;
+                    renderAll(true);
+                    startAutoPlay();
+                }
+            });
+
+            document.getElementById('btnStep').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = Math.min(state.stepIndex + 1, state.maxSteps - 1);
+                renderAll(true);
+            });
+
+            document.getElementById('btnReset').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = 0;
+                renderAll(true);
+            });
+
+            document.getElementById('speedSelect').addEventListener('change', e => {
+                state.speedMs = Number(e.target.value);
+                if (state.isPlaying) {
+                    stopAutoPlay();
+                    startAutoPlay();
+                }
+            });
+
+            // 3 Nút kịch bản nhanh
+            document.getElementById('btnPresetStandard').addEventListener('click', () => {
+                state.lookupCode = 'SP03';
+                state.vlookupColIndex = 4;
+                state.hlookupTier = 'GOLD';
+                state.xlookupDirection = 'LEFT_TO_RIGHT';
+                renderAll();
+            });
+
+            document.getElementById('btnPresetNotFound').addEventListener('click', () => {
+                state.lookupCode = 'SP99';
+                state.hlookupTier = 'PLATINUM';
+                state.filterDept = 'HR';
+                renderAll();
+            });
+
+            document.getElementById('btnPresetLeftLookup').addEventListener('click', () => {
+                state.xlookupDirection = 'RIGHT_TO_LEFT';
+                state.xlookupLookupName = 'Bàn Phím Cơ';
+                selectFunction(5); // Nhảy sang XLOOKUP ở chế độ dò ngược sang trái
+            });
+
+            // Modal bảng tra cứu 8 hàm Dò tìm
+            const modal = document.getElementById('catalogModal');
+            document.getElementById('btnOpenCatalogModal').addEventListener('click', () => {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+            document.getElementById('btnCloseCatalogModal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            modal.addEventListener('click', e => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initEvents();
+            renderCatalogModal();
+            selectFunction(0);
+        });
+    </script>
+</body>
+</html>
