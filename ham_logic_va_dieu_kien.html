@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Logical & Conditional Functions Sandbox - Mô Phỏng 9 Hàm Logic</title>
+    <!-- Tải Tailwind CSS qua CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Google Font Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        excel: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#21a366',
+                            600: '#107c41',
+                            700: '#0b5c30',
+                            800: '#064e27',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .excel-grid-shadow {
+            box-shadow: 0 4px 20px -2px rgba(16, 124, 65, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.95); opacity: 0; }
+            70% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop-in 0.25s ease-out forwards;
+        }
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+            50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+        .active-branch-glow {
+            animation: pulse-border 1.6s infinite;
+        }
+        button:disabled { opacity: .4; cursor: not-allowed; }
+        #stepPillsContainer { max-width: 100%; }
+        #visualStageCanvas { transition: min-height .2s ease; }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER CHUẨN EXCEL + BỘ CHỌN 9 HÀM LOGIC TỰ ĐỘNG XUỐNG DÒNG (KHÔNG THANH TRƯỢT NGANG) -->
+    <header class="bg-excel-600 text-white shadow-md z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shadow-inner shrink-0">
+                    <span class="font-serif italic font-extrabold text-xl text-amber-300">fx</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-xl font-extrabold tracking-tight">Excel Logical & Conditional Sandbox</h1>
+                        <span class="text-xs bg-amber-400 text-slate-900 px-2.5 py-0.5 rounded-full font-bold shadow-sm">9 Hàm Logic & Điều Kiện</span>
+                    </div>
+                    <p class="text-xs text-excel-100/90">Mô phỏng trực quan sơ đồ rẽ nhánh (IF, IFS, SWITCH), cổng Logic (AND, OR, XOR, NOT) & bẫy lỗi (IFERROR, IFNA)</p>
+                </div>
+            </div>
+
+            <!-- Bộ lọc nhóm hàm + Nút tra cứu bảng 9 hàm -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <div id="categoryFilterBar" class="flex flex-wrap items-center gap-1 bg-excel-800/60 p-1 rounded-lg border border-excel-500/30 text-xs">
+                    <!-- Render bằng JS -->
+                </div>
+                <button id="btnOpenCatalogModal" class="bg-amber-400 hover:bg-amber-300 text-slate-900 active:scale-95 transition text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                    <span>📋 Bảng tra cứu 9 hàm Logic</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH 9 HÀM TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP, TUYỆT ĐỐI KHÔNG DÙNG THANH TRƯỢT NGANG) -->
+        <div class="bg-excel-700/95 border-t border-excel-500/30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
+                <div id="functionButtonsGrid" class="flex flex-wrap gap-2 items-center">
+                    <!-- 9 nút hàm logic sẽ tự động xuống dòng tại đây -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- CỘT TRÁI (5/12): BẢNG TÍNH HỒ SƠ ĐÁNH GIÁ EXCEL & KỊCH BẢN MẪU -->
+        <section class="lg:col-span-5 bg-white rounded-xl border border-slate-300 excel-grid-shadow overflow-hidden flex flex-col">
+            <!-- Thanh tiêu đề bảng tính & 5 Nút kịch bản dữ liệu nhanh -->
+            <div class="bg-excel-700 text-white px-3.5 py-2.5 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <span class="font-mono font-bold">Ho_So_Danh_Gia_Logic.xlsx</span>
+                    </div>
+                    <span id="funcCategoryBadge" class="bg-white/15 px-2 py-0.5 rounded text-[11px] font-semibold">Rẽ nhánh điều kiện</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[11px]">
+                    <button id="btnPresetHighPass" class="bg-emerald-500/30 hover:bg-emerald-500/50 border border-emerald-300/30 px-2 py-1 rounded font-semibold transition text-left truncate">
+                        🏆 1. Đạt chuẩn Giỏi
+                    </button>
+                    <button id="btnPresetOneFail" class="bg-amber-400/90 hover:bg-amber-300 text-slate-900 px-2 py-1 rounded font-bold transition text-left truncate">
+                        ⚖️ 2. Đậu 1 / Trượt 1
+                    </button>
+                    <button id="btnPresetBothFail" class="bg-rose-400/90 hover:bg-rose-300 text-slate-950 px-2 py-1 rounded font-bold transition text-left truncate">
+                        📉 3. Trượt cả 2 môn
+                    </button>
+                    <button id="btnPresetDivZero" class="bg-purple-300 hover:bg-purple-200 text-slate-950 px-2 py-1 rounded font-bold transition text-left truncate">
+                        💥 4. Lỗi #DIV/0!
+                    </button>
+                    <button id="btnPresetNAError" class="bg-sky-300 hover:bg-sky-200 text-slate-950 px-2 py-1 rounded font-bold transition text-left truncate">
+                        🔍 5. Lỗi #N/A
+                    </button>
+                    <button id="btnPresetCycleTier" class="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded font-semibold transition text-left truncate">
+                        🏷️ 6. Đổi Mã Hạng (C1)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh Công Thức (Name Box & Formula Bar) -->
+            <div class="bg-slate-50 border-b border-slate-300 px-3 py-2 flex items-center gap-2">
+                <div class="w-12 bg-white border border-slate-300 rounded px-1.5 py-1 font-mono text-xs font-bold text-center text-excel-800 shadow-inner" id="nameBoxDisplay">
+                    F1
+                </div>
+                <div class="text-excel-600 font-serif italic font-extrabold text-base px-0.5 select-none">fx</div>
+                <div class="flex-1 bg-white border border-excel-500/60 rounded px-2.5 py-1 font-mono text-xs sm:text-sm font-bold text-slate-800 flex items-center justify-between shadow-inner overflow-x-auto">
+                    <span id="formulaBarText" class="text-excel-700">=IF(A1>=5, "Đạt", "Trượt")</span>
+                    <span id="formulaResultBadge" class="ml-2 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-extrabold shrink-0">
+                        = "Đạt"
+                    </span>
+                </div>
+            </div>
+
+            <!-- KHUNG ĐIỀU CHỈNH THAM SỐ ĐỘNG THEO TỪNG HÀM -->
+            <div id="dynamicParamsPanel" class="bg-emerald-50/90 border-b border-emerald-200 px-3.5 py-2.5 space-y-2">
+                <!-- Render động bằng JS -->
+            </div>
+
+            <!-- Bảng Lưới Excel (A1:E1 + F1 Kết quả) -->
+            <div class="p-3 bg-slate-100 flex-1 space-y-2.5">
+                <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <table class="w-full border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-200 text-slate-700 font-bold border-b border-slate-300 select-none">
+                                <th class="w-12 py-1.5 text-center border-r border-slate-300">Ô</th>
+                                <th class="py-1.5 px-2.5 text-left border-r border-slate-300">Chỉ tiêu đánh giá</th>
+                                <th class="w-36 py-1.5 px-2 text-center bg-excel-100 text-excel-800">Giá trị (Sửa trực tiếp)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="excelSheetBody" class="divide-y divide-slate-200">
+                            <!-- Các dòng dữ liệu A1..F1 được tạo động bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tóm tắt trạng thái mệnh đề cơ sở -->
+                <div id="quickStatusStrip" class="bg-slate-800 text-white rounded-lg p-2.5 text-[11px] flex flex-wrap items-center justify-between gap-2 font-mono">
+                    <!-- Render bằng JS -->
+                </div>
+            </div>
+
+            <!-- Cú pháp & Ý nghĩa của Hàm -->
+            <div class="p-3.5 bg-white border-t border-slate-200 space-y-1.5">
+                <div class="flex items-center justify-between flex-wrap gap-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cú pháp chuẩn Excel</span>
+                    <span id="funcSyntaxTag" class="font-mono text-xs font-bold text-excel-700 bg-excel-50 px-2 py-0.5 rounded border border-excel-200">
+                        =IF(logical_test, [value_if_true], [value_if_false])
+                    </span>
+                </div>
+                <p id="funcPurposeText" class="text-xs text-slate-600 leading-relaxed">
+                    Kiểm tra một điều kiện logic: trả về một giá trị nếu điều kiện ĐÚNG (TRUE) và một giá trị khác nếu điều kiện SAI (FALSE).
+                </p>
+            </div>
+        </section>
+
+        <!-- CỘT PHẢI (7/12): SÂN KHẤU HOẠT HỌA TRỰC QUAN TỪNG BƯỚC (FLOWCHART / WATERFALL / TRUTH TABLE / ERROR TRAP) -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+
+            <!-- 1. Thanh Điều Khiển Hoạt Họa Từng Bước + Tốc độ -->
+            <div class="bg-white rounded-xl border border-slate-200 p-3.5 excel-grid-shadow flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btnPlayPause" class="bg-excel-600 hover:bg-excel-700 active:scale-95 text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
+                        <span id="playPauseIcon">▶</span>
+                        <span id="playPauseText">Chạy từng bước</span>
+                    </button>
+                    <button id="btnStep" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg border border-slate-300 flex items-center gap-1 transition">
+                        <span>⏭</span>
+                        <span>Bước tiếp</span>
+                    </button>
+                    <button id="btnReset" class="bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:scale-95 text-slate-600 font-semibold text-xs sm:text-sm px-2.5 py-2 rounded-lg border border-slate-300 transition">
+                        ↺ Đặt lại
+                    </button>
+                    <div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 pl-2 border-l border-slate-200">
+                        <span>Tốc độ:</span>
+                        <select id="speedSelect" class="bg-slate-100 border border-slate-300 rounded px-1.5 py-1 font-semibold text-slate-700">
+                            <option value="1400">Chậm (Giảng bài)</option>
+                            <option value="950" selected>Vừa phải</option>
+                            <option value="550">Nhanh</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Các nút nhảy nhanh vào Bước 1, Bước 2, Bước 3 -->
+                <div class="flex flex-wrap items-center gap-1.5" id="stepPillsContainer">
+                    <!-- Render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 2. SÂN KHẤU ĐỒ HỌA TRỰC QUAN LOGIC & ĐIỀU KIỆN -->
+            <div class="bg-white rounded-xl border border-slate-200 excel-grid-shadow overflow-hidden flex flex-col">
+                <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 text-sm">⚡</span>
+                        <span class="font-bold tracking-wide uppercase" id="visualStageHeader">Mô phỏng Sơ Đồ Rẽ Nhánh & Cổng Logic</span>
+                    </div>
+                    <span id="visualStepBadge" class="bg-white/15 text-emerald-300 font-mono px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                        Bước 3 / 3
+                    </span>
+                </div>
+
+                <!-- Khu vực hiển thị đồ họa động tùy biến theo từng hàm Logic -->
+                <div id="visualStageCanvas" class="p-4 sm:p-5 min-h-[350px] bg-gradient-to-b from-slate-50 to-white flex flex-col justify-center">
+                    <!-- Nội dung đồ họa render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 3. HỘP THOẠI GIẢI THÍCH TIẾNG VIỆT ĐỘNG THEO TỪNG BƯỚC -->
+            <div class="bg-gradient-to-br from-excel-50 via-white to-emerald-50 rounded-xl border-2 border-excel-500/40 p-4 shadow-sm space-y-2">
+                <div class="flex items-center justify-between flex-wrap gap-1">
+                    <span id="stepTitleBanner" class="text-xs font-extrabold uppercase tracking-wider text-excel-800 bg-excel-200/80 px-2.5 py-0.5 rounded-full">
+                        Giải thích cơ chế suy luận Logic
+                    </span>
+                    <span class="text-[11px] font-mono text-slate-500">TRUE = Đúng (1) • FALSE = Sai (0)</span>
+                </div>
+                <div id="stepExplanationText" class="text-slate-800 text-sm leading-relaxed font-medium">
+                    <!-- Giải thích tiếng Việt chi tiết theo từng bước -->
+                </div>
+            </div>
+
+            <!-- 4. LƯU Ý BẪY THƯỜNG GẶP & MẸO KẾT HỢP HÀM LOGIC -->
+            <div class="bg-amber-50/90 rounded-xl p-3.5 border border-amber-200 flex items-start gap-2.5 text-xs text-slate-700">
+                <span class="text-base leading-none shrink-0">💡</span>
+                <div id="funcNoteBox" class="leading-relaxed">
+                    <!-- Mẹo & lưu ý thực tế -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL BẢNG TRA CỨU NHANH 9 HÀM LOGIC & ĐIỀU KIỆN -->
+    <div id="catalogModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-pop">
+            <div class="bg-excel-600 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📚</span>
+                    <h3 class="font-bold text-base sm:text-lg">Bảng Tổng Hợp 9 Hàm Logic & Điều Kiện Trong Excel</h3>
+                </div>
+                <button id="btnCloseCatalogModal" class="bg-white/15 hover:bg-white/25 text-white rounded-lg px-3 py-1 text-xs font-bold transition">
+                    Đóng ✕
+                </button>
+            </div>
+            <div class="p-4 sm:p-5 overflow-y-auto">
+                <p class="text-xs text-slate-600 mb-3">Nhấp vào bất kỳ hàm nào trong bảng để chuyển ngay tới sân khấu mô phỏng trực quan của hàm đó:</p>
+                <div class="border border-slate-300 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-800 font-bold">
+                                <th class="py-2 px-3 border-r border-slate-300 w-10 text-center">STT</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-32">Tên hàm</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-72">Cú pháp chuẩn</th>
+                                <th class="py-2 px-3">Cơ chế hoạt động & Ứng dụng thực tế</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogTableBody" class="divide-y divide-slate-200">
+                            <!-- Điền bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-3 px-4 text-center text-xs text-slate-500">
+        Excel Logical & Conditional Functions Sandbox • Mô phỏng trực quan 9 hàm Logic & Điều kiện trong Microsoft Excel.
+    </footer>
+
+    <!-- JAVASCRIPT ENGINE CHO 9 HÀM LOGIC & ĐIỀU KIỆN -->
+    <script>
+        /**
+         * DANH MỤC 3 NHÓM HÀM LOGIC & ĐIỀU KIỆN
+         */
+        const CATEGORIES = [
+            { id: 'ALL', name: 'Tất cả (9)' },
+            { id: 'BRANCH', name: '1. Rẽ nhánh điều kiện (3)' },
+            { id: 'GATE', name: '2. Cổng Logic (4)' },
+            { id: 'ERROR_TRAP', name: '3. Bẫy & Xử lý lỗi (2)' }
+        ];
+
+        /**
+         * CƠ SỞ DỮ LIỆU ĐẦY ĐỦ 9 HÀM LOGIC THEO ĐÚNG THỨ TỰ YÊU CẦU:
+         * IF, AND, OR, NOT, IFERROR, IFNA, XOR, SWITCH, IFS
+         */
+        const FUNCTIONS_DB = [
+            // 1. IF
+            {
+                name: 'IF',
+                shortVi: 'Rẽ nhánh Đúng / Sai',
+                category: 'BRANCH',
+                syntax: '=IF(logical_test, [value_if_true], [value_if_false])',
+                purpose: 'Kiểm tra một biểu thức điều kiện (logical_test). Nếu ĐÚNG (TRUE) thì trả về giá trị thứ nhất, nếu SAI (FALSE) thì trả về giá trị thứ hai.',
+                note: '<strong>Lưu ý thực tế:</strong> Khi trả về chuỗi văn bản (như <code>"Đạt"</code>, <code>"Trượt"</code>), bắt buộc phải đặt trong dấu ngoặc kép <code>" "</code>. Khi trả về con số hoặc công thức, không dùng ngoặc kép.'
+            },
+            // 2. AND
+            {
+                name: 'AND',
+                shortVi: 'VÀ (Tất cả cùng Đúng)',
+                category: 'GATE',
+                syntax: '=AND(logical1, [logical2], ...)',
+                purpose: 'Trả về TRUE nếu TẤT CẢ các điều kiện bên trong đều đúng. Chỉ cần 1 điều kiện sai, hàm AND sẽ lập tức trả về FALSE.',
+                note: '<strong>Ứng dụng kinh điển:</strong> Thường lồng bên trong hàm IF để xét học bổng hoặc xét tuyển: <code>=IF(AND(A1>=5, B1>=5), "Đậu cả 2", "Rớt")</code>.'
+            },
+            // 3. OR
+            {
+                name: 'OR',
+                shortVi: 'HOẶC (Ít nhất 1 Đúng)',
+                category: 'GATE',
+                syntax: '=OR(logical1, [logical2], ...)',
+                purpose: 'Trả về TRUE nếu có ÍT NHẤT MỘT điều kiện đúng. Chỉ trả về FALSE khi toàn bộ các điều kiện đều sai.',
+                note: '<strong>Mẹo nhớ nhanh:</strong> <code>AND</code> là người khó tính (đòi hỏi đủ mọi tiêu chuẩn), còn <code>OR</code> là người dễ tính (chỉ cần đạt 1 tiêu chuẩn là thông qua).'
+            },
+            // 4. NOT
+            {
+                name: 'NOT',
+                shortVi: 'PHỦ ĐỊNH (Đảo ngược)',
+                category: 'GATE',
+                syntax: '=NOT(logical)',
+                purpose: 'Đảo ngược giá trị logic của đối số: biến TRUE thành FALSE và biến FALSE thành TRUE.',
+                note: '<strong>Ứng dụng thực tế:</strong> Dùng để loại trừ một nhóm đối tượng, ví dụ <code>=IF(NOT(C1="VIP"), "Thu phí ship", "Miễn phí")</code>.'
+            },
+            // 5. IFERROR
+            {
+                name: 'IFERROR',
+                shortVi: 'Bẫy mọi loại lỗi Excel',
+                category: 'ERROR_TRAP',
+                syntax: '=IFERROR(value, value_if_error)',
+                purpose: 'Kiểm tra biểu thức value: nếu tính toán bình thường thì giữ nguyên kết quả; nếu phát sinh BẤT KỲ LỖI NÀO (#DIV/0!, #N/A, #VALUE!, #NAME?, #REF!, #NUM!) thì trả về value_if_error.',
+                note: '<strong>Cẩn thận lạm dụng:</strong> Vì <code>IFERROR</code> nuốt trọn mọi lỗi (kể cả lỗi gõ sai tên hàm <code>#NAME?</code> hay chia cho 0 <code>#DIV/0!</code>), đôi khi nó che giấu cả những lỗi công thức nghiêm trọng.'
+            },
+            // 6. IFNA
+            {
+                name: 'IFNA',
+                shortVi: 'Chỉ bẫy riêng lỗi #N/A',
+                category: 'ERROR_TRAP',
+                syntax: '=IFNA(value, value_if_na)',
+                purpose: 'Trả về value_if_na khi và chỉ khi biểu thức gặp đúng lỗi không tìm thấy dữ liệu (#N/A). Các lỗi tính toán khác như #DIV/0! hoặc #VALUE! vẫn được cảnh báo nguyên vẹn.',
+                note: '<strong>Khuyên dùng với VLOOKUP / XLOOKUP / MATCH:</strong> Các chuyên gia tài chính ưu tiên dùng <code>IFNA</code> thay vì <code>IFERROR</code> khi dò tìm để không vô tình che khuất lỗi công thức khác.'
+            },
+            // 7. XOR
+            {
+                name: 'XOR',
+                shortVi: 'HOẶC Loại Trừ (Lẻ TRUE)',
+                category: 'GATE',
+                syntax: '=XOR(logical1, [logical2], ...)',
+                purpose: 'Hàm Exclusive OR (Hoặc loại trừ): Với 2 điều kiện, hàm trả về TRUE khi chỉ có ĐÚNG 1 điều kiện đúng (1 Đúng - 1 Sai). Nếu cả 2 cùng Đúng hoặc cả 2 cùng Sai thì trả về FALSE.',
+                note: '<strong>Quy tắc tổng quát khi có nhiều đối số:</strong> Hàm <code>XOR</code> đếm tổng số điều kiện <code>TRUE</code>: nếu là <strong>số lẻ (1, 3, 5...)</strong> thì trả về <code>TRUE</code>; nếu là <strong>số chẵn (0, 2, 4...)</strong> thì trả về <code>FALSE</code>.'
+            },
+            // 8. SWITCH
+            {
+                name: 'SWITCH',
+                shortVi: 'Khớp mã chính xác (Case)',
+                category: 'BRANCH',
+                syntax: '=SWITCH(expression, val1, res1, [val2, res2], ..., [default])',
+                purpose: 'Đánh giá một biểu thức (expression) rồi so khớp lần lượt với danh sách các giá trị (val1, val2...). Trả về kết quả ứng với giá trị khớp đầu tiên, hoặc trả về [default] nếu không khớp mã nào.',
+                note: '<strong>Khi nào dùng SWITCH thay cho IFS?</strong> Khi bạn chỉ so sánh <strong>bằng chính xác (=)</strong> một ô mã (như Mã hạng <code>"VIP"</code>, <code>"GOLD"</code>, <code>"STD"</code>) mà không muốn phải gõ lặp lại <code>C1="VIP", C1="GOLD"</code> nhiều lần.'
+            },
+            // 9. IFS
+            {
+                name: 'IFS',
+                shortVi: 'Thác điều kiện (Thay IF lồng)',
+                category: 'BRANCH',
+                syntax: '=IFS(test1, val1, [test2, val2], ..., [TRUE, default])',
+                purpose: 'Kiểm tra tuần tự từng điều kiện từ trái sang phải (từ trên xuống dưới). Ngay khi gặp điều kiện ĐÚNG (TRUE) đầu tiên, hàm trả về kết quả tương ứng và dừng kiểm tra các nhánh sau.',
+                note: '<strong>Bí quyết chốt chặn cuối cùng:</strong> Hàm <code>IFS</code> không có đối số <code>value_if_false</code> riêng. Để tránh lỗi <code>#N/A</code> khi mọi điều kiện đều sai, hãy luôn đặt cặp <code>TRUE, "Giá trị mặc định"</code> ở cuối cùng!'
+            }
+        ];
+
+        /**
+         * TRẠNG THÁI DỮ LIỆU BẢNG TÍNH & BỘ MÔ PHỎNG
+         */
+        const state = {
+            selectedCategory: 'ALL',
+            funcIndex: 0,           // 0..8
+            stepIndex: 0,           // Bắt đầu từ bước đầu tiên
+            maxSteps: 3,
+            speedMs: 950,
+            isPlaying: false,
+            timer: null,
+
+            // Dữ liệu trên các ô Excel A1:E1
+            scoreMathA1: 8.5,       // A1: Điểm Toán (0..10)
+            scoreEngB1: 6.5,        // B1: Điểm Tiếng Anh (0..10)
+            tierCodeC1: 'GOLD',     // C1: Mã Hạng ('VIP', 'GOLD', 'STD', 'NEW')
+            divisorD1: 0,           // D1: Mẫu số chia (100 / D1 -> nếu 0 gây #DIV/0!)
+            lookupStatusE1: '#N/A', // E1: Giả lập kết quả tra cứu VLOOKUP ('OK_120', '#N/A', '#DIV/0!', '#VALUE!', '#NAME?')
+
+            // Ngưỡng chuẩn cho hàm IF / AND / OR / XOR / NOT
+            passThreshold: 5.0,
+            // Bật điều kiện thứ 3 cho cổng Logic (AND / OR / XOR)
+            useThirdGateCond: false,
+            // Chế độ biểu thức kiểm tra trong IFERROR / IFNA
+            errorSourceMode: 'E1'   // 'E1' (lấy từ ô E1) hoặc 'DIV_D1' (100/D1)
+        };
+
+        function currentFunc() {
+            return FUNCTIONS_DB[state.funcIndex];
+        }
+
+        /**
+         * TÍNH TOÁN KẾT QUẢ THỰC TẾ VÀ CHI TIẾT TRUNG GIAN CHO HÀM ĐANG CHỌN
+         */
+        function evaluateCurrentFunction() {
+            const fn = currentFunc();
+            const a1 = Number(state.scoreMathA1);
+            const b1 = Number(state.scoreEngB1);
+            const c1 = String(state.tierCodeC1).trim().toUpperCase();
+            const d1 = Number(state.divisorD1);
+            const e1 = state.lookupStatusE1;
+            const pass = Number(state.passThreshold);
+
+            const cond1 = a1 >= pass;
+            const cond2 = b1 >= pass;
+            const cond3 = c1 === 'VIP';
+
+            switch (fn.name) {
+                case 'IF': {
+                    const out = cond1 ? '"Đạt"' : '"Trượt"';
+                    return {
+                        formula: `=IF(A1>=${pass}, "Đạt", "Trượt")`,
+                        result: out,
+                        isTrueBranch: cond1,
+                        condExpr: `A1 >= ${pass} (${a1} >= ${pass})`
+                    };
+                }
+                case 'IFS': {
+                    const ladder = [
+                        { expr: 'A1 >= 8.5', desc: `${a1} >= 8.5`, met: a1 >= 8.5, val: '"Giỏi"' },
+                        { expr: 'A1 >= 7.0', desc: `${a1} >= 7.0`, met: a1 >= 7.0, val: '"Khá"' },
+                        { expr: 'A1 >= 5.0', desc: `${a1} >= 5.0`, met: a1 >= 5.0, val: '"Trung bình"' },
+                        { expr: 'TRUE', desc: 'Mặc định cuối', met: true, val: '"Yếu"' }
+                    ];
+                    const winnerIdx = ladder.findIndex(item => item.met);
+                    return {
+                        formula: `=IFS(A1>=8.5,"Giỏi", A1>=7,"Khá", A1>=5,"Trung bình", TRUE,"Yếu")`,
+                        result: ladder[winnerIdx].val,
+                        ladder,
+                        winnerIdx
+                    };
+                }
+                case 'SWITCH': {
+                    const cases = [
+                        { matchVal: 'VIP', reward: '"Giảm 30%"', met: c1 === 'VIP' },
+                        { matchVal: 'GOLD', reward: '"Giảm 15%"', met: c1 === 'GOLD' },
+                        { matchVal: 'STD', reward: '"Giảm 5%"', met: c1 === 'STD' }
+                    ];
+                    const matchedIdx = cases.findIndex(item => item.met);
+                    const finalRes = matchedIdx !== -1 ? cases[matchedIdx].reward : '"Không giảm (0%)"';
+                    return {
+                        formula: `=SWITCH(C1, "VIP","Giảm 30%", "GOLD","Giảm 15%", "STD","Giảm 5%", "Không giảm (0%)")`,
+                        result: finalRes,
+                        cases,
+                        matchedIdx,
+                        exprVal: `"${c1}"`
+                    };
+                }
+                case 'AND':
+                case 'OR':
+                case 'XOR': {
+                    const inputs = [
+                        { label: 'Mệnh đề 1', code: `A1>=${pass}`, detail: `${a1} >= ${pass}`, val: cond1 },
+                        { label: 'Mệnh đề 2', code: `B1>=${pass}`, detail: `${b1} >= ${pass}`, val: cond2 }
+                    ];
+                    if (state.useThirdGateCond) {
+                        inputs.push({ label: 'Mệnh đề 3', code: `C1="VIP"`, detail: `"${c1}" = "VIP"`, val: cond3 });
+                    }
+                    const trueCount = inputs.filter(i => i.val).length;
+                    let finalBool = false;
+                    if (fn.name === 'AND') finalBool = trueCount === inputs.length;
+                    if (fn.name === 'OR') finalBool = trueCount >= 1;
+                    if (fn.name === 'XOR') finalBool = (trueCount % 2) === 1;
+
+                    const argsStr = inputs.map(i => i.code).join(', ');
+                    return {
+                        formula: `=${fn.name}(${argsStr})`,
+                        result: finalBool ? 'TRUE' : 'FALSE',
+                        finalBool,
+                        inputs,
+                        trueCount
+                    };
+                }
+                case 'NOT': {
+                    const finalBool = !cond1;
+                    return {
+                        formula: `=NOT(A1>=${pass})`,
+                        result: finalBool ? 'TRUE' : 'FALSE',
+                        finalBool,
+                        inputBool: cond1,
+                        inputDetail: `A1 >= ${pass} (${a1} >= ${pass})`
+                    };
+                }
+                case 'IFERROR':
+                case 'IFNA': {
+                    // Xác định giá trị biểu thức gốc từ E1 hoặc phép chia 100/D1
+                    let rawVal = '';
+                    let exprCode = 'E1';
+                    if (state.errorSourceMode === 'DIV_D1') {
+                        exprCode = '100/D1';
+                        rawVal = d1 === 0 ? '#DIV/0!' : String(Number((100 / d1).toFixed(2)));
+                    } else {
+                        exprCode = 'E1';
+                        rawVal = e1 === 'OK_120' ? '120000' : e1;
+                    }
+
+                    const isAnyError = rawVal.startsWith('#');
+                    const isNAError = rawVal === '#N/A';
+
+                    const iferrorOut = isAnyError ? '"Đã bẫy lỗi (0)"' : rawVal;
+                    const ifnaOut = isNAError ? '"Không tìm thấy"' : rawVal;
+
+                    const currentOut = fn.name === 'IFERROR' ? iferrorOut : ifnaOut;
+                    const fallbackText = fn.name === 'IFERROR' ? '"Đã bẫy lỗi (0)"' : '"Không tìm thấy"';
+
+                    return {
+                        formula: `=${fn.name}(${exprCode}, ${fallbackText})`,
+                        result: currentOut,
+                        rawVal,
+                        exprCode,
+                        isAnyError,
+                        isNAError,
+                        iferrorOut,
+                        ifnaOut,
+                        caughtByCurrent: fn.name === 'IFERROR' ? isAnyError : isNAError
+                    };
+                }
+                default:
+                    return { formula: `=${fn.name}()`, result: 'TRUE' };
+            }
+        }
+
+        /**
+         * RENDER THANH LỌC NHÓM HÀM & LƯỚI 9 NÚT HÀM TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP)
+         */
+        function renderHeaderButtons() {
+            const catBar = document.getElementById('categoryFilterBar');
+            catBar.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const active = state.selectedCategory === cat.id;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md font-bold transition ${
+                    active ? 'bg-white text-excel-800 shadow-sm' : 'text-excel-100 hover:bg-white/10'
+                }`;
+                btn.textContent = cat.name;
+                btn.addEventListener('click', () => {
+                    state.selectedCategory = cat.id;
+                    renderHeaderButtons();
+                });
+                catBar.appendChild(btn);
+            });
+
+            const grid = document.getElementById('functionButtonsGrid');
+            grid.innerHTML = '';
+
+            FUNCTIONS_DB.forEach((fn, idx) => {
+                if (state.selectedCategory !== 'ALL' && fn.category !== state.selectedCategory) return;
+
+                const isSelected = idx === state.funcIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border ${
+                    isSelected
+                        ? 'bg-amber-400 text-slate-950 font-extrabold border-amber-300 shadow-md ring-2 ring-white'
+                        : 'bg-excel-800/80 hover:bg-excel-800 text-white border-excel-500/40 font-semibold'
+                }`;
+                btn.innerHTML = `
+                    <span class="font-mono tracking-tight text-sm">${fn.name}</span>
+                    <span class="text-[11px] ${isSelected ? 'text-slate-900 font-bold' : 'text-excel-100 font-normal'}">• ${fn.shortVi}</span>
+                `;
+                btn.addEventListener('click', () => selectFunction(idx));
+                grid.appendChild(btn);
+            });
+        }
+
+        /**
+         * CHUYỂN HÀM ĐANG CHỌN
+         */
+        function selectFunction(idx) {
+            stopAutoPlay();
+            state.funcIndex = idx;
+            state.stepIndex = 0; // Luôn bắt đầu từ bước đầu để học viên theo dõi tiến trình
+            renderHeaderButtons();
+            renderAll();
+        }
+
+        /**
+         * RENDER KHUNG THAM SỐ ĐỘNG TÙY THEO HÀM
+         */
+        function renderDynamicParamsPanel() {
+            const fn = currentFunc();
+            const panel = document.getElementById('dynamicParamsPanel');
+
+            if (fn.name === 'IF' || fn.name === 'NOT') {
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">🎯 Ngưỡng điểm chuẩn xét điều kiện (<code>A1 &gt;= ngưỡng</code>):</span>
+                        <div class="flex items-center gap-2">
+                            <input id="inpPassThreshold" type="range" min="3" max="9" step="0.5" value="${state.passThreshold}" class="w-28 accent-excel-600 cursor-pointer" />
+                            <span class="font-mono font-extrabold bg-excel-600 text-white px-2.5 py-0.5 rounded">&gt;= ${state.passThreshold}</span>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('inpPassThreshold').addEventListener('input', e => {
+                    state.passThreshold = Number(e.target.value);
+                    renderAll(true);
+                });
+            } else if (fn.name === 'AND' || fn.name === 'OR' || fn.name === 'XOR') {
+                panel.classList.remove('hidden');
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-emerald-950">Chuẩn đậu: <code>&gt;= ${state.passThreshold}</code></span>
+                            <input id="inpGatePass" type="range" min="4" max="8.5" step="0.5" value="${state.passThreshold}" class="w-24 accent-excel-600 cursor-pointer" />
+                        </div>
+                        <label class="flex items-center gap-1.5 font-bold text-emerald-900 cursor-pointer select-none bg-white px-2.5 py-1 rounded-lg border border-emerald-300">
+                            <input id="chkThirdCond" type="checkbox" ${state.useThirdGateCond ? 'checked' : ''} class="accent-excel-600 rounded" />
+                            <span>Thêm mệnh đề thứ 3 (<code>C1="VIP"</code>)</span>
+                        </label>
+                    </div>
+                `;
+                document.getElementById('inpGatePass').addEventListener('input', e => {
+                    state.passThreshold = Number(e.target.value);
+                    renderAll(true);
+                });
+                document.getElementById('chkThirdCond').addEventListener('change', e => {
+                    state.useThirdGateCond = e.target.checked;
+                    renderAll(true);
+                });
+            } else if (fn.name === 'SWITCH') {
+                panel.classList.remove('hidden');
+                const tiers = ['VIP', 'GOLD', 'STD', 'NEW'];
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">🏷️ Đổi nhanh Mã Hạng tại ô <code>C1</code>:</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${tiers.map(t => `
+                                <button data-tier="${t}" class="btn-tier px-2.5 py-1 rounded-lg font-mono font-bold border transition ${
+                                    state.tierCodeC1 === t
+                                        ? 'bg-excel-600 text-white border-excel-700 shadow-sm'
+                                        : 'bg-white text-slate-700 border-emerald-300 hover:bg-emerald-100'
+                                }">"${t}"${t === 'NEW' ? ' (Kịch bản Default)' : ''}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-tier').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.tierCodeC1 = btn.getAttribute('data-tier');
+                        renderAll();
+                    });
+                });
+            } else if (fn.name === 'IFERROR' || fn.name === 'IFNA') {
+                panel.classList.remove('hidden');
+                const errOptions = [
+                    { code: 'OK_120', label: '120000 (Hợp lệ)' },
+                    { code: '#N/A', label: '#N/A (Không tìm thấy)' },
+                    { code: '#DIV/0!', label: '#DIV/0! (Chia cho 0)' },
+                    { code: '#VALUE!', label: '#VALUE! (Sai kiểu)' },
+                    { code: '#NAME?', label: '#NAME? (Sai tên hàm)' }
+                ];
+                panel.innerHTML = `
+                    <div class="space-y-1.5 text-xs">
+                        <div class="font-bold text-emerald-950">⚡ Chọn trạng thái của ô <code>E1</code> để thử Rada Bẫy Lỗi:</div>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${errOptions.map(opt => `
+                                <button data-err="${opt.code}" class="btn-err-sim px-2 py-1 rounded-lg font-mono font-bold border transition ${
+                                    state.errorSourceMode === 'E1' && state.lookupStatusE1 === opt.code
+                                        ? 'bg-excel-600 text-white border-excel-700 shadow-sm'
+                                        : 'bg-white text-slate-700 border-emerald-300 hover:bg-emerald-100'
+                                }">${opt.label}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-err-sim').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.errorSourceMode = 'E1';
+                        state.lookupStatusE1 = btn.getAttribute('data-err');
+                        renderAll();
+                    });
+                });
+            } else {
+                // IFS
+                panel.classList.remove('hidden');
+                const quickScores = [9.2, 7.5, 5.5, 3.5];
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">🪜 Thử nhanh Điểm Toán <code>A1</code> ở các bậc thang IFS:</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${quickScores.map(sc => `
+                                <button data-sc="${sc}" class="btn-ifs-sc px-2.5 py-1 rounded-lg font-mono font-bold border transition ${
+                                    Number(state.scoreMathA1) === sc
+                                        ? 'bg-excel-600 text-white border-excel-700 shadow-sm'
+                                        : 'bg-white text-slate-700 border-emerald-300 hover:bg-emerald-100'
+                                }">A1 = ${sc}</button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-ifs-sc').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.scoreMathA1 = Number(btn.getAttribute('data-sc'));
+                        renderAll();
+                    });
+                });
+            }
+        }
+
+        /**
+         * RENDER BẢNG TÍNH EXCEL BÊN TRÁI (A1..E1 VÀ Ô KẾT QUẢ F1)
+         */
+        function renderSpreadsheet() {
+            const fn = currentFunc();
+            const evalObj = evaluateCurrentFunction();
+
+            document.getElementById('formulaBarText').textContent = evalObj.formula;
+            document.getElementById('formulaResultBadge').textContent = `= ${evalObj.result}`;
+            document.getElementById('funcSyntaxTag').textContent = fn.syntax;
+            document.getElementById('funcPurposeText').textContent = fn.purpose;
+            document.getElementById('funcNoteBox').innerHTML = fn.note;
+
+            const catObj = CATEGORIES.find(c => c.id === fn.category);
+            document.getElementById('funcCategoryBadge').textContent = catObj ? catObj.name : 'Hàm Logic';
+
+            const isErrorResult = String(evalObj.result).startsWith('#');
+
+            const tbody = document.getElementById('excelSheetBody');
+            tbody.innerHTML = `
+                <!-- Ô A1: Điểm Toán -->
+                <tr class="bg-white hover:bg-slate-50">
+                    <td class="py-2 text-center font-mono text-xs bg-slate-100 text-slate-700 font-bold border-r border-slate-300">A1</td>
+                    <td class="py-2 px-2.5 border-r border-slate-200">
+                        <div class="font-bold text-slate-800">Điểm Toán (Thang 10)</div>
+                        <div class="text-[11px] text-slate-500">Dùng cho <code>IF, IFS, AND, OR, XOR, NOT</code></div>
+                    </td>
+                    <td class="p-1.5 text-center">
+                        <input id="inpCellA1" type="number" min="0" max="10" step="0.5" value="${state.scoreMathA1}"
+                            class="w-24 text-center font-mono font-extrabold text-sm bg-amber-50 border border-excel-500 rounded px-2 py-1 text-slate-900" />
+                    </td>
+                </tr>
+
+                <!-- Ô B1: Điểm Tiếng Anh -->
+                <tr class="bg-white hover:bg-slate-50">
+                    <td class="py-2 text-center font-mono text-xs bg-slate-100 text-slate-700 font-bold border-r border-slate-300">B1</td>
+                    <td class="py-2 px-2.5 border-r border-slate-200">
+                        <div class="font-bold text-slate-800">Điểm Tiếng Anh (Thang 10)</div>
+                        <div class="text-[11px] text-slate-500">Mệnh đề thứ 2 trong <code>AND, OR, XOR</code></div>
+                    </td>
+                    <td class="p-1.5 text-center">
+                        <input id="inpCellB1" type="number" min="0" max="10" step="0.5" value="${state.scoreEngB1}"
+                            class="w-24 text-center font-mono font-extrabold text-sm bg-amber-50 border border-excel-500 rounded px-2 py-1 text-slate-900" />
+                    </td>
+                </tr>
+
+                <!-- Ô C1: Mã Xếp Hạng Khách Hàng / Khu Vực -->
+                <tr class="bg-white hover:bg-slate-50">
+                    <td class="py-2 text-center font-mono text-xs bg-slate-100 text-slate-700 font-bold border-r border-slate-300">C1</td>
+                    <td class="py-2 px-2.5 border-r border-slate-200">
+                        <div class="font-bold text-slate-800">Mã Hạng Thẻ (VIP / GOLD / STD)</div>
+                        <div class="text-[11px] text-slate-500">Biểu thức so khớp của <code>SWITCH</code></div>
+                    </td>
+                    <td class="p-1.5 text-center">
+                        <select id="selCellC1" class="w-28 font-mono font-extrabold text-xs bg-amber-50 border border-excel-500 rounded px-2 py-1.5 text-slate-900">
+                            <option value="VIP" ${state.tierCodeC1 === 'VIP' ? 'selected' : ''}>"VIP"</option>
+                            <option value="GOLD" ${state.tierCodeC1 === 'GOLD' ? 'selected' : ''}>"GOLD"</option>
+                            <option value="STD" ${state.tierCodeC1 === 'STD' ? 'selected' : ''}>"STD"</option>
+                            <option value="NEW" ${state.tierCodeC1 === 'NEW' ? 'selected' : ''}>"NEW" (Khác)</option>
+                        </select>
+                    </td>
+                </tr>
+
+                <!-- Ô D1: Mẫu số chia -->
+                <tr class="bg-white hover:bg-slate-50">
+                    <td class="py-2 text-center font-mono text-xs bg-slate-100 text-slate-700 font-bold border-r border-slate-300">D1</td>
+                    <td class="py-2 px-2.5 border-r border-slate-200">
+                        <div class="font-bold text-slate-800">Mẫu số phép chia (<code>100 / D1</code>)</div>
+                        <div class="text-[11px] text-slate-500">Nhập <code>0</code> để tạo lỗi <code>#DIV/0!</code></div>
+                    </td>
+                    <td class="p-1.5 text-center">
+                        <input id="inpCellD1" type="number" step="1" value="${state.divisorD1}"
+                            class="w-24 text-center font-mono font-extrabold text-sm bg-amber-50 border border-excel-500 rounded px-2 py-1 text-slate-900" />
+                    </td>
+                </tr>
+
+                <!-- Ô E1: Kết quả tra cứu VLOOKUP giả lập -->
+                <tr class="bg-white hover:bg-slate-50">
+                    <td class="py-2 text-center font-mono text-xs bg-slate-100 text-slate-700 font-bold border-r border-slate-300">E1</td>
+                    <td class="py-2 px-2.5 border-r border-slate-200">
+                        <div class="font-bold text-slate-800">Ô kết quả dò tìm / Tính toán</div>
+                        <div class="text-[11px] text-slate-500">Đầu vào kiểm tra <code>IFERROR</code> & <code>IFNA</code></div>
+                    </td>
+                    <td class="p-1.5 text-center">
+                        <select id="selCellE1" class="w-28 font-mono font-extrabold text-xs bg-rose-50 border border-rose-400 rounded px-1.5 py-1.5 text-rose-800">
+                            <option value="OK_120" ${state.lookupStatusE1 === 'OK_120' ? 'selected' : ''}>120000</option>
+                            <option value="#N/A" ${state.lookupStatusE1 === '#N/A' ? 'selected' : ''}>#N/A</option>
+                            <option value="#DIV/0!" ${state.lookupStatusE1 === '#DIV/0!' ? 'selected' : ''}>#DIV/0!</option>
+                            <option value="#VALUE!" ${state.lookupStatusE1 === '#VALUE!' ? 'selected' : ''}>#VALUE!</option>
+                            <option value="#NAME?" ${state.lookupStatusE1 === '#NAME?' ? 'selected' : ''}>#NAME?</option>
+                        </select>
+                    </td>
+                </tr>
+
+                <!-- Ô F1: Kết quả Công thức Logic -->
+                <tr class="bg-excel-50/95 font-bold border-t-2 border-excel-500/40">
+                    <td class="py-2.5 text-center font-mono text-xs bg-excel-100 text-excel-800 font-extrabold border-r border-slate-300">F1</td>
+                    <td class="py-2.5 px-2.5 border-r border-slate-200 text-xs text-excel-900 font-bold">
+                        Kết quả trả về của <code>${fn.name}</code>
+                    </td>
+                    <td class="py-2.5 px-2 text-center font-mono text-sm font-extrabold ${
+                        isErrorResult
+                            ? 'bg-rose-100 text-rose-700'
+                            : evalObj.result === 'FALSE' || evalObj.result === '"Trượt"' || evalObj.result === '"Yếu"'
+                                ? 'bg-amber-100 text-amber-900'
+                                : 'bg-emerald-100 text-emerald-900'
+                    }">
+                        ${evalObj.result}
+                    </td>
+                </tr>
+            `;
+
+            // Gắn sự kiện chỉnh sửa trực tiếp các ô A1..E1
+            document.getElementById('inpCellA1').addEventListener('input', e => {
+                state.scoreMathA1 = Number(e.target.value);
+                renderAll(true);
+            });
+            document.getElementById('inpCellB1').addEventListener('input', e => {
+                state.scoreEngB1 = Number(e.target.value);
+                renderAll(true);
+            });
+            document.getElementById('selCellC1').addEventListener('change', e => {
+                state.tierCodeC1 = e.target.value;
+                renderAll();
+            });
+            document.getElementById('inpCellD1').addEventListener('input', e => {
+                state.divisorD1 = Number(e.target.value);
+                state.errorSourceMode = 'DIV_D1';
+                state.lookupStatusE1 = state.divisorD1 === 0 ? '#DIV/0!' : 'OK_120';
+                renderAll();
+            });
+            document.getElementById('selCellE1').addEventListener('change', e => {
+                state.errorSourceMode = 'E1';
+                state.lookupStatusE1 = e.target.value;
+                renderAll();
+            });
+
+            // Thanh tóm tắt mệnh đề cơ sở bên dưới bảng
+            const c1True = state.scoreMathA1 >= state.passThreshold;
+            const c2True = state.scoreEngB1 >= state.passThreshold;
+            document.getElementById('quickStatusStrip').innerHTML = `
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-amber-300 font-bold">⚡ Trạng thái nhanh:</span>
+                    <span class="px-2 py-0.5 rounded ${c1True ? 'bg-emerald-500/30 text-emerald-200' : 'bg-rose-500/30 text-rose-200'}">
+                        A1&gt;=${state.passThreshold}: <strong>${c1True ? 'TRUE' : 'FALSE'}</strong>
+                    </span>
+                    <span class="px-2 py-0.5 rounded ${c2True ? 'bg-emerald-500/30 text-emerald-200' : 'bg-rose-500/30 text-rose-200'}">
+                        B1&gt;=${state.passThreshold}: <strong>${c2True ? 'TRUE' : 'FALSE'}</strong>
+                    </span>
+                    <span class="px-2 py-0.5 rounded bg-sky-500/30 text-sky-200">
+                        C1="${state.tierCodeC1}"
+                    </span>
+                </div>
+            `;
+        }
+
+        /**
+         * RENDER CÁC NÚT BƯỚC (STEP 1, STEP 2, STEP 3)
+         */
+        function renderStepPills() {
+            const container = document.getElementById('stepPillsContainer');
+            container.innerHTML = '';
+            const steps = buildTeachingSteps();
+            state.maxSteps = Math.max(1, steps.length);
+            state.stepIndex = Math.min(state.stepIndex, state.maxSteps - 1);
+            steps.forEach((item, index) => {
+                const btn = document.createElement('button');
+                const active = index === state.stepIndex;
+                const done = index < state.stepIndex;
+                btn.className = `px-2.5 py-1 rounded-md text-xs font-bold transition border ${
+                    active ? 'bg-excel-600 text-white border-excel-700 shadow-sm' :
+                    done ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                    'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                }`;
+                btn.textContent = `${done ? '✓ ' : ''}${index + 1}. ${item.short}`;
+                btn.title = item.title;
+                btn.addEventListener('click', () => {
+                    stopAutoPlay();
+                    state.stepIndex = index;
+                    renderAll(true);
+                });
+                container.appendChild(btn);
+            });
+            document.getElementById('visualStepBadge').textContent =
+                `Bước ${state.stepIndex + 1} / ${state.maxSteps}`;
+        }
+
+        /**
+         * ĐIỀU PHỐI SÂN KHẤU ĐỒ HỌA TRỰC QUAN CHO 9 HÀM LOGIC
+         */
+        // Xây dựng tiến trình riêng cho từng hàm: mỗi bước chỉ công bố một phần
+        // phép tính, tránh hiển thị kết quả cuối ngay từ bước đầu.
+        function buildTeachingSteps() {
+            const fn = currentFunc();
+            const v = evaluateCurrentFunction();
+            const steps = [];
+            const add = (short, title, detail, status = 'info') =>
+                steps.push({ short, title, detail, status });
+
+            if (fn.name === 'IF') {
+                add('Đọc dữ liệu', 'Bước 1 – Đọc dữ liệu đầu vào',
+                    `Lấy giá trị A1 = <strong>${state.scoreMathA1}</strong> và ngưỡng = <strong>${state.passThreshold}</strong>.`);
+                add('Kiểm tra', 'Bước 2 – Tính biểu thức logic',
+                    `<code>${v.condExpr}</code> → <strong>${v.isTrueBranch ? 'TRUE' : 'FALSE'}</strong>.`);
+                add('Chọn nhánh', 'Bước 3 – Trả về kết quả',
+                    `Đi theo nhánh <strong>${v.isTrueBranch ? 'value_if_true' : 'value_if_false'}</strong>, trả về <strong>${v.result}</strong>.`, 'success');
+            } else if (fn.name === 'IFS') {
+                v.ladder.forEach((item, i) => {
+                    add(`Điều kiện ${i + 1}`, `Bước ${i + 1} – Kiểm tra điều kiện ${i + 1}`,
+                        `<code>${item.expr}</code>: ${item.desc} → <strong>${item.met ? 'TRUE' : 'FALSE'}</strong>.` ,
+                        item.met ? 'success' : 'muted');
+                    if (item.met && i < v.ladder.length - 1) return;
+                });
+                add('Kết quả', 'Bước cuối – Chốt kết quả IFS',
+                    `Điều kiện TRUE đầu tiên là bậc <strong>#${v.winnerIdx + 1}</strong>. Excel dừng tại đây và trả về <strong>${v.result}</strong>.`, 'success');
+            } else if (fn.name === 'SWITCH') {
+                add('Đọc biểu thức', 'Bước 1 – Đọc giá trị cần so khớp',
+                    `SWITCH lấy giá trị tại C1: <strong>${v.exprVal}</strong>.`);
+                let stopped = false;
+                v.cases.forEach((c, i) => {
+                    if (stopped) return;
+                    add(`Case ${i + 1}`, `Bước ${steps.length + 1} – So khớp Case ${i + 1}`,
+                        `So sánh <code>${v.exprVal}</code> với <code>"${c.matchVal}"</code> → <strong>${c.met ? 'KHỚP' : 'KHÔNG KHỚP'}</strong>.`,
+                        c.met ? 'success' : 'muted');
+                    if (c.met) stopped = true;
+                });
+                if (!stopped) add('Mặc định', 'Bước cuối – Dùng giá trị mặc định',
+                    `Không có Case nào khớp. Trả về <strong>${v.result}</strong>.`, 'success');
+                else add('Kết quả', 'Bước cuối – Trả kết quả',
+                    `Dừng so khớp ngay khi gặp Case khớp đầu tiên. Kết quả: <strong>${v.result}</strong>.`, 'success');
+            } else if (['AND', 'OR', 'XOR'].includes(fn.name)) {
+                v.inputs.forEach((item, i) => add(`Mệnh đề ${i + 1}`, `Bước ${i + 1} – Đánh giá mệnh đề ${i + 1}`,
+                    `<code>${item.code}</code>: ${item.detail} → <strong>${item.val ? 'TRUE' : 'FALSE'}</strong>.`,
+                    item.val ? 'success' : 'muted'));
+                const rule = fn.name === 'AND' ? 'tất cả mệnh đề phải TRUE' :
+                    fn.name === 'OR' ? 'ít nhất một mệnh đề phải TRUE' :
+                    'số lượng mệnh đề TRUE phải là số lẻ';
+                add('Tổng hợp', 'Bước cuối – Áp dụng quy tắc cổng logic',
+                    `Có <strong>${v.trueCount}/${v.inputs.length}</strong> mệnh đề TRUE; quy tắc ${fn.name}: ${rule}. Kết quả <strong>${v.result}</strong>.`, 'success');
+            } else if (fn.name === 'NOT') {
+                add('Đọc đầu vào', 'Bước 1 – Đọc mệnh đề',
+                    `<code>${v.inputDetail}</code> được đánh giá thành <strong>${v.inputBool ? 'TRUE' : 'FALSE'}</strong>.`);
+                add('Đảo logic', 'Bước 2 – Đảo ngược giá trị',
+                    `NOT đổi ${v.inputBool ? 'TRUE thành FALSE' : 'FALSE thành TRUE'}.`);
+                add('Kết quả', 'Bước 3 – Trả kết quả',
+                    `Giá trị sau khi phủ định là <strong>${v.result}</strong>.`, 'success');
+            } else {
+                add('Tính biểu thức', 'Bước 1 – Thực thi biểu thức đầu vào',
+                    `Tính <code>${v.exprCode}</code> và nhận được <strong>${v.rawVal}</strong>.`);
+                add('Nhận diện lỗi', 'Bước 2 – Kiểm tra trạng thái',
+                    v.isAnyError ? `Phát hiện lỗi <strong>${v.rawVal}</strong>${v.isNAError ? ' (lỗi không tìm thấy dữ liệu).' : '.'}` :
+                    `Giá trị <strong>${v.rawVal}</strong> hợp lệ, không phát sinh lỗi.`);
+                add('Xử lý', 'Bước 3 – Quyết định có thay thế hay không',
+                    `${fn.name} ${v.caughtByCurrent ? 'bắt được lỗi và thay bằng giá trị dự phòng' : 'giữ nguyên giá trị hoặc để lỗi không thuộc phạm vi xử lý đi qua'} → <strong>${v.result}</strong>.`, 'success');
+            }
+            return steps;
+        }
+
+        function renderVisualStage() {
+            const fn = currentFunc();
+            const stage = document.getElementById('visualStageCanvas');
+            const stepBanner = document.getElementById('stepTitleBanner');
+            const stepExp = document.getElementById('stepExplanationText');
+            const steps = buildTeachingSteps();
+            const current = steps[state.stepIndex] || steps[0];
+            const progress = ((state.stepIndex + 1) / steps.length) * 100;
+
+            document.getElementById('visualStageHeader').textContent =
+                `Mô phỏng từng bước: Hàm ${fn.name} (${fn.shortVi})`;
+            const statusColor = current.status === 'success' ? 'emerald' :
+                current.status === 'muted' ? 'amber' : 'sky';
+
+            stage.innerHTML = `
+                <div class="w-full max-w-3xl mx-auto space-y-5">
+                    <div class="flex items-center justify-between gap-3 text-xs">
+                        <span class="font-bold text-slate-600">Tiến trình thực thi công thức</span>
+                        <span class="font-mono font-extrabold text-excel-700">${state.stepIndex + 1}/${steps.length}</span>
+                    </div>
+                    <div class="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-excel-500 rounded-full transition-all duration-300" style="width:${progress}%"></div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-${Math.min(3, steps.length)} gap-2">
+                        ${steps.map((item, i) => `
+                            <div class="rounded-xl border p-2.5 text-xs transition-all ${
+                                i === state.stepIndex ? 'border-excel-500 bg-excel-50 shadow-md ring-1 ring-excel-200' :
+                                i < state.stepIndex ? 'border-emerald-200 bg-emerald-50/70' : 'border-slate-200 bg-white opacity-60'
+                            }">
+                                <div class="flex items-center gap-1.5 font-bold ${
+                                    i === state.stepIndex ? 'text-excel-800' : i < state.stepIndex ? 'text-emerald-800' : 'text-slate-500'
+                                }">
+                                    <span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                                        i < state.stepIndex ? 'bg-emerald-600 text-white' :
+                                        i === state.stepIndex ? 'bg-excel-600 text-white' : 'bg-slate-200 text-slate-600'
+                                    }">${i < state.stepIndex ? '✓' : i + 1}</span>
+                                    ${item.short}
+                                </div>
+                                <div class="mt-1 text-[10px] text-slate-500">${i < state.stepIndex ? 'Đã hoàn tất' : i === state.stepIndex ? 'Đang thực hiện' : 'Chưa thực hiện'}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="rounded-2xl border-2 border-${statusColor}-300 bg-${statusColor}-50 p-5 sm:p-6 min-h-[150px] flex flex-col justify-center animate-pop">
+                        <div class="text-[11px] font-extrabold uppercase tracking-wider text-${statusColor}-800">${current.title}</div>
+                        <div class="mt-3 text-base sm:text-lg leading-relaxed text-slate-800">${current.detail}</div>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="text-xs text-slate-500">Dùng “Bước tiếp” để xem diễn biến kế tiếp.</div>
+                        <div class="flex gap-2">
+                            <button id="stagePrev" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-xs font-bold hover:bg-slate-100" ${state.stepIndex === 0 ? 'disabled' : ''}>← Trước</button>
+                            <button id="stageNext" class="px-3 py-2 rounded-lg bg-excel-600 text-white text-xs font-bold hover:bg-excel-700" ${state.stepIndex === steps.length - 1 ? 'disabled' : ''}>Tiếp theo →</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            stepBanner.textContent = current.title;
+            stepExp.innerHTML = current.detail;
+            const prev = document.getElementById('stagePrev');
+            const next = document.getElementById('stageNext');
+            if (prev) prev.addEventListener('click', () => {
+                stopAutoPlay(); state.stepIndex = Math.max(0, state.stepIndex - 1); renderAll(true);
+            });
+            if (next) next.addEventListener('click', () => {
+                stopAutoPlay(); state.stepIndex = Math.min(state.maxSteps - 1, state.stepIndex + 1); renderAll(true);
+            });
+        }
+
+        /**
+         * 1. SƠ ĐỒ RẼ NHÁNH FLOWCHART CHO HÀM IF
+         */
+        function renderIfFlowchartVisual(stage, stepBanner, stepExp) {
+            const evalObj = evaluateCurrentFunction();
+            const isTrue = evalObj.isTrueBranch;
+            const step = state.stepIndex;
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="text-xs font-bold text-slate-600 text-center">
+                        Sơ đồ khối rẽ nhánh (Flowchart) của công thức <code>${evalObj.formula}</code>:
+                    </div>
+
+                    <!-- Khối 1: Biểu thức điều kiện (Logical Test) -->
+                    <div class="flex flex-col items-center">
+                        <div class="px-5 py-3 rounded-2xl border-2 font-mono text-center transition-all ${
+                            step >= 0 ? 'bg-slate-900 text-white border-slate-700 shadow-md' : 'bg-slate-100 border-slate-300'
+                        }">
+                            <div class="text-[10px] font-sans uppercase tracking-wider text-amber-300 font-bold">1. Biểu thức kiểm tra (logical_test)</div>
+                            <div class="text-base sm:text-lg font-extrabold mt-0.5">${evalObj.condExpr}</div>
+                            ${step >= 1 ? `
+                                <div class="mt-1.5 inline-block px-3 py-0.5 rounded-full text-xs font-extrabold ${
+                                    isTrue ? 'bg-emerald-400 text-slate-950' : 'bg-rose-400 text-slate-950'
+                                }">
+                                    Đánh giá: ${isTrue ? '✓ TRUE (Đúng)' : '✕ FALSE (Sai)'}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Mũi tên chia 2 nhánh -->
+                        <div class="grid grid-cols-2 w-full max-w-lg text-center font-mono text-xs font-bold mt-2">
+                            <div class="${step >= 1 && isTrue ? 'text-emerald-600 font-extrabold scale-105' : 'text-slate-400'}">
+                                ↙ Nếu TRUE (Đúng)
+                            </div>
+                            <div class="${step >= 1 && !isTrue ? 'text-rose-600 font-extrabold scale-105' : 'text-slate-400'}">
+                                Nếu FALSE (Sai) ↘
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khối 2: Hai nhánh kết quả (value_if_true vs value_if_false) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto">
+                        <!-- Nhánh TRUE -->
+                        <div class="p-4 rounded-2xl border-2 text-center transition-all ${
+                            step >= 2 && isTrue
+                                ? 'bg-emerald-50 border-emerald-500 shadow-lg scale-[1.03] active-branch-glow'
+                                : 'bg-slate-100/80 border-slate-200 opacity-50'
+                        }">
+                            <div class="text-[11px] font-bold uppercase text-emerald-800">Nhánh [value_if_true]</div>
+                            <div class="font-mono text-2xl font-extrabold text-emerald-900 my-1.5">"Đạt"</div>
+                            <div class="text-xs font-semibold ${isTrue ? 'text-emerald-700' : 'text-slate-400'}">
+                                ${isTrue ? '⚡ Nhánh được kích hoạt!' : 'Bỏ qua nhánh này'}
+                            </div>
+                        </div>
+
+                        <!-- Nhánh FALSE -->
+                        <div class="p-4 rounded-2xl border-2 text-center transition-all ${
+                            step >= 2 && !isTrue
+                                ? 'bg-rose-50 border-rose-500 shadow-lg scale-[1.03] active-branch-glow'
+                                : 'bg-slate-100/80 border-slate-200 opacity-50'
+                        }">
+                            <div class="text-[11px] font-bold uppercase text-rose-800">Nhánh [value_if_false]</div>
+                            <div class="font-mono text-2xl font-extrabold text-rose-900 my-1.5">"Trượt"</div>
+                            <div class="text-xs font-semibold ${!isTrue ? 'text-rose-700' : 'text-slate-400'}">
+                                ${!isTrue ? '⚡ Nhánh được kích hoạt!' : 'Bỏ qua nhánh này'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (step === 0) {
+                stepBanner.textContent = `Bước 1: Đọc giá trị ô A1 (${state.scoreMathA1}) và ngưỡng so sánh (>= ${state.passThreshold})`;
+                stepExp.innerHTML = `Excel nạp đối số đầu tiên <code>logical_test</code> là biểu thức so sánh <code>A1 >= ${state.passThreshold}</code> (tức là kiểm tra <strong>${state.scoreMathA1} >= ${state.passThreshold}</strong>).`;
+            } else if (step === 1) {
+                stepBanner.textContent = `Bước 2: Biểu thức (${state.scoreMathA1} >= ${state.passThreshold}) trả về ${isTrue ? 'TRUE (Đúng)' : 'FALSE (Sai)'}`;
+                stepExp.innerHTML = `Vì <strong>${state.scoreMathA1} ${isTrue ? '>=' : '<'} ${state.passThreshold}</strong>, bộ kiểm tra logic kết luận mệnh đề là <strong>${isTrue ? 'TRUE' : 'FALSE'}</strong> và bật công tắc rẽ sang nhánh <strong>${isTrue ? 'Bên Trái (value_if_true)' : 'Bên Phải (value_if_false)'}</strong>.`;
+            } else {
+                stepBanner.textContent = `Bước 3: Chốt kết quả = ${evalObj.result} và bỏ qua nhánh còn lại`;
+                stepExp.innerHTML = `Hàm <code>IF</code> đi theo nhánh <strong>${isTrue ? 'TRUE' : 'FALSE'}</strong> và trả về kết quả cuối cùng là <strong>${evalObj.result}</strong>.`;
+            }
+        }
+
+        /**
+         * 2. THÁC NƯỚC ĐIỀU KIỆN (WATERFALL LADDER) CHO HÀM IFS
+         */
+        function renderIfsWaterfallVisual(stage, stepBanner, stepExp) {
+            const evalObj = evaluateCurrentFunction();
+            const winnerIdx = evalObj.winnerIdx;
+            const step = state.stepIndex;
+
+            const rowsHtml = evalObj.ladder.map((item, idx) => {
+                let statusBadge = '';
+                let rowStyle = 'bg-white border-slate-200 text-slate-700';
+
+                if (step === 0) {
+                    statusBadge = `<span class="text-xs font-mono text-slate-400">Chờ kiểm tra...</span>`;
+                } else if (idx < winnerIdx) {
+                    rowStyle = 'bg-rose-50/70 border-rose-200 text-slate-500';
+                    statusBadge = `<span class="px-2 py-0.5 rounded bg-rose-100 text-rose-700 font-mono text-xs font-bold">✕ FALSE → Rơi xuống bậc tiếp</span>`;
+                } else if (idx === winnerIdx) {
+                    rowStyle = 'bg-emerald-50 border-emerald-500 text-emerald-950 shadow-md scale-[1.01] active-branch-glow';
+                    statusBadge = `<span class="px-2.5 py-0.5 rounded bg-emerald-600 text-white font-mono text-xs font-extrabold">✓ TRUE ĐẦU TIÊN → CHỐT ${item.val}</span>`;
+                } else {
+                    rowStyle = 'bg-slate-100 border-slate-200 text-slate-400 opacity-60';
+                    statusBadge = `<span class="px-2 py-0.5 rounded bg-slate-200 text-slate-500 font-mono text-xs font-semibold">🔒 Đã dừng (Không xét nữa)</span>`;
+                }
+
+                return `
+                    <div class="p-3 rounded-xl border-2 flex flex-wrap items-center justify-between gap-2 transition-all ${rowStyle}">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-6 h-6 rounded-full bg-slate-800 text-white font-mono text-xs font-bold flex items-center justify-center">
+                                ${idx + 1}
+                            </span>
+                            <div>
+                                <div class="font-mono font-extrabold text-xs sm:text-sm">${item.expr} <span class="text-slate-400 font-normal">(${item.desc})</span></div>
+                                <div class="text-[11px] text-slate-500">Nếu đúng trả về: <strong class="font-mono text-slate-800">${item.val}</strong></div>
+                            </div>
+                        </div>
+                        <div>${statusBadge}</div>
+                    </div>
+                `;
+            }).join('');
+
+            stage.innerHTML = `
+                <div class="space-y-2.5">
+                    <div class="text-xs font-bold text-slate-600 flex items-center justify-between">
+                        <span>Thác điều kiện tuần tự của <code>IFS</code> với Điểm Toán <code>A1 = ${state.scoreMathA1}</code>:</span>
+                        <span class="text-[11px] font-mono text-emerald-700 font-extrabold">Khớp tại Bậc #${winnerIdx + 1} (${evalObj.result})</span>
+                    </div>
+                    <div class="space-y-2">
+                        ${rowsHtml}
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Hàm IFS dừng ngay tại Bậc #${winnerIdx + 1} (${evalObj.ladder[winnerIdx].expr}) → Kết quả = ${evalObj.result}`;
+            stepExp.innerHTML = `Hàm <code>IFS</code> kiểm tra từ bậc 1 xuống: ${
+                winnerIdx > 0 ? `Bỏ qua ${winnerIdx} bậc đầu vì trả về <code>FALSE</code>. ` : ''
+            }Ngay khi gặp bậc <strong>#${winnerIdx + 1} (${evalObj.ladder[winnerIdx].expr})</strong> thỏa mãn <code>TRUE</code>, hàm lập tức trả về <strong>${evalObj.result}</strong> và khóa toàn bộ các bậc phía dưới.`;
+        }
+
+        /**
+         * 3. BỘ CHUYỂN MẠCH KHỚP MÃ (SWITCH ROUTER)
+         */
+        function renderSwitchRouterVisual(stage, stepBanner, stepExp) {
+            const evalObj = evaluateCurrentFunction();
+            const matchedIdx = evalObj.matchedIdx;
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-900 text-white p-3.5 rounded-xl font-mono text-xs sm:text-sm">
+                        <span>Biểu thức đầu vào (expression): <strong>C1 = ${evalObj.exprVal}</strong></span>
+                        <span class="text-amber-300 font-extrabold">Kết quả khớp: ${evalObj.result}</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5 text-center font-mono">
+                        ${evalObj.cases.map((c, idx) => {
+                            const isHit = idx === matchedIdx;
+                            return `
+                                <div class="p-3.5 rounded-xl border-2 transition-all ${
+                                    isHit
+                                        ? 'bg-emerald-50 border-emerald-500 shadow-md scale-105 active-branch-glow'
+                                        : 'bg-white border-slate-200 opacity-65'
+                                }">
+                                    <div class="text-[10px] font-sans font-bold uppercase text-slate-400">Case #${idx + 1}</div>
+                                    <div class="text-sm font-extrabold text-slate-900 my-1">="${c.matchVal}"</div>
+                                    <div class="text-xs font-bold ${isHit ? 'text-emerald-700' : 'text-slate-500'}">→ ${c.reward}</div>
+                                    <div class="mt-1.5 text-[10px] font-sans font-extrabold ${isHit ? 'text-emerald-600' : 'text-slate-400'}">
+                                        ${isHit ? '✓ KHỚP CHÍNH XÁC' : '✕ Không khớp'}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+
+                        <!-- Nhánh Default -->
+                        <div class="p-3.5 rounded-xl border-2 transition-all ${
+                            matchedIdx === -1
+                                ? 'bg-amber-100 border-amber-500 shadow-md scale-105 active-branch-glow'
+                                : 'bg-slate-50 border-slate-200 opacity-65'
+                        }">
+                            <div class="text-[10px] font-sans font-bold uppercase text-amber-800">Nhánh [default]</div>
+                            <div class="text-sm font-extrabold text-slate-900 my-1">Mã khác</div>
+                            <div class="text-xs font-bold text-amber-900">→ "Không giảm (0%)"</div>
+                            <div class="mt-1.5 text-[10px] font-sans font-extrabold ${matchedIdx === -1 ? 'text-amber-800' : 'text-slate-400'}">
+                                ${matchedIdx === -1 ? '⚡ DÙNG MẶC ĐỊNH' : 'Dự phòng'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = matchedIdx !== -1
+                ? `SWITCH khớp C1 = ${evalObj.exprVal} tại Case #${matchedIdx + 1} → ${evalObj.result}`
+                : `SWITCH không tìm thấy mã ${evalObj.exprVal} trong các Case → Trả về nhánh Default ${evalObj.result}`;
+            stepExp.innerHTML = matchedIdx !== -1
+                ? `Hàm <code>SWITCH</code> lấy giá trị <strong>${evalObj.exprVal}</strong> tại ô C1 đem so sánh bằng (<code>=</code>) với từng Case. Khi khớp với <strong>"${evalObj.cases[matchedIdx].matchVal}"</strong>, hàm trả về ngay <strong>${evalObj.result}</strong>.`
+                : `Vì mã <strong>${evalObj.exprVal}</strong> không trùng với <code>"VIP"</code>, <code>"GOLD"</code> hay <code>"STD"</code>, hàm <code>SWITCH</code> tự động kích hoạt đối số dự phòng cuối cùng là <strong>${evalObj.result}</strong>.`;
+        }
+
+        /**
+         * 4. CỔNG LOGIC & BẢNG CHÂN LÝ CHO AND, OR, XOR, NOT
+         */
+        function renderLogicGatesVisual(fn, stage, stepBanner, stepExp) {
+            const evalObj = evaluateCurrentFunction();
+
+            if (fn.name === 'NOT') {
+                stage.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="text-xs font-bold text-slate-600 text-center">
+                            Cổng đảo ngược trạng thái Logic <code>=NOT(A1&gt;=${state.passThreshold})</code>:
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center max-w-xl mx-auto text-center font-mono">
+                            <div class="p-4 rounded-xl border-2 ${evalObj.inputBool ? 'bg-emerald-50 border-emerald-500' : 'bg-rose-50 border-rose-500'}">
+                                <div class="text-[10px] font-sans font-bold uppercase text-slate-500">Đầu vào (logical)</div>
+                                <div class="text-xs font-bold mt-1">${evalObj.inputDetail}</div>
+                                <div class="text-xl font-extrabold mt-1 ${evalObj.inputBool ? 'text-emerald-700' : 'text-rose-700'}">
+                                    ${evalObj.inputBool ? 'TRUE' : 'FALSE'}
+                                </div>
+                            </div>
+
+                            <div class="p-3 rounded-xl bg-slate-900 text-amber-300 font-extrabold text-sm shadow">
+                                🔄 CỔNG ĐẢO NOT<br/>
+                                <span class="text-[11px] font-sans text-slate-300 font-normal">Đúng ↔ Sai</span>
+                            </div>
+
+                            <div class="p-4 rounded-xl border-2 ${evalObj.finalBool ? 'bg-emerald-100 border-emerald-600 shadow-md' : 'bg-rose-100 border-rose-600 shadow-md'}">
+                                <div class="text-[10px] font-sans font-bold uppercase text-slate-600">Đầu ra kết quả</div>
+                                <div class="text-2xl font-extrabold mt-2 ${evalObj.finalBool ? 'text-emerald-800' : 'text-rose-800'}">
+                                    ${evalObj.result}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                stepBanner.textContent = `Hàm NOT đảo ngược ${evalObj.inputBool ? 'TRUE' : 'FALSE'} thành ${evalObj.result}`;
+                stepExp.innerHTML = `Biểu thức bên trong <code>${evalObj.inputDetail}</code> có giá trị là <strong>${evalObj.inputBool ? 'TRUE' : 'FALSE'}</strong>. Hàm <code>NOT</code> lật ngược lại thành <strong>${evalObj.result}</strong>.`;
+                return;
+            }
+
+            // AND, OR, XOR
+            const ruleSummaryMap = {
+                AND: 'TẤT CẢ mệnh đề phải TRUE (Chỉ cần 1 FALSE là trả về FALSE)',
+                OR: 'ÍT NHẤT 1 mệnh đề TRUE (Chỉ FALSE khi tất cả cùng FALSE)',
+                XOR: 'Tổng số mệnh đề TRUE là SỐ LẺ (1, 3...) → TRUE; SỐ CHẴN (0, 2...) → FALSE'
+            };
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-slate-600">Quy tắc cổng <code>${fn.name}</code>: <strong class="text-excel-800">${ruleSummaryMap[fn.name]}</strong></span>
+                        <span class="bg-slate-800 text-amber-300 font-mono font-bold px-2.5 py-0.5 rounded-full">
+                            Số mệnh đề TRUE: ${evalObj.trueCount} / ${evalObj.inputs.length}
+                        </span>
+                    </div>
+
+                    <!-- Các mệnh đề đầu vào -->
+                    <div class="grid grid-cols-1 sm:grid-cols-${evalObj.inputs.length} gap-3 font-mono">
+                        ${evalObj.inputs.map(inp => `
+                            <div class="p-3.5 rounded-xl border-2 flex items-center justify-between ${
+                                inp.val ? 'bg-emerald-50 border-emerald-500 text-emerald-950' : 'bg-rose-50 border-rose-400 text-rose-950'
+                            }">
+                                <div>
+                                    <div class="text-[10px] font-sans font-bold uppercase text-slate-500">${inp.label}: ${inp.code}</div>
+                                    <div class="text-xs font-bold mt-0.5">${inp.detail}</div>
+                                </div>
+                                <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold ${
+                                    inp.val ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                                }">
+                                    ${inp.val ? '✓ TRUE' : '✕ FALSE'}
+                                </span>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <!-- So sánh nhanh kết quả cả 3 cổng AND / OR / XOR trên cùng bộ dữ liệu -->
+                    <div class="bg-slate-900 text-white p-3.5 rounded-xl space-y-2">
+                        <div class="text-[11px] text-slate-300 font-semibold">
+                            Đối chiếu trực tiếp cả 3 cổng Logic với <strong>${evalObj.trueCount}/${evalObj.inputs.length} mệnh đề TRUE</strong> hiện tại:
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 font-mono text-xs text-center">
+                            ${['AND', 'OR', 'XOR'].map(gateName => {
+                                let gOut = false;
+                                if (gateName === 'AND') gOut = evalObj.trueCount === evalObj.inputs.length;
+                                if (gateName === 'OR') gOut = evalObj.trueCount >= 1;
+                                if (gateName === 'XOR') gOut = (evalObj.trueCount % 2) === 1;
+                                const isCurrent = gateName === fn.name;
+                                return `
+                                    <div class="p-2 rounded-lg border ${
+                                        isCurrent ? 'bg-amber-400 text-slate-950 border-white font-extrabold scale-[1.03]' : 'bg-slate-800 text-slate-200 border-slate-700'
+                                    }">
+                                        <div>=${gateName}(...)</div>
+                                        <div class="text-sm font-extrabold mt-0.5">${gOut ? 'TRUE' : 'FALSE'}</div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `Cổng ${fn.name} nhận ${evalObj.trueCount}/${evalObj.inputs.length} mệnh đề TRUE → Kết quả = ${evalObj.result}`;
+            stepExp.innerHTML = `Trong ${evalObj.inputs.length} mệnh đề đầu vào, có <strong>${evalObj.trueCount} mệnh đề ĐÚNG (TRUE)</strong>. Theo quy tắc của hàm <code>${fn.name}</code> (${ruleSummaryMap[fn.name]}), kết quả trả về là <strong>${evalObj.result}</strong>.`;
+        }
+
+        /**
+         * 5. TRẠM RADA BẪY LỖI: ĐỐI CHIẾU TRỰC TIẾP IFERROR vs IFNA
+         */
+        function renderErrorTrapVisual(fn, stage, stepBanner, stepExp) {
+            const evalObj = evaluateCurrentFunction();
+
+            stage.innerHTML = `
+                <div class="space-y-4">
+                    <!-- Nguồn biểu thức đầu vào -->
+                    <div class="bg-slate-900 text-white p-3.5 rounded-xl flex flex-wrap items-center justify-between gap-2 font-mono text-xs sm:text-sm">
+                        <div>
+                            <span class="text-slate-400 font-sans">Giá trị gốc của đối số 1 (<code>${evalObj.exprCode}</code>):</span>
+                            <strong class="ml-1.5 px-2.5 py-0.5 rounded ${evalObj.isAnyError ? 'bg-rose-500 text-white' : 'bg-emerald-400 text-slate-950'}">
+                                ${evalObj.rawVal}
+                            </strong>
+                        </div>
+                        <span class="text-amber-300 text-xs font-sans font-bold">
+                            ${evalObj.isAnyError ? (evalObj.isNAError ? '⚠️ Phát hiện lỗi #N/A (Không tìm thấy)' : `💥 Phát hiện lỗi toán học/cú pháp ${evalObj.rawVal}`) : '✓ Giá trị hợp lệ (Không có lỗi)'}
+                        </span>
+                    </div>
+
+                    <!-- Đặt cạnh nhau IFERROR vs IFNA để thấy sự khác biệt -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 font-mono">
+                        <!-- IFERROR -->
+                        <div class="p-4 rounded-2xl border-2 transition-all ${
+                            fn.name === 'IFERROR' ? 'bg-emerald-50 border-excel-600 shadow-md scale-[1.02]' : 'bg-white border-slate-200'
+                        }">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-sm text-excel-800">=IFERROR(${evalObj.exprCode}, "Đã bẫy lỗi (0)")</span>
+                                <span class="text-[10px] font-sans bg-excel-100 text-excel-800 px-2 py-0.5 rounded font-bold">Lưới bẫy MỌI LỖI</span>
+                            </div>
+                            <div class="my-2.5 text-xs font-sans text-slate-600">
+                                Bắt tất cả: <code>#N/A, #DIV/0!, #VALUE!, #NAME?, #REF!</code>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-slate-900 text-white flex items-center justify-between text-xs">
+                                <span>Kết quả trả về:</span>
+                                <span class="text-amber-300 font-extrabold text-sm">${evalObj.iferrorOut}</span>
+                            </div>
+                        </div>
+
+                        <!-- IFNA -->
+                        <div class="p-4 rounded-2xl border-2 transition-all ${
+                            fn.name === 'IFNA' ? 'bg-emerald-50 border-excel-600 shadow-md scale-[1.02]' : 'bg-white border-slate-200'
+                        }">
+                            <div class="flex items-center justify-between">
+                                <span class="font-extrabold text-sm text-sky-800">=IFNA(${evalObj.exprCode}, "Không tìm thấy")</span>
+                                <span class="text-[10px] font-sans bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-bold">Chỉ bẫy đúng #N/A</span>
+                            </div>
+                            <div class="my-2.5 text-xs font-sans text-slate-600">
+                                Chỉ bắt <code>#N/A</code>. Nếu gặp <code>#DIV/0!</code> hay <code>#VALUE!</code> sẽ <strong>để lọt lỗi</strong>!
+                            </div>
+                            <div class="p-2.5 rounded-xl ${evalObj.ifnaOut.startsWith('#') ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white'} flex items-center justify-between text-xs">
+                                <span>Kết quả trả về:</span>
+                                <span class="font-extrabold text-sm ${evalObj.ifnaOut.startsWith('#') ? 'text-white underline' : 'text-amber-300'}">${evalObj.ifnaOut}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            stepBanner.textContent = `${fn.name} kiểm tra giá trị (${evalObj.rawVal}) → Kết quả = ${evalObj.result}`;
+            if (!evalObj.isAnyError) {
+                stepExp.innerHTML = `Vì biểu thức <code>${evalObj.exprCode}</code> trả về giá trị hợp lệ <strong>${evalObj.rawVal}</strong> (không có lỗi), cả <code>IFERROR</code> và <code>IFNA</code> đều giữ nguyên kết quả <strong>${evalObj.rawVal}</strong>.`;
+            } else if (evalObj.isNAError) {
+                stepExp.innerHTML = `Biểu thức trả về lỗi <code>#N/A</code>. Cả hai hàm <code>IFERROR</code> và <code>IFNA</code> đều bắt được lỗi <code>#N/A</code> và thay thế bằng chuỗi dự phòng an toàn <strong>${evalObj.result}</strong>.`;
+            } else {
+                stepExp.innerHTML = `Biểu thức gặp lỗi <strong>${evalObj.rawVal}</strong> (không phải <code>#N/A</code>): <code>IFERROR</code> lập tức bắt lỗi và đổi thành <strong>"Đã bẫy lỗi (0)"</strong>, trong khi <code>IFNA</code> <strong>để lọt lỗi ${evalObj.rawVal}</strong> ra ngoài để cảnh báo người lập bảng tính!`;
+            }
+        }
+
+        /**
+         * RENDER MODAL BẢNG TRA CỨU 9 HÀM LOGIC
+         */
+        function renderCatalogModal() {
+            const tbody = document.getElementById('catalogTableBody');
+            tbody.innerHTML = '';
+            FUNCTIONS_DB.forEach((fn, i) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-excel-50 cursor-pointer transition';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500">${i + 1}</td>
+                    <td class="py-2.5 px-3 border-r border-slate-200 font-mono font-extrabold text-excel-700">
+                        ${fn.name}
+                        <div class="text-[11px] font-sans font-medium text-slate-500">${fn.shortVi}</div>
+                    </td>
+                    <td class="py-2.5 px-3 border-r border-slate-200 font-mono text-xs text-slate-700">${fn.syntax}</td>
+                    <td class="py-2.5 px-3 text-xs text-slate-600">${fn.purpose}</td>
+                `;
+                tr.addEventListener('click', () => {
+                    document.getElementById('catalogModal').classList.add('hidden');
+                    document.getElementById('catalogModal').classList.remove('flex');
+                    selectFunction(i);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * CẬP NHẬT TOÀN BỘ GIAO DIỆN
+         */
+        function renderAll(skipPanelRebuild = false) {
+            if (!skipPanelRebuild) {
+                renderDynamicParamsPanel();
+            }
+            renderSpreadsheet();
+            const steps = buildTeachingSteps();
+            state.maxSteps = Math.max(1, steps.length);
+            state.stepIndex = Math.min(state.stepIndex, state.maxSteps - 1);
+            renderStepPills();
+            renderVisualStage();
+        }
+
+        /**
+         * ĐIỀU KHIỂN CHẠY TỰ ĐỘNG TỪNG BƯỚC
+         */
+        function startAutoPlay() {
+            state.isPlaying = true;
+            document.getElementById('playPauseIcon').textContent = '⏸';
+            document.getElementById('playPauseText').textContent = 'Tạm dừng';
+            state.timer = setInterval(() => {
+                if (state.stepIndex < state.maxSteps - 1) {
+                    state.stepIndex++;
+                    renderAll(true);
+                } else {
+                    stopAutoPlay();
+                }
+            }, state.speedMs);
+        }
+
+        function stopAutoPlay() {
+            state.isPlaying = false;
+            if (state.timer) {
+                clearInterval(state.timer);
+                state.timer = null;
+            }
+            document.getElementById('playPauseIcon').textContent = '▶';
+            document.getElementById('playPauseText').textContent = 'Chạy từng bước';
+        }
+
+        /**
+         * KHỞI TẠO SỰ KIỆN TƯƠNG TÁC
+         */
+        function initEvents() {
+            document.getElementById('btnPlayPause').addEventListener('click', () => {
+                if (state.isPlaying) {
+                    stopAutoPlay();
+                } else {
+                    state.stepIndex = 0;
+                    renderAll(true);
+                    startAutoPlay();
+                }
+            });
+
+            document.getElementById('btnStep').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = Math.min(state.maxSteps - 1, state.stepIndex + 1);
+                renderAll(true);
+                if (state.stepIndex === state.maxSteps - 1) stopAutoPlay();
+            });
+
+            document.getElementById('btnReset').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = 0;
+                renderAll(true);
+            });
+
+            document.getElementById('speedSelect').addEventListener('change', e => {
+                state.speedMs = Number(e.target.value);
+                if (state.isPlaying) {
+                    stopAutoPlay();
+                    startAutoPlay();
+                }
+            });
+
+            // 6 Nút kịch bản dữ liệu mẫu bên cột trái
+            document.getElementById('btnPresetHighPass').addEventListener('click', () => {
+                state.scoreMathA1 = 9.0;
+                state.scoreEngB1 = 8.0;
+                state.tierCodeC1 = 'VIP';
+                state.lookupStatusE1 = 'OK_120';
+                renderAll();
+            });
+
+            document.getElementById('btnPresetOneFail').addEventListener('click', () => {
+                state.scoreMathA1 = 7.5;
+                state.scoreEngB1 = 3.5;
+                renderAll();
+            });
+
+            document.getElementById('btnPresetBothFail').addEventListener('click', () => {
+                state.scoreMathA1 = 3.5;
+                state.scoreEngB1 = 4.0;
+                renderAll();
+            });
+
+            document.getElementById('btnPresetDivZero').addEventListener('click', () => {
+                state.divisorD1 = 0;
+                state.errorSourceMode = 'E1';
+                state.lookupStatusE1 = '#DIV/0!';
+                // Nếu chưa ở hàm IFERROR hoặc IFNA thì tự nhảy sang IFNA để thấy ngay sự khác biệt
+                if (currentFunc().name !== 'IFERROR' && currentFunc().name !== 'IFNA') {
+                    selectFunction(5); // IFNA
+                } else {
+                    renderAll();
+                }
+            });
+
+            document.getElementById('btnPresetNAError').addEventListener('click', () => {
+                state.errorSourceMode = 'E1';
+                state.lookupStatusE1 = '#N/A';
+                if (currentFunc().name !== 'IFERROR' && currentFunc().name !== 'IFNA') {
+                    selectFunction(5); // IFNA
+                } else {
+                    renderAll();
+                }
+            });
+
+            document.getElementById('btnPresetCycleTier').addEventListener('click', () => {
+                const order = ['VIP', 'GOLD', 'STD', 'NEW'];
+                const nextIdx = (order.indexOf(state.tierCodeC1) + 1) % order.length;
+                state.tierCodeC1 = order[nextIdx];
+                if (currentFunc().name !== 'SWITCH') {
+                    selectFunction(7); // SWITCH
+                } else {
+                    renderAll();
+                }
+            });
+
+            // Modal bảng tra cứu 9 hàm Logic
+            const modal = document.getElementById('catalogModal');
+            document.getElementById('btnOpenCatalogModal').addEventListener('click', () => {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+            document.getElementById('btnCloseCatalogModal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            modal.addEventListener('click', e => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initEvents();
+            renderCatalogModal();
+            selectFunction(0);
+        });
+    </script>
+</body>
+</html>
