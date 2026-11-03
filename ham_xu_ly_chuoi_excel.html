@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Text Functions Sandbox - Mô Phỏng 14 Hàm Xử Lý Chuỗi</title>
+    <!-- Tải Tailwind CSS qua CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Google Font Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        excel: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            500: '#21a366',
+                            600: '#107c41',
+                            700: '#0b5c30',
+                            800: '#064e27',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #f1f5f9;
+            overflow-x: hidden;
+        }
+        .excel-grid-shadow {
+            box-shadow: 0 4px 20px -2px rgba(16, 124, 65, 0.08), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+        }
+        @keyframes pop-in {
+            0% { transform: scale(0.95); opacity: 0; }
+            70% { transform: scale(1.02); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: pop-in 0.25s ease-out forwards;
+        }
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+            50% { box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+        }
+        .char-highlight-glow {
+            animation: pulse-border 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- HEADER CHUẨN EXCEL + BỘ CHỌN 14 HÀM XỬ LÝ CHUỖI TỰ ĐỘNG XUỐNG DÒNG (KHÔNG THANH TRƯỢT NGANG) -->
+    <header class="bg-excel-600 text-white shadow-md z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center border border-white/25 shadow-inner shrink-0">
+                    <span class="font-serif italic font-extrabold text-xl text-amber-300">fx</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-base sm:text-xl font-extrabold tracking-tight">Excel Text Functions Sandbox</h1>
+                        <span class="text-xs bg-amber-400 text-slate-900 px-2.5 py-0.5 rounded-full font-bold shadow-sm">14 Hàm Xử Lý Chuỗi</span>
+                    </div>
+                    <p class="text-xs text-excel-100/90">Mô phỏng trực quan Băng Ô Ký Tự (Index từ 1), cắt chuỗi, dò tìm vị trí, chuẩn hóa & thay thế văn bản</p>
+                </div>
+            </div>
+
+            <!-- Bộ lọc phân nhóm hàm + Nút mở Bảng tra cứu 14 hàm -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <div id="categoryFilterBar" class="flex flex-wrap items-center gap-1 bg-excel-800/60 p-1 rounded-lg border border-excel-500/30 text-xs">
+                    <!-- Render bằng JS -->
+                </div>
+                <button id="btnOpenCatalogModal" class="bg-amber-400 hover:bg-amber-300 text-slate-900 active:scale-95 transition text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm">
+                    <span>📋 Bảng tra cứu 14 hàm</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH 14 HÀM HIỂN THỊ DẠNG LƯỚI TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP) -->
+        <div class="bg-excel-700/95 border-t border-excel-500/30">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5">
+                <div id="functionButtonsGrid" class="flex flex-wrap gap-2 items-center">
+                    <!-- 14 nút hàm chuỗi tự động xuống dòng tại đây -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-5 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+
+        <!-- CỘT TRÁI (5/12): VÙNG DỮ LIỆU GỐC (A1:A5) & BẢNG THAM SỐ THÔNG MINH -->
+        <section class="lg:col-span-5 bg-white rounded-xl border border-slate-300 excel-grid-shadow overflow-hidden flex flex-col">
+            <!-- Thanh tiêu đề bảng tính & 4 Nút nạp nhanh bộ dữ liệu mẫu -->
+            <div class="bg-excel-700 text-white px-3.5 py-2.5 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <span class="font-mono font-bold">Xu_Ly_Chuoi_Excel.xlsx</span>
+                    </div>
+                    <span id="funcCategoryBadge" class="bg-white/15 px-2 py-0.5 rounded text-[11px] font-semibold">Đếm & Cắt chuỗi</span>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5 text-[11px]">
+                    <button id="btnPresetCodes" class="bg-emerald-500/30 hover:bg-emerald-500/50 border border-emerald-300/30 px-2.5 py-1 rounded font-semibold transition text-left truncate">
+                        🏷️ 1. Chuỗi chuẩn & Mã
+                    </button>
+                    <button id="btnPresetSpaces" class="bg-amber-400/90 hover:bg-amber-300 text-slate-900 px-2.5 py-1 rounded font-bold transition text-left truncate">
+                        🧹 2. Khoảng trắng & Hoa/Thường
+                    </button>
+                    <button id="btnPresetJoin" class="bg-sky-300 hover:bg-sky-200 text-slate-950 px-2.5 py-1 rounded font-bold transition text-left truncate">
+                        🔗 3. Danh sách nối & Ô trống
+                    </button>
+                    <button id="btnPresetReplace" class="bg-purple-300 hover:bg-purple-200 text-slate-950 px-2.5 py-1 rounded font-bold transition text-left truncate">
+                        🔄 4. Mã lặp & Thay thế
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thanh Công Thức (Name Box & Formula Bar fx) -->
+            <div class="bg-slate-50 border-b border-slate-300 px-3 py-2 flex items-center gap-2">
+                <div class="w-12 bg-white border border-slate-300 rounded px-1.5 py-1 font-mono text-xs font-bold text-center text-excel-800 shadow-inner" id="nameBoxDisplay">
+                    A6
+                </div>
+                <div class="text-excel-600 font-serif italic font-extrabold text-base px-0.5 select-none">fx</div>
+                <div class="flex-1 bg-white border border-excel-500/60 rounded px-2.5 py-1 font-mono text-xs sm:text-sm font-bold text-slate-800 flex items-center justify-between shadow-inner overflow-x-auto">
+                    <span id="formulaBarText" class="text-excel-700 whitespace-nowrap">=LEN(A1)</span>
+                    <span id="formulaResultBadge" class="ml-2 bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-extrabold shrink-0">
+                        = 11
+                    </span>
+                </div>
+            </div>
+
+            <!-- KHUNG ĐIỀU KHIỂN THAM SỐ THÔNG MINH (DYNAMIC PARAMETERS BAR) -->
+            <div id="dynamicParamsPanel" class="bg-emerald-50/90 border-b border-emerald-200 px-3.5 py-2.5 space-y-2">
+                <!-- Render động theo hàm bằng JS -->
+            </div>
+
+            <!-- Bảng Lưới Excel (A1:A5 + A6 Kết quả) -->
+            <div class="p-3 bg-slate-100 flex-1 space-y-2.5">
+                <div class="flex items-center justify-between text-[11px] text-slate-600 px-0.5">
+                    <span>👆 <strong>Nhấp vào dòng A1..A5</strong> để chọn ô mục tiêu hoặc sửa trực tiếp văn bản:</span>
+                    <span class="font-mono font-bold text-excel-700" id="activeCellIndicator">Đang chọn: A1</span>
+                </div>
+
+                <div class="border border-slate-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                    <table class="w-full border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-200 text-slate-700 font-bold border-b border-slate-300 select-none">
+                                <th class="w-12 py-1.5 text-center border-r border-slate-300">Ô</th>
+                                <th class="py-1.5 px-2.5 text-left border-r border-slate-300">Nội dung chuỗi (Sửa trực tiếp)</th>
+                                <th class="w-16 py-1.5 px-1.5 text-center bg-slate-100 text-slate-600 text-[11px]">Độ dài</th>
+                            </tr>
+                        </thead>
+                        <tbody id="excelSheetBody" class="divide-y divide-slate-200">
+                            <!-- Các ô A1..A5 và A6 kết quả render bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Chú thích quy ước khoảng trắng và chỉ số Index -->
+                <div class="bg-slate-800 text-white rounded-lg p-2.5 text-[11px] flex flex-wrap items-center justify-between gap-2 font-mono">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-amber-300 font-bold">📏 Quy ước Excel:</span>
+                        <span class="bg-white/10 px-2 py-0.5 rounded">Vị trí đầu tiên = <strong>1</strong></span>
+                        <span class="bg-amber-400/20 text-amber-200 px-2 py-0.5 rounded border border-amber-400/30"><strong>␣</strong> = 1 Khoảng trắng (Space)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cú pháp & Ý nghĩa của Hàm -->
+            <div class="p-3.5 bg-white border-t border-slate-200 space-y-1.5">
+                <div class="flex items-center justify-between flex-wrap gap-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Cú pháp chuẩn Excel</span>
+                    <span id="funcSyntaxTag" class="font-mono text-xs font-bold text-excel-700 bg-excel-50 px-2 py-0.5 rounded border border-excel-200">
+                        =LEN(text)
+                    </span>
+                </div>
+                <p id="funcPurposeText" class="text-xs text-slate-600 leading-relaxed">
+                    Trả về tổng số ký tự trong một chuỗi văn bản, bao gồm cả chữ cái, chữ số, dấu câu và mọi khoảng trắng.
+                </p>
+            </div>
+        </section>
+
+        <!-- CỘT PHẢI (7/12): SÂN KHẤU BĂNG Ô KÝ TỰ (CHARACTER-INDEX TAPE) & GIẢI THÍCH TỪNG BƯỚC -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+
+            <!-- 1. Thanh Điều Khiển Hoạt Họa Từng Bước + Tốc độ -->
+            <div class="bg-white rounded-xl border border-slate-200 p-3.5 excel-grid-shadow flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button id="btnPlayPause" class="bg-excel-600 hover:bg-excel-700 active:scale-95 text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-lg shadow flex items-center gap-1.5 transition">
+                        <span id="playPauseIcon">▶</span>
+                        <span id="playPauseText">Chạy từng bước</span>
+                    </button>
+                    <button id="btnStep" class="bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 font-bold text-xs sm:text-sm px-3 py-2 rounded-lg border border-slate-300 flex items-center gap-1 transition">
+                        <span>⏭</span>
+                        <span>Bước tiếp</span>
+                    </button>
+                    <button id="btnReset" class="bg-slate-100 hover:bg-rose-50 hover:text-rose-600 active:scale-95 text-slate-600 font-semibold text-xs sm:text-sm px-2.5 py-2 rounded-lg border border-slate-300 transition">
+                        ↺ Đặt lại
+                    </button>
+                    <div class="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 pl-2 border-l border-slate-200">
+                        <span>Tốc độ:</span>
+                        <select id="speedSelect" class="bg-slate-100 border border-slate-300 rounded px-1.5 py-1 font-semibold text-slate-700">
+                            <option value="1200">Chậm (Giảng bài)</option>
+                            <option value="750" selected>Vừa phải</option>
+                            <option value="400">Nhanh</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Các nút nhảy nhanh vào từng bước -->
+                <div class="flex flex-wrap items-center gap-1.5" id="stepPillsContainer">
+                    <!-- Render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 2. SÂN KHẤU HOẠT HỌA TRỰC QUAN BĂNG Ô KÝ TỰ (CHARACTER-INDEX TAPE) -->
+            <div class="bg-white rounded-xl border border-slate-200 excel-grid-shadow overflow-hidden flex flex-col">
+                <div class="bg-slate-900 text-white px-4 py-2.5 flex items-center justify-between text-xs">
+                    <div class="flex items-center gap-2">
+                        <span class="text-amber-400 text-sm">🔤</span>
+                        <span class="font-bold tracking-wide uppercase" id="visualStageHeader">Băng Ô Ký Tự & Bộ Quét Vị Trí Chuỗi</span>
+                    </div>
+                    <span id="visualStepBadge" class="bg-white/15 text-emerald-300 font-mono px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                        Bước 3 / 3
+                    </span>
+                </div>
+
+                <!-- Khu vực hiển thị đồ họa động tùy biến theo từng hàm Chuỗi -->
+                <div id="visualStageCanvas" class="p-4 sm:p-5 min-h-[370px] bg-gradient-to-b from-slate-50 to-white flex flex-col justify-between gap-4">
+                    <!-- Nội dung đồ họa render bằng JS -->
+                </div>
+            </div>
+
+            <!-- 3. HỘP THOẠI GIẢI THÍCH TIẾNG VIỆT ĐỘNG THEO TỪNG BƯỚC -->
+            <div class="bg-gradient-to-br from-excel-50 via-white to-emerald-50 rounded-xl border-2 border-excel-500/40 p-4 shadow-sm space-y-2">
+                <div class="flex items-center justify-between flex-wrap gap-1">
+                    <span id="stepTitleBanner" class="text-xs font-extrabold uppercase tracking-wider text-excel-800 bg-excel-200/80 px-2.5 py-0.5 rounded-full">
+                        Giải thích cơ chế xử lý chuỗi
+                    </span>
+                    <span class="text-[11px] font-mono text-slate-500">Chỉ số ký tự đầu tiên trong Excel luôn là 1</span>
+                </div>
+                <div id="stepExplanationText" class="text-slate-800 text-sm leading-relaxed font-medium">
+                    <!-- Giải thích tiếng Việt chi tiết theo từng bước -->
+                </div>
+            </div>
+
+            <!-- 4. LƯU Ý BẪY THƯỜNG GẶP & MẸO KẾT HỢP HÀM CHUỖI -->
+            <div class="bg-amber-50/90 rounded-xl p-3.5 border border-amber-200 flex items-start gap-2.5 text-xs text-slate-700">
+                <span class="text-base leading-none shrink-0">💡</span>
+                <div id="funcNoteBox" class="leading-relaxed">
+                    <!-- Mẹo & lưu ý thực tế -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- MODAL BẢNG TRA CỨU NHANH 14 HÀM XỬ LÝ CHUỖI -->
+    <div id="catalogModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[85vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-pop">
+            <div class="bg-excel-600 text-white px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">📚</span>
+                    <h3 class="font-bold text-base sm:text-lg">Bảng Tổng Hợp 14 Hàm Xử Lý Chuỗi Văn Bản Trong Excel</h3>
+                </div>
+                <button id="btnCloseCatalogModal" class="bg-white/15 hover:bg-white/25 text-white rounded-lg px-3 py-1 text-xs font-bold transition">
+                    Đóng ✕
+                </button>
+            </div>
+            <div class="p-4 sm:p-5 overflow-y-auto">
+                <p class="text-xs text-slate-600 mb-3">Nhấp vào bất kỳ hàm nào trong bảng để chuyển ngay tới sân khấu mô phỏng trực quan của hàm đó:</p>
+                <div class="border border-slate-300 rounded-xl overflow-hidden">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-800 font-bold">
+                                <th class="py-2 px-3 border-r border-slate-300 w-10 text-center">STT</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-32">Tên hàm</th>
+                                <th class="py-2 px-3 border-r border-slate-300 w-72">Cú pháp chuẩn</th>
+                                <th class="py-2 px-3">Cơ chế hoạt động & Lưu ý quan trọng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalogTableBody" class="divide-y divide-slate-200">
+                            <!-- Điền bằng JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-3 px-4 text-center text-xs text-slate-500">
+        Excel Text Functions Sandbox • Mô phỏng trực quan 14 hàm xử lý chuỗi văn bản trong Microsoft Excel.
+    </footer>
+
+    <!-- JAVASCRIPT ENGINE CHO 14 HÀM XỬ LÝ CHUỖI -->
+    <script>
+        /**
+         * DANH MỤC 4 NHÓM HÀM XỬ LÝ CHUỖI
+         */
+        const CATEGORIES = [
+            { id: 'ALL', name: 'Tất cả (14)' },
+            { id: 'EXTRACT', name: '1. Đếm & Cắt chuỗi (4)' },
+            { id: 'LOCATE', name: '2. Tìm kiếm vị trí (2)' },
+            { id: 'CLEAN', name: '3. Kiểu chữ & Làm sạch (4)' },
+            { id: 'JOIN_SWAP', name: '4. Nối & Thay thế (4)' }
+        ];
+
+        /**
+         * CƠ SỞ DỮ LIỆU ĐẦY ĐỦ 14 HÀM XỬ LÝ CHUỖI THEO ĐÚNG THỨ TỰ YÊU CẦU:
+         * LEN, LEFT, RIGHT, MID, FIND, SEARCH, UPPER, LOWER, PROPER, TRIM, CONCAT, TEXTJOIN, REPLACE, SUBSTITUTE
+         */
+        const FUNCTIONS_DB = [
+            // 1. LEN
+            {
+                name: 'LEN',
+                shortVi: 'Đếm tổng ký tự',
+                category: 'EXTRACT',
+                syntax: '=LEN(text)',
+                purpose: 'Đếm tổng số ký tự có trong một chuỗi văn bản, bao gồm cả chữ cái, chữ số, ký hiệu đặc biệt và TẤT CẢ các khoảng trắng (dấu cách).',
+                note: '<strong>Bẫy thường gặp:</strong> Hai chuỗi nhìn giống hệt nhau trên màn hình nhưng hàm <code>VLOOKUP</code> báo lỗi <code>#N/A</code> thường là do một chuỗi có dư khoảng trắng ở cuối. Hãy dùng <code>=LEN(A1)</code> để phát hiện ngay!'
+            },
+            // 2. LEFT
+            {
+                name: 'LEFT',
+                shortVi: 'Cắt từ bên Trái',
+                category: 'EXTRACT',
+                syntax: '=LEFT(text, [num_chars])',
+                purpose: 'Trích xuất một số lượng ký tự (num_chars) tính từ ký tự đầu tiên bên TRÁI của chuỗi. Nếu bỏ qua num_chars, mặc định lấy 1 ký tự.',
+                note: '<strong>Ứng dụng thực tế:</strong> Tách mã phòng ban hoặc mã quốc gia đứng đầu mã nhân viên, ví dụ <code>=LEFT("NV-2026-HCM", 2)</code> trả về <code>"NV"</code>.'
+            },
+            // 3. RIGHT
+            {
+                name: 'RIGHT',
+                shortVi: 'Cắt từ bên Phải',
+                category: 'EXTRACT',
+                syntax: '=RIGHT(text, [num_chars])',
+                purpose: 'Trích xuất một số lượng ký tự (num_chars) tính từ ký tự cuối cùng bên PHẢI của chuỗi ngược vào trong.',
+                note: '<strong>Ứng dụng thực tế:</strong> Tách mã chi nhánh hoặc số đuôi điện thoại ở cuối chuỗi, ví dụ <code>=RIGHT("NV-2026-HCM", 3)</code> trả về <code>"HCM"</code>.'
+            },
+            // 4. MID
+            {
+                name: 'MID',
+                shortVi: 'Cắt ở giữa chuỗi',
+                category: 'EXTRACT',
+                syntax: '=MID(text, start_num, num_chars)',
+                purpose: 'Trích xuất một chuỗi con gồm num_chars ký tự, bắt đầu từ vị trí start_num (vị trí ký tự đầu tiên bên trái được tính là 1).',
+                note: '<strong>Mẹo nhớ nhanh:</strong> Khác với LEFT/RIGHT chỉ cần độ dài, <code>MID</code> cần biết <strong>Điểm bắt đầu cắt (start_num)</strong> và <strong>Độ dài nhát cắt (num_chars)</strong>.'
+            },
+            // 5. FIND
+            {
+                name: 'FIND',
+                shortVi: 'Tìm vị trí (Phân biệt HOA/thường)',
+                category: 'LOCATE',
+                syntax: '=FIND(find_text, within_text, [start_num])',
+                purpose: 'Tìm vị trí xuất hiện đầu tiên (tính từ 1) của chuỗi con find_text trong within_text. Có PHÂN BIỆT chữ HOA/chữ thường và KHÔNG hỗ trợ ký tự đại diện (*, ?).',
+                note: '<strong>So sánh FIND vs SEARCH:</strong> Nếu tìm <code>"hcm"</code> trong <code>"NV-2026-HCM"</code>, hàm <code>FIND</code> lập tức báo lỗi <code>#VALUE!</code> vì khác kiểu chữ HOA/thường!'
+            },
+            // 6. SEARCH
+            {
+                name: 'SEARCH',
+                shortVi: 'Tìm vị trí (Không phân biệt HOA)',
+                category: 'LOCATE',
+                syntax: '=SEARCH(find_text, within_text, [start_num])',
+                purpose: 'Tìm vị trí xuất hiện đầu tiên của chuỗi con find_text trong within_text. KHÔNG phân biệt chữ HOA/thường và CÓ hỗ trợ ký tự đại diện (? đại diện 1 ký tự, * đại diện chuỗi bất kỳ).',
+                note: '<strong>Kết hợp kinh điển:</strong> Dùng <code>FIND</code> hoặc <code>SEARCH</code> tìm vị trí dấu gạch ngang <code>"-"</code> để truyền tự động vào <code>LEFT</code>, <code>MID</code> khi độ dài mã không cố định.'
+            },
+            // 7. UPPER
+            {
+                name: 'UPPER',
+                shortVi: 'Chuyển thành CHỮ HOA',
+                category: 'CLEAN',
+                syntax: '=UPPER(text)',
+                purpose: 'Chuyển đổi toàn bộ các chữ cái trong chuỗi văn bản sang dạng CHỮ IN HOA. Các chữ số và ký hiệu giữ nguyên.',
+                note: '<strong>Ứng dụng thực tế:</strong> Chuẩn hóa toàn bộ cột Mã Nhân Viên, Mã Vận Đơn, Biển Số Xe về chữ IN HOA đồng nhất.'
+            },
+            // 8. LOWER
+            {
+                name: 'LOWER',
+                shortVi: 'Chuyển thành chữ thường',
+                category: 'CLEAN',
+                syntax: '=LOWER(text)',
+                purpose: 'Chuyển đổi toàn bộ các chữ cái trong chuỗi văn bản sang dạng chữ in thường.',
+                note: '<strong>Ứng dụng thực tế:</strong> Chuẩn hóa danh sách địa chỉ Email hoặc tài khoản đăng nhập về chữ thường hoàn toàn.'
+            },
+            // 9. PROPER
+            {
+                name: 'PROPER',
+                shortVi: 'Viết Hoa Đầu Mỗi Từ',
+                category: 'CLEAN',
+                syntax: '=PROPER(text)',
+                purpose: 'Viết hoa chữ cái đầu tiên của mỗi từ trong chuỗi và chuyển các chữ cái còn lại trong từ đó sang chữ thường.',
+                note: '<strong>Bộ đôi chuẩn hóa Họ Tên:</strong> Luôn kết hợp <code>=PROPER(TRIM(A2))</code> để vừa xóa sạch khoảng trắng thừa vừa viết hoa chuẩn tên riêng tiếng Việt!'
+            },
+            // 10. TRIM
+            {
+                name: 'TRIM',
+                shortVi: 'Xóa khoảng trắng thừa',
+                category: 'CLEAN',
+                syntax: '=TRIM(text)',
+                purpose: 'Xóa toàn bộ khoảng trắng thừa ở đầu và cuối chuỗi, đồng thời rút gọn các cụm nhiều khoảng trắng liên tiếp ở giữa các từ về đúng 1 khoảng trắng duy nhất.',
+                note: '<strong>Lưu ý quan trọng:</strong> Hàm <code>TRIM</code> không xóa khoảng trắng đơn hợp lệ ngăn cách giữa 2 từ, mà chỉ dọn dẹp các khoảng trắng bị dư!'
+            },
+            // 11. CONCAT
+            {
+                name: 'CONCAT',
+                shortVi: 'Nối liền nhiều ô/chuỗi',
+                category: 'JOIN_SWAP',
+                syntax: '=CONCAT(text1, [text2], ...)',
+                purpose: 'Nối nhiều ô hoặc một vùng dữ liệu (như A1:A5) thành một chuỗi văn bản liền mạch duy nhất (phiên bản hiện đại thay thế cho CONCATENATE).',
+                note: '<strong>Hạn chế của CONCAT:</strong> Hàm <code>CONCAT</code> nối sát các ô lại với nhau mà không tự chèn dấu cách hay dấu phẩy ngăn cách. Muốn có dấu phân cách tự động, hãy dùng <code>TEXTJOIN</code>!'
+            },
+            // 12. TEXTJOIN
+            {
+                name: 'TEXTJOIN',
+                shortVi: 'Nối chuỗi có dấu phân cách',
+                category: 'JOIN_SWAP',
+                syntax: '=TEXTJOIN(delimiter, ignore_empty, text1, ...)',
+                purpose: 'Nối nhiều ô/vùng văn bản lại với nhau, ngăn cách bởi ký tự phân cách (delimiter) và cho phép tự động bỏ qua các ô rỗng khi ignore_empty = TRUE.',
+                note: '<strong>Điểm mạnh vượt trội:</strong> Khi ghép danh sách địa chỉ (Số nhà, Phường, Tỉnh) có một số ô bị bỏ trống, đặt <code>ignore_empty = TRUE</code> giúp không bị dư hai dấu phẩy liên tiếp <code>", ,"</code>!'
+            },
+            // 13. REPLACE
+            {
+                name: 'REPLACE',
+                shortVi: 'Thay thế theo VỊ TRÍ',
+                category: 'JOIN_SWAP',
+                syntax: '=REPLACE(old_text, start_num, num_chars, new_text)',
+                purpose: 'Thay thế một phần của chuỗi văn bản dựa theo VỊ TRÍ bắt đầu (start_num) và số lượng ký tự cần cắt bỏ (num_chars) bằng chuỗi mới (new_text).',
+                note: '<strong>Phân biệt REPLACE vs SUBSTITUTE:</strong> Dùng <code>REPLACE</code> khi bạn biết <strong>vị trí con số</strong> cần đè lên (VD: che 4 số giữa của SĐT từ vị trí thứ 4 bằng <code>"****"</code>).'
+            },
+            // 14. SUBSTITUTE
+            {
+                name: 'SUBSTITUTE',
+                shortVi: 'Thay thế theo NỘI DUNG',
+                category: 'JOIN_SWAP',
+                syntax: '=SUBSTITUTE(text, old_text, new_text, [instance_num])',
+                purpose: 'Tìm nội dung văn bản (old_text) trong chuỗi và thay thế bằng nội dung mới (new_text). Có thể chọn thay thế TẤT CẢ hoặc chỉ thay thế tại lần xuất hiện thứ k (instance_num).',
+                note: '<strong>Mẹo đếm từ hoặc xóa hết dấu cách:</strong> Dùng <code>=SUBSTITUTE(A1, "-", "/")</code> để đổi mọi dấu gạch ngang thành dấu gạch chéo, hoặc truyền <code>instance_num = 2</code> để chỉ đổi dấu gạch ngang thứ 2!'
+            }
+        ];
+
+        /**
+         * 4 BỘ DỮ LIỆU MẪU TRÊN CỘT A (A1:A5)
+         */
+        const PRESET_DATASETS = {
+            CODES: {
+                activeRow: 0,
+                rows: [
+                    'NV-2026-HCM',
+                    '  nguyễn   văn   an  ',
+                    'SP-01-SP-02-SP-03',
+                    'tran.thi.bich@congty.vn',
+                    '0905123456'
+                ]
+            },
+            SPACES: {
+                activeRow: 1,
+                rows: [
+                    '  nguyễn   văn   an  ',
+                    '   lê   thị   hồng   nhung  ',
+                    'TRẦN   ĐỨC   MINH',
+                    '  Phòng   Kế   Toán  ',
+                    '   excel   2026   pro   '
+                ]
+            },
+            JOIN: {
+                activeRow: 0,
+                rows: [
+                    'Nguyễn Văn An',
+                    'Phòng Kỹ Thuật',
+                    '',
+                    'Chi nhánh TP.HCM',
+                    'Cấp bậc: Senior'
+                ]
+            },
+            REPLACE: {
+                activeRow: 2,
+                rows: [
+                    'NV-2025-HN',
+                    'HD/2025/0089',
+                    'SP-01-SP-02-SP-03',
+                    '0912345678',
+                    'Kho_A1_Kho_A2_Kho_A3'
+                ]
+            }
+        };
+
+        /**
+         * TRẠNG THÁI ỨNG DỤNG
+         */
+        const state = {
+            selectedCategory: 'ALL',
+            funcIndex: 0,           // 0..13
+            activeRow: 0,           // 0..4 tương ứng A1..A5
+            cells: [...PRESET_DATASETS.CODES.rows],
+
+            stepIndex: 2,           // 0, 1, 2
+            maxSteps: 3,
+            speedMs: 750,
+            isPlaying: false,
+            timer: null,
+
+            // Tham số động cho các hàm
+            numChars: 3,            // LEFT, RIGHT, MID, REPLACE
+            startNum: 4,            // MID, FIND, SEARCH, REPLACE
+            findText: 'HCM',        // FIND, SEARCH
+            delimiter: ' - ',       // TEXTJOIN
+            ignoreEmpty: true,      // TEXTJOIN
+            replaceNewText: '2027', // REPLACE
+            subOldText: 'SP',       // SUBSTITUTE
+            subNewText: 'MA',       // SUBSTITUTE
+            subInstance: 0          // 0 = Tất cả, 1 = Lần 1, 2 = Lần 2, 3 = Lần 3
+        };
+
+        function currentFunc() {
+            return FUNCTIONS_DB[state.funcIndex];
+        }
+
+        function currentCellRef() {
+            return `A${state.activeRow + 1}`;
+        }
+
+        function currentText() {
+            return String(state.cells[state.activeRow] ?? '');
+        }
+
+        /**
+         * Chuyển chuỗi có ký tự đại diện (*, ?) của hàm SEARCH sang RegExp an toàn
+         */
+        function wildcardSearchIndex(withinText, findPattern, startZeroIdx) {
+            if (findPattern === '') return startZeroIdx + 1;
+            const sub = withinText.slice(startZeroIdx);
+            const escaped = findPattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+                                       .replace(/\*/g, '.*')
+                                       .replace(/\?/g, '.');
+            try {
+                const regex = new RegExp(escaped, 'i');
+                const match = regex.exec(sub);
+                if (!match) return -1;
+                return startZeroIdx + match.index + 1; // 1-based index
+            } catch (e) {
+                return -1;
+            }
+        }
+
+        /**
+         * Chuẩn hóa chữ cái đầu mỗi từ giống hàm PROPER của Excel
+         */
+        function toExcelProper(str) {
+            return str.toLowerCase().replace(/(^|[^a-zA-ZÀ-ỹ0-9])([a-zA-ZÀ-ỹ])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+        }
+
+        /**
+         * Thuật toán TRIM chuẩn Excel: bỏ space đầu/cuối và gom space liên tiếp ở giữa về 1
+         */
+        function toExcelTrim(str) {
+            return str.replace(/^ +| +$/g, '').replace(/ +/g, ' ');
+        }
+
+        /**
+         * TÍNH TOÁN KẾT QUẢ THỰC TẾ VÀ THÔNG TIN TRỰC QUAN CHO HÀM ĐANG CHỌN
+         */
+        function evaluateCurrentFunction() {
+            const fn = currentFunc();
+            const cellRef = currentCellRef();
+            const text = currentText();
+            const len = text.length;
+
+            switch (fn.name) {
+                case 'LEN': {
+                    const spaceCount = (text.match(/ /g) || []).length;
+                    return {
+                        formula: `=LEN(${cellRef})`,
+                        result: String(len),
+                        rawResult: len,
+                        spaceCount
+                    };
+                }
+                case 'LEFT': {
+                    const k = Math.max(0, Number(state.numChars));
+                    const out = text.slice(0, k);
+                    return {
+                        formula: `=LEFT(${cellRef}, ${k})`,
+                        result: `"${out}"`,
+                        rawResult: out,
+                        highlightRange: [1, Math.min(len, k)]
+                    };
+                }
+                case 'RIGHT': {
+                    const k = Math.max(0, Number(state.numChars));
+                    const out = k === 0 ? '' : text.slice(-k);
+                    const startPos = Math.max(1, len - k + 1);
+                    return {
+                        formula: `=RIGHT(${cellRef}, ${k})`,
+                        result: `"${out}"`,
+                        rawResult: out,
+                        highlightRange: k === 0 ? [0, -1] : [startPos, len]
+                    };
+                }
+                case 'MID': {
+                    const s = Math.max(1, Number(state.startNum));
+                    const k = Math.max(0, Number(state.numChars));
+                    const out = text.slice(s - 1, s - 1 + k);
+                    return {
+                        formula: `=MID(${cellRef}, ${s}, ${k})`,
+                        result: `"${out}"`,
+                        rawResult: out,
+                        highlightRange: k === 0 ? [0, -1] : [s, Math.min(len, s + k - 1)]
+                    };
+                }
+                case 'FIND':
+                case 'SEARCH': {
+                    const s = Math.max(1, Number(state.startNum));
+                    const needle = String(state.findText);
+                    const startZero = Math.min(len, s - 1);
+
+                    // Tính kết quả của cả FIND và SEARCH để đối chiếu trực tiếp
+                    const idxFindZero = text.indexOf(needle, startZero);
+                    const findPos = idxFindZero === -1 ? '#VALUE!' : idxFindZero + 1;
+
+                    const searchPosNum = wildcardSearchIndex(text, needle, startZero);
+                    const searchPos = searchPosNum === -1 ? '#VALUE!' : searchPosNum;
+
+                    const activePos = fn.name === 'FIND' ? findPos : searchPos;
+                    const matchLen = needle.replace(/\*/g, '').length || 1;
+
+                    return {
+                        formula: s === 1
+                            ? `=${fn.name}("${needle}", ${cellRef})`
+                            : `=${fn.name}("${needle}", ${cellRef}, ${s})`,
+                        result: String(activePos),
+                        rawResult: activePos,
+                        findPos,
+                        searchPos,
+                        needle,
+                        startNum: s,
+                        highlightRange: typeof activePos === 'number'
+                            ? [activePos, Math.min(len, activePos + matchLen - 1)]
+                            : [0, -1]
+                    };
+                }
+                case 'UPPER': {
+                    const out = text.toUpperCase();
+                    return {
+                        formula: `=UPPER(${cellRef})`,
+                        result: `"${out}"`,
+                        rawResult: out
+                    };
+                }
+                case 'LOWER': {
+                    const out = text.toLowerCase();
+                    return {
+                        formula: `=LOWER(${cellRef})`,
+                        result: `"${out}"`,
+                        rawResult: out
+                    };
+                }
+                case 'PROPER': {
+                    const out = toExcelProper(text);
+                    return {
+                        formula: `=PROPER(${cellRef})`,
+                        result: `"${out}"`,
+                        rawResult: out
+                    };
+                }
+                case 'TRIM': {
+                    const out = toExcelTrim(text);
+                    // Đánh dấu từng ký tự trong chuỗi gốc: giữ lại hay bị xóa do khoảng trắng thừa
+                    const charFlags = [];
+                    let inWord = false;
+                    let pendingSpaceIdx = -1;
+
+                    for (let i = 0; i < text.length; i++) {
+                        if (text[i] !== ' ') {
+                            if (pendingSpaceIdx !== -1) {
+                                charFlags[pendingSpaceIdx] = 'KEEP_SPACE';
+                                pendingSpaceIdx = -1;
+                            }
+                            charFlags[i] = 'KEEP_CHAR';
+                            inWord = true;
+                        } else {
+                            if (!inWord) {
+                                charFlags[i] = 'DROP_SPACE'; // Khoảng trắng thừa ở đầu
+                            } else {
+                                if (pendingSpaceIdx === -1) {
+                                    pendingSpaceIdx = i;
+                                    charFlags[i] = 'DROP_SPACE'; // Tạm gán, nếu sau đó có chữ sẽ chuyển thành KEEP_SPACE
+                                } else {
+                                    charFlags[i] = 'DROP_SPACE'; // Khoảng trắng kép ở giữa hoặc cuối
+                                }
+                            }
+                        }
+                    }
+                    const removedCount = text.length - out.length;
+                    return {
+                        formula: `=TRIM(${cellRef})`,
+                        result: `"${out}"`,
+                        rawResult: out,
+                        charFlags,
+                        removedCount
+                    };
+                }
+                case 'CONCAT': {
+                    const out = state.cells.join('');
+                    return {
+                        formula: `=CONCAT(A1:A5)`,
+                        result: `"${out}"`,
+                        rawResult: out
+                    };
+                }
+                case 'TEXTJOIN': {
+                    const delim = state.delimiter;
+                    const ignore = state.ignoreEmpty;
+                    const list = ignore
+                        ? state.cells.filter(c => String(c).length > 0)
+                        : state.cells;
+                    const out = list.join(delim);
+                    return {
+                        formula: `=TEXTJOIN("${delim}", ${ignore ? 'TRUE' : 'FALSE'}, A1:A5)`,
+                        result: `"${out}"`,
+                        rawResult: out,
+                        filteredCount: list.length
+                    };
+                }
+                case 'REPLACE': {
+                    const s = Math.max(1, Number(state.startNum));
+                    const k = Math.max(0, Number(state.numChars));
+                    const newTxt = String(state.replaceNewText);
+                    const prefix = text.slice(0, s - 1);
+                    const removedPart = text.slice(s - 1, s - 1 + k);
+                    const suffix = text.slice(s - 1 + k);
+                    const out = prefix + newTxt + suffix;
+                    return {
+                        formula: `=REPLACE(${cellRef}, ${s}, ${k}, "${newTxt}")`,
+                        result: `"${out}"`,
+                        rawResult: out,
+                        prefix,
+                        removedPart,
+                        suffix,
+                        newTxt,
+                        highlightRange: k === 0 ? [0, -1] : [s, Math.min(len, s + k - 1)]
+                    };
+                }
+                case 'SUBSTITUTE': {
+                    const oldTxt = String(state.subOldText);
+                    const newTxt = String(state.subNewText);
+                    const inst = Number(state.subInstance); // 0 = Tất cả
+
+                    if (!oldTxt) {
+                        return {
+                            formula: `=SUBSTITUTE(${cellRef}, "", "${newTxt}")`,
+                            result: `"${text}"`,
+                            rawResult: text,
+                            occurrences: [],
+                            replacedIndices: []
+                        };
+                    }
+
+                    // Tìm tất cả các vị trí xuất hiện của oldTxt
+                    const occurrences = [];
+                    let pos = 0;
+                    while (pos <= text.length - oldTxt.length) {
+                        const found = text.indexOf(oldTxt, pos);
+                        if (found === -1) break;
+                        occurrences.push({
+                            start1: found + 1,
+                            end1: found + oldTxt.length,
+                            order: occurrences.length + 1
+                        });
+                        pos = found + oldTxt.length;
+                    }
+
+                    let out = '';
+                    const replacedOrders = [];
+                    if (inst === 0) {
+                        out = text.split(oldTxt).join(newTxt);
+                        occurrences.forEach(o => replacedOrders.push(o.order));
+                    } else {
+                        let count = 0;
+                        let lastIdx = 0;
+                        let built = '';
+                        for (const occ of occurrences) {
+                            count++;
+                            const zeroStart = occ.start1 - 1;
+                            built += text.slice(lastIdx, zeroStart);
+                            if (count === inst) {
+                                built += newTxt;
+                                replacedOrders.push(count);
+                            } else {
+                                built += oldTxt;
+                            }
+                            lastIdx = occ.end1;
+                        }
+                        built += text.slice(lastIdx);
+                        out = built;
+                    }
+
+                    const formulaStr = inst === 0
+                        ? `=SUBSTITUTE(${cellRef}, "${oldTxt}", "${newTxt}")`
+                        : `=SUBSTITUTE(${cellRef}, "${oldTxt}", "${newTxt}", ${inst})`;
+
+                    return {
+                        formula: formulaStr,
+                        result: `"${out}"`,
+                        rawResult: out,
+                        oldTxt,
+                        newTxt,
+                        inst,
+                        occurrences,
+                        replacedOrders
+                    };
+                }
+                default:
+                    return { formula: `=${fn.name}(${cellRef})`, result: `""`, rawResult: '' };
+            }
+        }
+
+        /**
+         * RENDER THANH LỌC PHÂN NHÓM & 14 NÚT HÀM DẠNG LƯỚI TỰ ĐỘNG XUỐNG DÒNG (FLEX-WRAP)
+         */
+        function renderHeaderButtons() {
+            const catBar = document.getElementById('categoryFilterBar');
+            catBar.innerHTML = '';
+            CATEGORIES.forEach(cat => {
+                const active = state.selectedCategory === cat.id;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md font-bold transition ${
+                    active ? 'bg-white text-excel-800 shadow-sm' : 'text-excel-100 hover:bg-white/10'
+                }`;
+                btn.textContent = cat.name;
+                btn.addEventListener('click', () => {
+                    state.selectedCategory = cat.id;
+                    renderHeaderButtons();
+                });
+                catBar.appendChild(btn);
+            });
+
+            const grid = document.getElementById('functionButtonsGrid');
+            grid.innerHTML = '';
+
+            FUNCTIONS_DB.forEach((fn, idx) => {
+                if (state.selectedCategory !== 'ALL' && fn.category !== state.selectedCategory) return;
+
+                const isSelected = idx === state.funcIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 rounded-lg text-xs transition flex items-center gap-1.5 border ${
+                    isSelected
+                        ? 'bg-amber-400 text-slate-950 font-extrabold border-amber-300 shadow-md ring-2 ring-white'
+                        : 'bg-excel-800/80 hover:bg-excel-800 text-white border-excel-500/40 font-semibold'
+                }`;
+                btn.innerHTML = `
+                    <span class="font-mono tracking-tight text-sm">${fn.name}</span>
+                    <span class="text-[11px] ${isSelected ? 'text-slate-900 font-bold' : 'text-excel-100 font-normal'}">• ${fn.shortVi}</span>
+                `;
+                btn.addEventListener('click', () => selectFunction(idx));
+                grid.appendChild(btn);
+            });
+        }
+
+        /**
+         * CHUYỂN HÀM ĐANG CHỌN & ĐỒNG BỘ THAM SỐ MẪU HỢP LÝ
+         */
+        function selectFunction(idx) {
+            stopAutoPlay();
+            state.funcIndex = idx;
+            state.stepIndex = 2;
+
+            const fn = currentFunc();
+            // Tự động gán kịch bản mẫu phù hợp để học viên nhìn thấy ngay hiệu ứng đặc trưng
+            if (fn.name === 'TRIM' || fn.name === 'PROPER') {
+                if (!currentText().includes('  ')) {
+                    state.activeRow = 1; // Ô A2 có khoảng trắng thừa
+                }
+            } else if (fn.name === 'SUBSTITUTE') {
+                if (!currentText().includes(state.subOldText)) {
+                    state.activeRow = 2; // Ô A3: SP-01-SP-02-SP-03
+                    state.subOldText = 'SP';
+                    state.subNewText = 'MA';
+                }
+            } else if (fn.name === 'LEFT') {
+                state.numChars = 2;
+            } else if (fn.name === 'RIGHT') {
+                state.numChars = 3;
+            } else if (fn.name === 'MID') {
+                state.startNum = 4;
+                state.numChars = 4;
+            } else if (fn.name === 'REPLACE') {
+                state.startNum = 4;
+                state.numChars = 4;
+                state.replaceNewText = '2027';
+            }
+
+            renderHeaderButtons();
+            renderAll();
+        }
+
+        /**
+         * RENDER KHUNG ĐIỀU KHIỂN THAM SỐ THÔNG MINH (DYNAMIC PARAMETERS BAR)
+         */
+        function renderDynamicParamsPanel() {
+            const fn = currentFunc();
+            const panel = document.getElementById('dynamicParamsPanel');
+            const maxLen = Math.max(12, currentText().length);
+
+            if (fn.name === 'LEFT' || fn.name === 'RIGHT') {
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">✂️ Số ký tự cần cắt (<code>num_chars</code>):</span>
+                        <div class="flex items-center gap-2">
+                            <input id="inpNumChars" type="range" min="1" max="${maxLen}" value="${state.numChars}" class="w-32 accent-excel-600 cursor-pointer" />
+                            <span class="font-mono font-extrabold bg-excel-600 text-white px-2.5 py-0.5 rounded">${state.numChars} ký tự</span>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('inpNumChars').addEventListener('input', e => {
+                    state.numChars = Number(e.target.value);
+                    renderAll(true);
+                });
+            } else if (fn.name === 'MID') {
+                panel.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                        <div class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                            <span class="font-bold text-emerald-950">📍 Vị trí bắt đầu (<code>start_num</code>):</span>
+                            <div class="flex items-center gap-1.5">
+                                <input id="inpStartNum" type="range" min="1" max="${maxLen}" value="${state.startNum}" class="w-20 accent-excel-600 cursor-pointer" />
+                                <span class="font-mono font-extrabold text-excel-700">${state.startNum}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                            <span class="font-bold text-emerald-950">✂️ Độ dài cắt (<code>num_chars</code>):</span>
+                            <div class="flex items-center gap-1.5">
+                                <input id="inpNumCharsMid" type="range" min="1" max="${maxLen}" value="${state.numChars}" class="w-20 accent-excel-600 cursor-pointer" />
+                                <span class="font-mono font-extrabold text-excel-700">${state.numChars}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('inpStartNum').addEventListener('input', e => {
+                    state.startNum = Number(e.target.value);
+                    renderAll(true);
+                });
+                document.getElementById('inpNumCharsMid').addEventListener('input', e => {
+                    state.numChars = Number(e.target.value);
+                    renderAll(true);
+                });
+            } else if (fn.name === 'FIND' || fn.name === 'SEARCH') {
+                panel.innerHTML = `
+                    <div class="space-y-2 text-xs">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-emerald-950">🔍 Chuỗi cần tìm (<code>find_text</code>):</span>
+                                <input id="inpFindText" type="text" value="${state.findText}" class="w-28 font-mono font-bold bg-white border border-emerald-400 rounded px-2 py-1 text-slate-900" />
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-bold text-emerald-950">Tìm từ vị trí (<code>start_num</code>):</span>
+                                <input id="inpFindStart" type="range" min="1" max="${maxLen}" value="${state.startNum}" class="w-20 accent-excel-600 cursor-pointer" />
+                                <span class="font-mono font-extrabold bg-excel-600 text-white px-2 py-0.5 rounded">${state.startNum}</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-emerald-200/70">
+                            <span class="text-[11px] text-emerald-900 font-semibold">Thử nhanh sự khác biệt FIND vs SEARCH:</span>
+                            <button data-ft="HCM" data-st="1" class="btn-quick-find px-2 py-0.5 rounded bg-white border border-emerald-300 font-mono text-[11px] font-bold hover:bg-emerald-100">"HCM" (Chữ HOA)</button>
+                            <button data-ft="hcm" data-st="1" class="btn-quick-find px-2 py-0.5 rounded bg-amber-200 border border-amber-400 font-mono text-[11px] font-bold text-slate-900 hover:bg-amber-300">"hcm" (Chữ thường)</button>
+                            <button data-ft="-" data-st="1" class="btn-quick-find px-2 py-0.5 rounded bg-white border border-emerald-300 font-mono text-[11px] font-bold hover:bg-emerald-100">"-" (Từ vị trí 1)</button>
+                            <button data-ft="-" data-st="4" class="btn-quick-find px-2 py-0.5 rounded bg-white border border-emerald-300 font-mono text-[11px] font-bold hover:bg-emerald-100">"-" (Từ vị trí 4)</button>
+                            <button data-ft="20*HCM" data-st="1" class="btn-quick-find px-2 py-0.5 rounded bg-sky-100 border border-sky-300 font-mono text-[11px] font-bold text-sky-900 hover:bg-sky-200">"20*HCM" (Ký tự *)</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('inpFindText').addEventListener('input', e => {
+                    state.findText = e.target.value;
+                    renderAll(true);
+                });
+                document.getElementById('inpFindStart').addEventListener('input', e => {
+                    state.startNum = Number(e.target.value);
+                    renderAll(true);
+                });
+                panel.querySelectorAll('.btn-quick-find').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.activeRow = 0;
+                        state.cells[0] = 'NV-2026-HCM';
+                        state.findText = btn.getAttribute('data-ft');
+                        state.startNum = Number(btn.getAttribute('data-st'));
+                        renderAll();
+                    });
+                });
+            } else if (fn.name === 'TEXTJOIN') {
+                const delims = [' - ', ', ', ' | ', '/'];
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="font-bold text-emerald-950">🔗 Ký tự ngăn cách (<code>delimiter</code>):</span>
+                            ${delims.map(d => `
+                                <button data-delim="${d}" class="btn-delim px-2 py-1 rounded font-mono font-bold border transition ${
+                                    state.delimiter === d ? 'bg-excel-600 text-white border-excel-700' : 'bg-white text-slate-700 border-emerald-300'
+                                }">"${d}"</button>
+                            `).join('')}
+                        </div>
+                        <label class="flex items-center gap-1.5 font-bold text-emerald-950 bg-white px-2.5 py-1 rounded-lg border border-emerald-300 cursor-pointer select-none">
+                            <input id="chkIgnoreEmpty" type="checkbox" ${state.ignoreEmpty ? 'checked' : ''} class="accent-excel-600" />
+                            <span>Bỏ qua ô trống (<code>ignore_empty = ${state.ignoreEmpty ? 'TRUE' : 'FALSE'}</code>)</span>
+                        </label>
+                    </div>
+                `;
+                panel.querySelectorAll('.btn-delim').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.delimiter = btn.getAttribute('data-delim');
+                        renderAll();
+                    });
+                });
+                document.getElementById('chkIgnoreEmpty').addEventListener('change', e => {
+                    state.ignoreEmpty = e.target.checked;
+                    renderAll();
+                });
+            } else if (fn.name === 'REPLACE') {
+                panel.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <div class="bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200 flex items-center justify-between">
+                            <span class="font-bold"><code>start_num</code>:</span>
+                            <input id="inpRepStart" type="range" min="1" max="${maxLen}" value="${state.startNum}" class="w-16 accent-excel-600" />
+                            <span class="font-mono font-extrabold text-excel-700">${state.startNum}</span>
+                        </div>
+                        <div class="bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200 flex items-center justify-between">
+                            <span class="font-bold"><code>num_chars</code>:</span>
+                            <input id="inpRepChars" type="range" min="0" max="${maxLen}" value="${state.numChars}" class="w-16 accent-excel-600" />
+                            <span class="font-mono font-extrabold text-excel-700">${state.numChars}</span>
+                        </div>
+                        <div class="bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200 flex items-center justify-between gap-1">
+                            <span class="font-bold shrink-0"><code>new_text</code>:</span>
+                            <input id="inpRepNew" type="text" value="${state.replaceNewText}" class="w-20 font-mono font-bold border border-emerald-400 rounded px-1.5 py-0.5 text-slate-900" />
+                        </div>
+                    </div>
+                `;
+                document.getElementById('inpRepStart').addEventListener('input', e => {
+                    state.startNum = Number(e.target.value);
+                    renderAll(true);
+                });
+                document.getElementById('inpRepChars').addEventListener('input', e => {
+                    state.numChars = Number(e.target.value);
+                    renderAll(true);
+                });
+                document.getElementById('inpRepNew').addEventListener('input', e => {
+                    state.replaceNewText = e.target.value;
+                    renderAll(true);
+                });
+            } else if (fn.name === 'SUBSTITUTE') {
+                const instOptions = [
+                    { val: 0, label: 'Tất cả' },
+                    { val: 1, label: 'Lần 1' },
+                    { val: 2, label: 'Lần 2' },
+                    { val: 3, label: 'Lần 3' }
+                ];
+                panel.innerHTML = `
+                    <div class="space-y-2 text-xs">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200 flex items-center justify-between">
+                                <span class="font-bold">Tìm (<code>old_text</code>):</span>
+                                <input id="inpSubOld" type="text" value="${state.subOldText}" class="w-20 font-mono font-bold border border-rose-400 bg-rose-50 rounded px-1.5 py-0.5 text-rose-900" />
+                            </div>
+                            <div class="bg-white px-2.5 py-1.5 rounded-lg border border-emerald-200 flex items-center justify-between">
+                                <span class="font-bold">Đổi (<code>new_text</code>):</span>
+                                <input id="inpSubNew" type="text" value="${state.subNewText}" class="w-20 font-mono font-bold border border-emerald-400 bg-emerald-50 rounded px-1.5 py-0.5 text-emerald-900" />
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="font-bold text-emerald-950">Lần xuất hiện thứ k (<code>[instance_num]</code>):</span>
+                            <div class="flex gap-1">
+                                ${instOptions.map(opt => `
+                                    <button data-inst="${opt.val}" class="btn-sub-inst px-2.5 py-1 rounded font-mono font-bold border transition ${
+                                        state.subInstance === opt.val ? 'bg-excel-600 text-white border-excel-700' : 'bg-white text-slate-700 border-emerald-300'
+                                    }">${opt.label}</button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('inpSubOld').addEventListener('input', e => {
+                    state.subOldText = e.target.value;
+                    renderAll(true);
+                });
+                document.getElementById('inpSubNew').addEventListener('input', e => {
+                    state.subNewText = e.target.value;
+                    renderAll(true);
+                });
+                panel.querySelectorAll('.btn-sub-inst').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        state.subInstance = Number(btn.getAttribute('data-inst'));
+                        renderAll();
+                    });
+                });
+            } else {
+                // LEN, UPPER, LOWER, PROPER, TRIM, CONCAT
+                panel.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span class="font-bold text-emerald-950">🎯 Ô dữ liệu đang phân tích: <code class="bg-excel-600 text-white px-2 py-0.5 rounded">${
+                            fn.name === 'CONCAT' ? 'A1:A5 (Cả 5 ô)' : currentCellRef()
+                        }</code></span>
+                        <span class="text-emerald-800">Bạn có thể gõ thêm dấu cách hoặc sửa chữ trực tiếp ở bảng bên dưới!</span>
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * RENDER BẢNG LƯỚI EXCEL BÊN TRÁI (A1:A5 + Ô KẾT QUẢ A6)
+         */
+        function renderSpreadsheet() {
+            const fn = currentFunc();
+            const evalObj = evaluateCurrentFunction();
+
+            document.getElementById('formulaBarText').textContent = evalObj.formula;
+            document.getElementById('formulaResultBadge').textContent = `= ${evalObj.result}`;
+            document.getElementById('funcSyntaxTag').textContent = fn.syntax;
+            document.getElementById('funcPurposeText').textContent = fn.purpose;
+            document.getElementById('funcNoteBox').innerHTML = fn.note;
+            document.getElementById('activeCellIndicator').textContent =
+                (fn.name === 'CONCAT' || fn.name === 'TEXTJOIN') ? 'Đang nối vùng: A1:A5' : `Ô mục tiêu: ${currentCellRef()}`;
+
+            const catObj = CATEGORIES.find(c => c.id === fn.category);
+            document.getElementById('funcCategoryBadge').textContent = catObj ? catObj.name : 'Hàm Chuỗi';
+
+            const tbody = document.getElementById('excelSheetBody');
+            tbody.innerHTML = '';
+
+            state.cells.forEach((cellVal, idx) => {
+                const isSelectedRow = idx === state.activeRow;
+                const isMultiRange = fn.name === 'CONCAT' || fn.name === 'TEXTJOIN';
+                const tr = document.createElement('tr');
+                tr.className = `transition cursor-pointer ${
+                    isSelectedRow || isMultiRange ? 'bg-amber-50/90' : 'bg-white hover:bg-slate-50'
+                }`;
+
+                tr.innerHTML = `
+                    <td class="py-2 text-center font-mono text-xs font-extrabold border-r border-slate-300 ${
+                        isSelectedRow ? 'bg-excel-600 text-white' : 'bg-slate-100 text-slate-700'
+                    }">
+                        A${idx + 1}
+                    </td>
+                    <td class="p-1.5 border-r border-slate-200">
+                        <input data-row="${idx}" type="text" value="${escapeHTML(cellVal)}"
+                            placeholder="(Ô trống)"
+                            class="inp-sheet-cell w-full font-mono text-xs sm:text-sm px-2 py-1 rounded border ${
+                                isSelectedRow ? 'border-excel-600 bg-white font-bold text-slate-900' : 'border-slate-200 bg-slate-50/60 text-slate-700'
+                            }" />
+                    </td>
+                    <td class="py-2 px-1.5 text-center font-mono text-xs font-bold text-slate-500">
+                        ${cellVal.length}
+                    </td>
+                `;
+
+                tr.addEventListener('click', e => {
+                    if (e.target.tagName !== 'INPUT') {
+                        state.activeRow = idx;
+                        renderAll();
+                    }
+                });
+
+                tbody.appendChild(tr);
+            });
+
+            // Dòng kết quả A6
+            const isErr = String(evalObj.result).startsWith('#');
+            const trRes = document.createElement('tr');
+            trRes.className = 'bg-excel-50/95 font-bold border-t-2 border-excel-500/40';
+            trRes.innerHTML = `
+                <td class="py-2.5 text-center font-mono text-xs bg-excel-100 text-excel-800 font-extrabold border-r border-slate-300">A6</td>
+                <td class="py-2.5 px-2.5 border-r border-slate-200 font-mono text-xs sm:text-sm font-extrabold ${
+                    isErr ? 'text-rose-700 bg-rose-50' : 'text-emerald-900 bg-emerald-100/70'
+                }">
+                    <div class="text-[10px] font-sans uppercase text-slate-500 font-bold">Kết quả ${evalObj.formula}:</div>
+                    <div class="break-all">${evalObj.result}</div>
+                </td>
+                <td class="py-2.5 px-1.5 text-center font-mono text-xs font-extrabold text-excel-800">
+                    ${typeof evalObj.rawResult === 'string' ? evalObj.rawResult.length : '-'}
+                </td>
+            `;
+            tbody.appendChild(trRes);
+
+            // Sự kiện sửa trực tiếp trên từng ô A1..A5
+            tbody.querySelectorAll('.inp-sheet-cell').forEach(inp => {
+                inp.addEventListener('focus', () => {
+                    const r = Number(inp.getAttribute('data-row'));
+                    if (state.activeRow !== r) {
+                        state.activeRow = r;
+                        renderAll(true);
+                    }
+                });
+                inp.addEventListener('input', e => {
+                    const r = Number(inp.getAttribute('data-row'));
+                    state.cells[r] = e.target.value;
+                    renderAll(true);
+                });
+            });
+        }
+
+        /**
+         * RENDER CÁC NÚT CHUYỂN BƯỚC (STEP 1, STEP 2, STEP 3)
+         */
+        function renderStepPills() {
+            const container = document.getElementById('stepPillsContainer');
+            container.innerHTML = '';
+            const labels = [
+                'Bước 1: Tách băng ô ký tự (Index 1..N)',
+                'Bước 2: Quét & Xử lý theo tham số',
+                'Bước 3: Xuất chuỗi / Giá trị kết quả'
+            ];
+            for (let s = 0; s < state.maxSteps; s++) {
+                const active = s === state.stepIndex;
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1 rounded-md text-xs font-bold transition ${
+                    active ? 'bg-excel-600 text-white shadow-sm' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                }`;
+                btn.textContent = labels[s];
+                btn.addEventListener('click', () => {
+                    stopAutoPlay();
+                    state.stepIndex = s;
+                    renderAll(true);
+                });
+                container.appendChild(btn);
+            }
+            document.getElementById('visualStepBadge').textContent = `Bước ${state.stepIndex + 1} / ${state.maxSteps}`;
+        }
+
+        /**
+         * HÀM TIỆN ÍCH VẼ BĂNG Ô KÝ TỰ (CHARACTER-INDEX TAPE) CHUẨN EXCEL (1-BASED INDEX)
+         */
+        function buildCharacterTapeHtml(str, options = {}) {
+            const chars = Array.from(str);
+            if (chars.length === 0) {
+                return `<div class="p-4 rounded-xl bg-slate-100 border border-dashed border-slate-300 text-center text-xs text-slate-500 font-mono">Chuỗi rỗng "" (Độ dài = 0)</div>`;
+            }
+
+            const {
+                highlightStart = 0,
+                highlightEnd = -1,
+                charFlags = null,      // Dùng cho TRIM: KEEP_CHAR, KEEP_SPACE, DROP_SPACE
+                subRanges = [],        // Dùng cho SUBSTITUTE: danh sách {start1, end1, order, isReplaced}
+                scanFrom = null        // Dùng cho FIND / SEARCH: vị trí start_num
+            } = options;
+
+            const boxes = chars.map((ch, i) => {
+                const pos1 = i + 1;
+                const isSpace = ch === ' ';
+                const displayChar = isSpace ? '␣' : ch;
+
+                let boxClass = 'bg-white border-slate-300 text-slate-800';
+                let indexClass = 'bg-slate-100 text-slate-500';
+                let badgeTop = '';
+
+                // Kiểm tra thuộc vùng cắt/tìm kiếm
+                const inHighlight = pos1 >= highlightStart && pos1 <= highlightEnd;
+                if (inHighlight) {
+                    boxClass = 'bg-emerald-500 border-emerald-600 text-white font-extrabold shadow-md scale-105 char-highlight-glow';
+                    indexClass = 'bg-emerald-700 text-amber-200 font-extrabold';
+                } else if (isSpace) {
+                    boxClass = 'bg-amber-50 border-amber-300 text-amber-700';
+                }
+
+                // Chế độ TRIM
+                if (charFlags) {
+                    const flag = charFlags[i];
+                    if (flag === 'DROP_SPACE') {
+                        boxClass = 'bg-rose-100 border-rose-400 text-rose-700 line-through opacity-75';
+                        indexClass = 'bg-rose-600 text-white';
+                        badgeTop = `<span class="text-[9px] font-sans font-extrabold text-rose-600">Xóa</span>`;
+                    } else if (flag === 'KEEP_SPACE') {
+                        boxClass = 'bg-emerald-100 border-emerald-500 text-emerald-800 font-bold';
+                        indexClass = 'bg-emerald-700 text-white';
+                        badgeTop = `<span class="text-[9px] font-sans font-extrabold text-emerald-700">Giữ 1</span>`;
+                    }
+                }
+
+                // Chế độ SUBSTITUTE
+                if (subRanges && subRanges.length > 0) {
+                    const hit = subRanges.find(r => pos1 >= r.start1 && pos1 <= r.end1);
+                    if (hit) {
+                        if (hit.isReplaced) {
+                            boxClass = 'bg-emerald-500 border-emerald-600 text-white font-extrabold shadow-md scale-105';
+                            indexClass = 'bg-emerald-800 text-amber-200';
+                            badgeTop = `<span class="text-[9px] font-sans font-extrabold text-emerald-700">Lần #${hit.order}</span>`;
+                        } else {
+                            boxClass = 'bg-amber-100 border-amber-400 text-amber-900 font-bold';
+                            indexClass = 'bg-amber-500 text-white';
+                            badgeTop = `<span class="text-[9px] font-sans font-bold text-amber-700">Lần #${hit.order}</span>`;
+                        }
+                    }
+                }
+
+                // Đánh dấu vạch xuất phát start_num cho FIND / SEARCH / MID / REPLACE
+                const isStartMarker = scanFrom && pos1 === scanFrom;
+
+                return `
+                    <div class="flex flex-col items-center">
+                        ${badgeTop || (isStartMarker ? `<span class="text-[9px] font-sans font-extrabold text-sky-700 bg-sky-100 px-1 rounded">start=${pos1}</span>` : `<span class="h-3.5"></span>`)}
+                        <div class="w-8 sm:w-9 h-9 sm:h-10 rounded-t-lg border-2 flex items-center justify-center font-mono text-sm sm:text-base transition-all ${boxClass}">
+                            ${displayChar}
+                        </div>
+                        <div class="w-8 sm:w-9 py-0.5 rounded-b-md border-x-2 border-b-2 border-slate-300 text-center font-mono text-[10px] ${indexClass}">
+                            ${pos1}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="flex flex-wrap gap-1.5 items-end justify-start p-3 rounded-xl bg-slate-100/90 border border-slate-200">
+                    ${boxes}
+                </div>
+            `;
+        }
+
+        /**
+         * ĐIỀU PHỐI SÂN KHẤU ĐỒ HỌA TRỰC QUAN CHO 14 HÀM CHUỖI
+         */
+        function renderVisualStage() {
+            const fn = currentFunc();
+            const evalObj = evaluateCurrentFunction();
+            const stage = document.getElementById('visualStageCanvas');
+            const header = document.getElementById('visualStageHeader');
+            const stepBanner = document.getElementById('stepTitleBanner');
+            const stepExp = document.getElementById('stepExplanationText');
+            const text = currentText();
+            const step = state.stepIndex;
+
+            header.textContent = `Mô phỏng trực quan: Hàm ${fn.name} (${fn.shortVi})`;
+
+            // Nhóm 1: LEN, LEFT, RIGHT, MID
+            if (['LEN', 'LEFT', 'RIGHT', 'MID'].includes(fn.name)) {
+                const range = evalObj.highlightRange || (fn.name === 'LEN' && step >= 1 ? [1, text.length] : [0, -1]);
+                const tapeHtml = buildCharacterTapeHtml(text, {
+                    highlightStart: step >= 1 ? range[0] : 0,
+                    highlightEnd: step >= 1 ? range[1] : -1,
+                    scanFrom: fn.name === 'MID' ? state.startNum : null
+                });
+
+                stage.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span class="font-bold text-slate-700">1. Băng ô ký tự của ô <code>${currentCellRef()}</code> (Đánh số vị trí từ <strong>1</strong> đến <strong>${text.length}</strong>):</span>
+                            <span class="font-mono text-xs bg-slate-800 text-amber-300 px-2.5 py-0.5 rounded-full">
+                                Tổng độ dài = ${text.length} ký tự (Có ${(text.match(/ /g) || []).length} dấu cách ␣)
+                            </span>
+                        </div>
+
+                        ${tapeHtml}
+
+                        <!-- Khung kết quả trích xuất -->
+                        <div class="bg-slate-900 text-white p-4 rounded-xl flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Công thức đang thực thi</div>
+                                <div class="font-mono text-sm sm:text-base font-extrabold text-amber-300 mt-0.5">${evalObj.formula}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Kết quả trả về</div>
+                                <div class="font-mono text-lg sm:text-2xl font-extrabold text-emerald-400">${evalObj.result}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (fn.name === 'LEN') {
+                    stepBanner.textContent = `Hàm LEN đếm toàn bộ ô ký tự từ 1 đến ${text.length} (Bao gồm cả ${evalObj.spaceCount} khoảng trắng ␣)`;
+                    stepExp.innerHTML = `Chuỗi trong ô <code>${currentCellRef()}</code> có tổng cộng <strong>${text.length} ô ký tự</strong> (trong đó có <strong>${evalObj.spaceCount} khoảng trắng <code>␣</code></strong>). Hàm <code>LEN</code> đếm tất cả mà không bỏ sót bất kỳ dấu cách nào!`;
+                } else if (fn.name === 'LEFT') {
+                    stepBanner.textContent = `Hàm LEFT lấy ${state.numChars} ô ký tự đầu tiên tính từ bên TRÁI (Vị trí 1 → ${Math.min(text.length, state.numChars)})`;
+                    stepExp.innerHTML = `Khung cắt bắt đầu từ <strong>vị trí số 1 (bên trái cùng)</strong> và lấy liên tiếp <strong>${state.numChars} ký tự</strong>, trả về chuỗi con <strong>${evalObj.result}</strong>.`;
+                } else if (fn.name === 'RIGHT') {
+                    stepBanner.textContent = `Hàm RIGHT lấy ${state.numChars} ô ký tự cuối cùng tính từ bên PHẢI`;
+                    stepExp.innerHTML = `Khung cắt đếm ngược từ ký tự cuối cùng bên phải (vị trí <strong>${text.length}</strong>) vào trong <strong>${state.numChars} ô</strong>, trả về chuỗi con <strong>${evalObj.result}</strong>.`;
+                } else {
+                    stepBanner.textContent = `Hàm MID nhảy tới vị trí start_num = ${state.startNum} và cắt lấy ${state.numChars} ký tự`;
+                    stepExp.innerHTML = `Khung cắt nhảy trực tiếp đến <strong>ô vị trí số ${state.startNum}</strong>, sau đó lấy sang phải <strong>${state.numChars} ký tự</strong> (từ vị trí ${range[0]} đến ${range[1]}), thu được kết quả <strong>${evalObj.result}</strong>.`;
+                }
+                return;
+            }
+
+            // Nhóm 2: FIND vs SEARCH
+            if (fn.name === 'FIND' || fn.name === 'SEARCH') {
+                const range = evalObj.highlightRange;
+                const tapeHtml = buildCharacterTapeHtml(text, {
+                    highlightStart: step >= 1 ? range[0] : 0,
+                    highlightEnd: step >= 1 ? range[1] : -1,
+                    scanFrom: state.startNum
+                });
+
+                stage.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span class="font-bold text-slate-700">Bắt đầu dò tìm chuỗi <code>"${evalObj.needle}"</code> kể từ vị trí <code>start_num = ${evalObj.startNum}</code>:</span>
+                            <span class="font-mono text-xs ${typeof evalObj.rawResult === 'number' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'} px-2.5 py-0.5 rounded-full font-bold">
+                                ${typeof evalObj.rawResult === 'number' ? `Khớp tại vị trí số ${evalObj.rawResult}` : 'Không khớp (#VALUE!)'}
+                            </span>
+                        </div>
+
+                        ${tapeHtml}
+
+                        <!-- Bảng đối chiếu trực tiếp FIND vs SEARCH -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono text-xs">
+                            <div class="p-3.5 rounded-xl border-2 ${fn.name === 'FIND' ? 'bg-emerald-50 border-excel-600 shadow-sm' : 'bg-white border-slate-200'}">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-extrabold text-slate-900">=FIND("${evalObj.needle}", ${currentCellRef()}, ${evalObj.startNum})</span>
+                                    <span class="text-[10px] font-sans bg-slate-200 text-slate-700 px-2 py-0.5 rounded font-bold">Phân biệt HOA/thường</span>
+                                </div>
+                                <div class="mt-2 flex items-center justify-between">
+                                    <span class="font-sans text-slate-500">Vị trí trả về:</span>
+                                    <span class="text-base font-extrabold ${evalObj.findPos === '#VALUE!' ? 'text-rose-600' : 'text-emerald-700'}">${evalObj.findPos}</span>
+                                </div>
+                            </div>
+
+                            <div class="p-3.5 rounded-xl border-2 ${fn.name === 'SEARCH' ? 'bg-emerald-50 border-excel-600 shadow-sm' : 'bg-white border-slate-200'}">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-extrabold text-slate-900">=SEARCH("${evalObj.needle}", ${currentCellRef()}, ${evalObj.startNum})</span>
+                                    <span class="text-[10px] font-sans bg-sky-100 text-sky-800 px-2 py-0.5 rounded font-bold">Không phân biệt + Hỗ trợ * ?</span>
+                                </div>
+                                <div class="mt-2 flex items-center justify-between">
+                                    <span class="font-sans text-slate-500">Vị trí trả về:</span>
+                                    <span class="text-base font-extrabold ${evalObj.searchPos === '#VALUE!' ? 'text-rose-600' : 'text-emerald-700'}">${evalObj.searchPos}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                stepBanner.textContent = typeof evalObj.rawResult === 'number'
+                    ? `Hàm ${fn.name} tìm thấy "${evalObj.needle}" bắt đầu tại ô ký tự số ${evalObj.rawResult}`
+                    : `Hàm ${fn.name} không tìm thấy "${evalObj.needle}" → Trả về lỗi #VALUE!`;
+                stepExp.innerHTML = typeof evalObj.rawResult === 'number'
+                    ? `Bộ quét bắt đầu từ <strong>ô số ${evalObj.startNum}</strong> sang phải. Ký tự đầu tiên của chuỗi con <code>"${evalObj.needle}"</code> nằm ở <strong>ô vị trí số ${evalObj.rawResult}</strong> nên hàm trả về con số <strong>${evalObj.rawResult}</strong>.`
+                    : `Khi tìm <code>"${evalObj.needle}"</code> trong <code>"${text}"</code> (từ vị trí ${evalObj.startNum}), hàm <code>${fn.name}</code> báo lỗi <strong>#VALUE!</strong> (Hãy thử bấm qua lại giữa <code>FIND</code> và <code>SEARCH</code> để thấy sự khác biệt khi tìm chữ thường/chữ hoa hoặc ký tự <code>*</code>).`;
+                return;
+            }
+
+            // Nhóm 3: UPPER, LOWER, PROPER, TRIM
+            if (['UPPER', 'LOWER', 'PROPER', 'TRIM'].includes(fn.name)) {
+                const beforeTape = buildCharacterTapeHtml(text, {
+                    charFlags: fn.name === 'TRIM' && step >= 1 ? evalObj.charFlags : null
+                });
+                const afterTape = buildCharacterTapeHtml(evalObj.rawResult, {
+                    highlightStart: 1,
+                    highlightEnd: evalObj.rawResult.length
+                });
+
+                stage.innerHTML = `
+                    <div class="space-y-3.5">
+                        <div>
+                            <div class="text-xs font-bold text-slate-600 mb-1.5 flex items-center justify-between">
+                                <span>1. Chuỗi gốc ban đầu tại <code>${currentCellRef()}</code> (${text.length} ký tự):</span>
+                                ${fn.name === 'TRIM' ? `<span class="text-rose-600 font-mono font-bold">Đã phát hiện ${evalObj.removedCount} khoảng trắng thừa cần xóa</span>` : ''}
+                            </div>
+                            ${beforeTape}
+                        </div>
+
+                        <div class="flex items-center justify-center">
+                            <span class="px-3 py-1 rounded-full bg-excel-600 text-white font-mono text-xs font-extrabold shadow">
+                                ⬇ Biến đổi qua ${evalObj.formula} (${evalObj.rawResult.length} ký tự) ⬇
+                            </span>
+                        </div>
+
+                        <div>
+                            <div class="text-xs font-bold text-emerald-800 mb-1.5">2. Chuỗi sau khi chuẩn hóa:</div>
+                            ${afterTape}
+                        </div>
+                    </div>
+                `;
+
+                if (fn.name === 'TRIM') {
+                    stepBanner.textContent = `Hàm TRIM đã loại bỏ ${evalObj.removedCount} khoảng trắng thừa (Giảm độ dài từ ${text.length} xuống ${evalObj.rawResult.length})`;
+                    stepExp.innerHTML = `Các ô dấu cách màu đỏ (<code>␣</code>) ở đầu chuỗi, cuối chuỗi và các dấu cách kép đi liền nhau ở giữa đã bị xóa bỏ hoàn toàn; chỉ giữ lại đúng <strong>1 khoảng trắng duy nhất</strong> ngăn cách giữa hai từ.`;
+                } else {
+                    stepBanner.textContent = `Hàm ${fn.name} chuyển đổi kiểu chữ thành ${evalObj.result}`;
+                    stepExp.innerHTML = `Từng ký tự chữ cái trong ô <code>${currentCellRef()}</code> được ánh xạ sang kiểu chữ mới theo quy tắc của <code>${fn.name}</code>, giữ nguyên độ dài <strong>${evalObj.rawResult.length} ký tự</strong>.`;
+                }
+                return;
+            }
+
+            // Nhóm 4A: CONCAT & TEXTJOIN
+            if (fn.name === 'CONCAT' || fn.name === 'TEXTJOIN') {
+                const cardsHtml = state.cells.map((c, idx) => {
+                    const isEmpty = String(c).length === 0;
+                    const skipped = fn.name === 'TEXTJOIN' && state.ignoreEmpty && isEmpty;
+                    return `
+                        <div class="p-2.5 rounded-xl border-2 font-mono text-xs transition-all ${
+                            skipped
+                                ? 'bg-rose-50 border-rose-300 text-rose-600 opacity-60 line-through'
+                                : 'bg-white border-emerald-500 text-slate-900 shadow-sm'
+                        }">
+                            <div class="flex items-center justify-between text-[10px] font-sans font-bold text-slate-400">
+                                <span>Ô A${idx + 1}</span>
+                                <span>${skipped ? 'Bỏ qua' : 'Nối'}</span>
+                            </div>
+                            <div class="font-extrabold mt-1 truncate">${isEmpty ? '(Trống)' : `"${c}"`}</div>
+                        </div>
+                    `;
+                }).join('');
+
+                stage.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="text-xs font-bold text-slate-700">
+                            1. Quá trình thu thập 5 ô trong vùng <code>A1:A5</code>:
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                            ${cardsHtml}
+                        </div>
+
+                        <div class="bg-slate-900 text-white p-4 rounded-xl space-y-2">
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span>Công thức: <strong class="font-mono text-amber-300">${evalObj.formula}</strong></span>
+                                <span>Độ dài sau khi nối: <strong class="text-emerald-300">${evalObj.rawResult.length} ký tự</strong></span>
+                            </div>
+                            <div class="p-3 rounded-lg bg-slate-800 border border-slate-700 font-mono text-sm sm:text-base font-extrabold text-emerald-300 break-all">
+                                ${evalObj.result}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                stepBanner.textContent = fn.name === 'CONCAT'
+                    ? `Hàm CONCAT ghép sát toàn bộ A1:A5 thành chuỗi dài ${evalObj.rawResult.length} ký tự`
+                    : `Hàm TEXTJOIN ghép các ô với vách ngăn "${state.delimiter}" (ignore_empty = ${state.ignoreEmpty ? 'TRUE' : 'FALSE'})`;
+                stepExp.innerHTML = fn.name === 'CONCAT'
+                    ? `<code>CONCAT</code> nối liền các ô từ A1 đến A5 mà không tự chèn dấu phân cách. Hãy chuyển sang <code>TEXTJOIN</code> nếu bạn muốn chèn tự động dấu phẩy hoặc dấu gạch ngang giữa các ô!`
+                    : `<code>TEXTJOIN</code> tự động chèn chuỗi phân cách <code>"${state.delimiter}"</code> vào giữa các ô dữ liệu${
+                        state.ignoreEmpty ? ' và <strong>nhảy qua các ô trống</strong> để không bị lặp hai dấu phân cách liền nhau.' : ' (vì <code>ignore_empty = FALSE</code> nên cả ô trống cũng bị chèn vách ngăn).'
+                    }`;
+                return;
+            }
+
+            // Nhóm 4B: REPLACE vs SUBSTITUTE
+            if (fn.name === 'REPLACE') {
+                const range = evalObj.highlightRange;
+                const tapeHtml = buildCharacterTapeHtml(text, {
+                    highlightStart: step >= 1 ? range[0] : 0,
+                    highlightEnd: step >= 1 ? range[1] : -1,
+                    scanFrom: state.startNum
+                });
+
+                stage.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="text-xs font-bold text-slate-700">
+                            1. Xác định đoạn cắt theo VỊ TRÍ: Bắt đầu tại <code>start_num = ${state.startNum}</code>, cắt bỏ <code>num_chars = ${state.numChars}</code> ký tự:
+                        </div>
+                        ${tapeHtml}
+
+                        <!-- Sơ đồ lắp ghép 3 mảnh của REPLACE -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 font-mono text-xs text-center">
+                            <div class="p-3 rounded-xl bg-slate-100 border border-slate-300">
+                                <div class="text-[10px] font-sans font-bold uppercase text-slate-500">Phần giữ lại bên trái</div>
+                                <div class="text-sm font-extrabold text-slate-800 mt-1">"${evalObj.prefix}"</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-emerald-100 border-2 border-emerald-500">
+                                <div class="text-[10px] font-sans font-bold uppercase text-emerald-800">Thay thế đoạn "${evalObj.removedPart}" bằng</div>
+                                <div class="text-sm font-extrabold text-emerald-900 mt-1">"${evalObj.newTxt}"</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-slate-100 border border-slate-300">
+                                <div class="text-[10px] font-sans font-bold uppercase text-slate-500">Phần giữ lại bên phải</div>
+                                <div class="text-sm font-extrabold text-slate-800 mt-1">"${evalObj.suffix}"</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900 text-white p-3.5 rounded-xl flex items-center justify-between font-mono text-xs sm:text-sm">
+                            <span>Chuỗi mới sau khi ghép:</span>
+                            <span class="text-emerald-400 font-extrabold text-base">${evalObj.result}</span>
+                        </div>
+                    </div>
+                `;
+
+                stepBanner.textContent = `Hàm REPLACE cắt ${state.numChars} ký tự từ vị trí số ${state.startNum} ("${evalObj.removedPart}") và thế bằng "${evalObj.newTxt}"`;
+                stepExp.innerHTML = `Khác với <code>SUBSTITUTE</code> tìm theo mặt chữ, hàm <code>REPLACE</code> chỉ đếm đúng <strong>vị trí số ${state.startNum}</strong>, cắt bỏ <strong>${state.numChars} ký tự</strong> rồi lắp chuỗi mới <code>"${evalObj.newTxt}"</code> vào đúng chỗ đó.`;
+                return;
+            }
+
+            if (fn.name === 'SUBSTITUTE') {
+                const subRanges = evalObj.occurrences.map(occ => ({
+                    ...occ,
+                    isReplaced: evalObj.replacedOrders.includes(occ.order)
+                }));
+                const tapeHtml = buildCharacterTapeHtml(text, { subRanges });
+
+                stage.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+                            <span class="font-bold text-slate-700">1. Dò tìm nội dung <code>"${evalObj.oldTxt}"</code> trên băng ký tự (Tìm thấy <strong>${evalObj.occurrences.length} lần</strong>):</span>
+                            <span class="font-mono text-xs bg-emerald-600 text-white px-2.5 py-0.5 rounded-full font-bold">
+                                Chế độ: ${evalObj.inst === 0 ? 'Thay thế TẤT CẢ' : `Chỉ thay thế Lần xuất hiện thứ #${evalObj.inst}`}
+                            </span>
+                        </div>
+
+                        ${tapeHtml}
+
+                        <div class="bg-slate-900 text-white p-4 rounded-xl flex flex-wrap items-center justify-between gap-2 font-mono">
+                            <div class="text-xs text-slate-300">
+                                Công thức: <strong class="text-amber-300">${evalObj.formula}</strong>
+                            </div>
+                            <div class="text-base sm:text-lg font-extrabold text-emerald-400">
+                                → ${evalObj.result}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                stepBanner.textContent = evalObj.inst === 0
+                    ? `Hàm SUBSTITUTE thay thế toàn bộ ${evalObj.occurrences.length} cụm "${evalObj.oldTxt}" thành "${evalObj.newTxt}"`
+                    : `Hàm SUBSTITUTE chỉ thay thế cụm "${evalObj.oldTxt}" ở lần xuất hiện thứ #${evalObj.inst}`;
+                stepExp.innerHTML = `Hàm <code>SUBSTITUTE</code> dò tìm theo <strong>nội dung văn bản</strong>: phát hiện <strong>${evalObj.occurrences.length} vị trí</strong> khớp với <code>"${evalObj.oldTxt}"</code>. ${
+                    evalObj.inst === 0
+                        ? `Vì bỏ trống đối số <code>[instance_num]</code>, tất cả các cụm đều được đổi thành <code>"${evalObj.newTxt}"</code>.`
+                        : `Vì truyền <code>instance_num = ${evalObj.inst}</code>, chỉ duy nhất cụm xuất hiện lần thứ <strong>#${evalObj.inst}</strong> (tô màu xanh lá) được đổi thành <code>"${evalObj.newTxt}"</code>, các lần khác giữ nguyên!`
+                }`;
+            }
+        }
+
+
+        // ===== BẢN ĐIỀU PHỐI MÔ PHỎNG THEO 3 GIAI ĐOẠN HỌC TẬP =====
+        // Mỗi hàm có nội dung riêng ở từng bước: dữ liệu đầu vào -> thao tác -> kết quả.
+        function escapeHTML(value) {
+            return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        }
+
+        function renderStepPills() {
+            const fn = currentFunc();
+            const labelsByFunction = {
+                LEN: ['1. Đánh số ký tự', '2. Đếm từng ký tự', '3. Trả về độ dài'],
+                LEFT: ['1. Xác định chuỗi', '2. Chọn từ trái sang', '3. Ghép kết quả'],
+                RIGHT: ['1. Xác định chuỗi', '2. Chọn từ phải sang', '3. Ghép kết quả'],
+                MID: ['1. Đánh số vị trí', '2. Xác định đoạn cắt', '3. Trích xuất'],
+                FIND: ['1. Chuẩn bị chuỗi', '2. Dò chính xác HOA/thường', '3. Trả vị trí / lỗi'],
+                SEARCH: ['1. Chuẩn bị chuỗi', '2. Dò không phân biệt HOA/thường', '3. Trả vị trí / lỗi'],
+                UPPER: ['1. Chuỗi ban đầu', '2. Đổi sang CHỮ HOA', '3. Chuỗi sau chuyển đổi'],
+                LOWER: ['1. Chuỗi ban đầu', '2. Đổi sang chữ thường', '3. Chuỗi sau chuyển đổi'],
+                PROPER: ['1. Chuỗi ban đầu', '2. Viết hoa đầu từ', '3. Chuỗi sau chuyển đổi'],
+                TRIM: ['1. Nhận diện khoảng trắng', '2. Giữ / loại ký tự', '3. Chuỗi đã làm sạch'],
+                CONCAT: ['1. Đọc vùng A1:A5', '2. Ghép lần lượt các ô', '3. Chuỗi sau nối'],
+                TEXTJOIN: ['1. Đọc vùng A1:A5', '2. Lọc ô & chèn dấu ngăn cách', '3. Chuỗi sau nối'],
+                REPLACE: ['1. Đánh số vị trí', '2. Tách 3 phần chuỗi', '3. Ghép chuỗi mới'],
+                SUBSTITUTE: ['1. Tìm các lần xuất hiện', '2. Chọn lần cần thay', '3. Chuỗi sau thay thế']
+            };
+            const labels = labelsByFunction[fn.name] || ['1. Dữ liệu đầu vào', '2. Xử lý', '3. Kết quả'];
+            const container = document.getElementById('stepPillsContainer');
+            container.innerHTML = '';
+            labels.forEach((label, index) => {
+                const btn = document.createElement('button');
+                btn.className = `px-2.5 py-1.5 rounded-md text-xs font-bold transition ${index === state.stepIndex ? 'bg-excel-600 text-white shadow-sm ring-2 ring-excel-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`;
+                btn.textContent = label;
+                btn.setAttribute('aria-current', index === state.stepIndex ? 'step' : 'false');
+                btn.addEventListener('click', () => { stopAutoPlay(); state.stepIndex = index; renderAll(true); });
+                container.appendChild(btn);
+            });
+            document.getElementById('visualStepBadge').textContent = `Bước ${state.stepIndex + 1} / 3`;
+        }
+
+        function renderVisualStage() {
+            const fn = currentFunc();
+            const e = evaluateCurrentFunction();
+            const stage = document.getElementById('visualStageCanvas');
+            const banner = document.getElementById('stepTitleBanner');
+            const explanation = document.getElementById('stepExplanationText');
+            const text = currentText();
+            const step = state.stepIndex;
+            const tape = (options={}) => buildCharacterTapeHtml(text, options);
+            const resultCard = (label='Kết quả Excel') => `<div class="rounded-xl bg-slate-900 text-white p-4 space-y-2"><div class="text-[11px] uppercase tracking-wider text-slate-400 font-bold">${label}</div><div class="font-mono text-lg sm:text-xl font-extrabold text-emerald-300 break-all">${escapeHTML(e.result)}</div><div class="text-xs text-slate-300">Công thức: <code class="text-amber-300">${escapeHTML(e.formula)}</code></div></div>`;
+            const heading = (n, t) => `<div class="text-sm font-bold text-slate-700">${n}. ${t}</div>`;
+            const setText = (title, detail) => { banner.textContent = title; explanation.innerHTML = detail; };
+            document.getElementById('visualStageHeader').textContent = `Mô phỏng hàm ${fn.name}: ${fn.shortVi}`;
+
+            if (['LEN','LEFT','RIGHT','MID','FIND','SEARCH','REPLACE'].includes(fn.name)) {
+                let opts = {};
+                if (step === 1) {
+                    if (fn.name === 'LEFT') opts = {highlightStart:1, highlightEnd:Math.min(text.length, Number(state.numChars))};
+                    if (fn.name === 'RIGHT') opts = {highlightStart:Math.max(1,text.length-Number(state.numChars)+1), highlightEnd:text.length};
+                    if (fn.name === 'MID' || fn.name === 'REPLACE') opts = {highlightStart:Math.max(1,Number(state.startNum)), highlightEnd:Math.min(text.length,Number(state.startNum)+Number(state.numChars)-1), scanFrom:Number(state.startNum)};
+                    if (fn.name === 'FIND' || fn.name === 'SEARCH') opts = {scanFrom:Number(state.startNum)};
+                    if (fn.name === 'LEN') opts = {highlightStart:1,highlightEnd:text.length};
+                }
+                if (fn.name === 'FIND' || fn.name === 'SEARCH') {
+                    const pos = fn.name === 'FIND' ? e.findPos : e.searchPos;
+                    const found = typeof pos === 'number';
+                    if (step === 1 && found) opts = {highlightStart:pos,highlightEnd:Math.min(text.length,pos + String(e.needle).length - 1),scanFrom:e.startNum};
+                    stage.innerHTML = `<div class="space-y-4">${heading(1, 'Chuỗi nguồn và điểm bắt đầu dò')}<div class="flex flex-wrap gap-2 text-xs"><span class="rounded-lg bg-sky-50 border border-sky-200 px-3 py-2">Bắt đầu tại vị trí <b>${e.startNum}</b></span><span class="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">Cần tìm: <code>${escapeHTML(e.needle)}</code></span></div>${tape(opts)}${step===0?'<p class="text-xs text-slate-500">Mỗi ô tương ứng một ký tự; chỉ số trong Excel bắt đầu từ 1.</p>':''}${step===1?`<div class="rounded-lg p-3 ${found?'bg-emerald-50 border border-emerald-200':'bg-rose-50 border border-rose-200'} text-sm">${found?`Đã tìm thấy tại vị trí <b>${pos}</b>. ${fn.name==='FIND'?'So khớp có phân biệt chữ hoa/thường.':'So khớp không phân biệt chữ hoa/thường; SEARCH còn hỗ trợ * và ?.'}`:`Không tìm thấy chuỗi phù hợp. Excel trả về <b>#VALUE!</b>.`}</div>`:''}${step===2?resultCard('Giá trị hàm trả về'):''}</div>`;
+                    setText(step===0?'Chuẩn bị dữ liệu tìm kiếm':step===1?(found?'Đã xác định vị trí khớp':'Không có vị trí khớp'):'Trả về vị trí hoặc lỗi', step===0?`Hàm <code>${fn.name}</code> nhận chuỗi cần tìm <b>${escapeHTML(e.needle)}</b> và bắt đầu quét từ vị trí <b>${e.startNum}</b>.`:step===1?(found?`Vùng khớp bắt đầu tại ký tự số <b>${pos}</b>. <code>${fn.name}</code> trả về vị trí bắt đầu, không phải độ dài chuỗi tìm kiếm.`:`Không có vùng khớp từ vị trí ${e.startNum}; kết quả là lỗi <code>#VALUE!</code>.`):`Kết quả của công thức <code>${escapeHTML(e.formula)}</code> là <b>${escapeHTML(e.result)}</b>.`);
+                    return;
+                }
+                if (fn.name === 'REPLACE') {
+                    const prefix=e.prefix, removed=e.removedPart, suffix=e.suffix;
+                    stage.innerHTML = `<div class="space-y-4">${heading(1,'Chuỗi nguồn được đánh số từ 1')}${tape(step>=1?{highlightStart:e.highlightRange[0],highlightEnd:e.highlightRange[1],scanFrom:state.startNum}:{})}${step===0?`<p class="text-xs text-slate-500">Tham số hiện tại: bắt đầu tại <b>${state.startNum}</b>, xóa <b>${state.numChars}</b> ký tự.</p>`:''}${step===1?`<div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center font-mono text-sm"><div class="rounded-lg bg-slate-100 border p-3"><small class="block text-slate-500">GIỮ LẠI</small><b>${escapeHTML(prefix)||'∅'}</b></div><div class="rounded-lg bg-rose-50 border border-rose-300 p-3"><small class="block text-rose-600">BỎ ĐI</small><b>${escapeHTML(removed)||'∅'}</b><div class="text-xs mt-1">thay bằng</div><b class="text-emerald-700">${escapeHTML(e.newTxt)||'∅'}</b></div><div class="rounded-lg bg-slate-100 border p-3"><small class="block text-slate-500">GIỮ LẠI</small><b>${escapeHTML(suffix)||'∅'}</b></div></div>`:''}${step===2?resultCard('Ghép phần trước + chuỗi mới + phần sau'):''}</div>`;
+                    setText(step===0?'Xác định vị trí cần thay':'', step===0?`<code>REPLACE</code> làm việc theo <b>vị trí</b>: bắt đầu ở ${state.startNum} và chọn ${state.numChars} ký tự.`:step===1?`Chuỗi được chia thành 3 phần: <b>prefix</b> giữ nguyên, đoạn giữa bị thay, và <b>suffix</b> giữ nguyên. Chuỗi mới là <code>${escapeHTML(e.newTxt)}</code>.`:`Ghép ba phần theo thứ tự để tạo chuỗi mới: <b>${escapeHTML(e.rawResult)}</b>.`);
+                    if(step===1) banner.textContent='Tách chuỗi thành ba phần'; if(step===2) banner.textContent='Ghép thành chuỗi kết quả';
+                    return;
+                }
+                const range=e.highlightRange||[1,text.length];
+                stage.innerHTML = `<div class="space-y-4">${heading(1,'Băng ký tự của chuỗi nguồn')}${tape(opts)}${step===0?`<div class="rounded-lg bg-sky-50 border border-sky-200 p-3 text-sm">${fn.name==='LEN'?'Chuẩn bị đếm toàn bộ ký tự, kể cả khoảng trắng.':`Tham số: ${fn.name==='LEFT'?'lấy từ bên trái':fn.name==='RIGHT'?'lấy từ bên phải':`bắt đầu tại ${state.startNum}`} với độ dài <b>${state.numChars}</b> ký tự.`}</div>`:''}${step===1?`<div class="rounded-lg bg-emerald-50 border border-emerald-200 p-3 text-sm">${fn.name==='LEN'?`Đếm đủ <b>${text.length}</b> ký tự; trong đó có <b>${(text.match(/ /g)||[]).length}</b> khoảng trắng.`:`Các ô màu xanh là phần được chọn để trích xuất: <b>${escapeHTML(e.rawResult)}</b>.`}</div>`:''}${step===2?resultCard(fn.name==='LEN'?'Tổng số ký tự':'Đoạn văn bản được trích xuất'):''}</div>`;
+                setText(step===0?'Đọc chuỗi và tham số':step===1?'Thực hiện thao tác trên băng ký tự':'Xuất kết quả', step===0?`Chuỗi nguồn có <b>${text.length}</b> ký tự. Excel đánh số vị trí từ <b>1</b>; khoảng trắng cũng chiếm một vị trí.`:step===1?(fn.name==='LEN'?`Đếm lần lượt từ vị trí 1 đến ${text.length}. Kết quả đếm là <b>${text.length}</b>.`:`${fn.name} chọn vùng ký tự được tô xanh theo tham số; thứ tự ký tự được giữ nguyên.`):`Công thức <code>${escapeHTML(e.formula)}</code> trả về <b>${escapeHTML(e.result)}</b>.`);
+                return;
+            }
+
+            if (['UPPER','LOWER','PROPER','TRIM'].includes(fn.name)) {
+                const flags = fn.name==='TRIM' && step>=1 ? e.charFlags : null;
+                stage.innerHTML = `<div class="space-y-4">${heading(1,'Chuỗi ban đầu')}${tape({charFlags:flags})}${step===0?'<div class="text-xs text-slate-500">Quan sát kiểu chữ và vị trí các khoảng trắng trước khi xử lý.</div>':''}${step===1?`<div class="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm">${fn.name==='TRIM'?`Màu đỏ: khoảng trắng bị loại. Màu xanh: khoảng trắng duy nhất được giữ giữa hai từ.`: `Quy tắc ${fn.name}: ${fn.name==='UPPER'?'đổi chữ cái thành CHỮ HOA':fn.name==='LOWER'?'đổi chữ cái thành chữ thường':'viết hoa ký tự đầu mỗi từ, các ký tự còn lại thành chữ thường'}.`}</div><div class="text-center text-2xl text-slate-400">↓</div>${buildCharacterTapeHtml(e.rawResult,{highlightStart:1,highlightEnd:e.rawResult.length})}`:''}${step===2?resultCard('Chuỗi sau chuẩn hóa'):''}</div>`;
+                setText(step===0?'Quan sát dữ liệu gốc':step===1?'Áp dụng quy tắc biến đổi':'Nhận chuỗi sau xử lý', step===0?`Chuỗi đầu vào gồm <b>${text.length}</b> ký tự. Đây là dữ liệu mà hàm <code>${fn.name}</code> sẽ xử lý.`:step===1?(fn.name==='TRIM'?`<code>TRIM</code> xóa khoảng trắng đầu/cuối và rút gọn nhiều dấu cách liên tiếp ở giữa còn một dấu cách.`:`<code>${fn.name}</code> biến đổi kiểu chữ theo quy tắc tương ứng; chữ số và dấu câu không bị thay đổi.`):`Chuỗi mới có <b>${e.rawResult.length}</b> ký tự: <code>${escapeHTML(e.rawResult)}</code>.`);
+                return;
+            }
+
+            if (fn.name==='CONCAT' || fn.name==='TEXTJOIN') {
+                const values=state.cells.map((v,i)=>({v:String(v??''),i}));
+                const used=fn.name==='TEXTJOIN'&&state.ignoreEmpty?values.filter(x=>x.v.length>0):values;
+                const upto=step===0?values.length:step===1?used.length:used.length;
+                let accumulator='';
+                const sequence=used.slice(0,upto).map((item,i)=>{const part=(fn.name==='TEXTJOIN'&&i>0?state.delimiter:'')+item.v; accumulator+=part; return `<div class="flex items-center gap-2 rounded-lg border bg-white p-2"><span class="w-10 shrink-0 rounded bg-slate-100 text-center py-1 font-bold">A${item.i+1}</span><span class="font-mono text-xs break-all flex-1">${escapeHTML(item.v)||'<span class="text-slate-400">(ô trống)</span>'}</span><span class="text-emerald-700 font-bold">${i===0?'Bắt đầu':`+ ${fn.name==='TEXTJOIN'?escapeHTML(state.delimiter)+' + ':''}nối`}</span></div>`;}).join('');
+                const cells=values.map(x=>`<div class="rounded-lg border p-2 text-xs ${fn.name==='TEXTJOIN'&&state.ignoreEmpty&&!x.v?'bg-rose-50 border-rose-200 opacity-60':'bg-white border-slate-200'}"><b>A${x.i+1}</b><div class="font-mono mt-1 break-all">${escapeHTML(x.v)||'(trống)'}</div>${fn.name==='TEXTJOIN'&&state.ignoreEmpty&&!x.v?'<small class="text-rose-600">Bỏ qua</small>':'<small class="text-emerald-700">Đưa vào phép nối</small>'}</div>`).join('');
+                stage.innerHTML=`<div class="space-y-4">${heading(1,'Các ô trong vùng A1:A5')}<div class="grid grid-cols-2 sm:grid-cols-5 gap-2">${cells}</div>${step===1?`${heading(2,'Thứ tự ghép dữ liệu')}<div class="space-y-1.5">${sequence}</div><div class="rounded-lg bg-sky-50 border border-sky-200 p-3 text-xs">${fn.name==='CONCAT'?'CONCAT nối sát các giá trị, không tự thêm dấu phân cách.':`TEXTJOIN chèn “${escapeHTML(state.delimiter)}” giữa các giá trị được giữ lại; ignore_empty = ${state.ignoreEmpty?'TRUE':'FALSE'}.`}</div>`:''}${step===2?resultCard('Chuỗi cuối cùng sau khi nối'):''}</div>`;
+                setText(step===0?'Thu thập dữ liệu trong vùng':step===1?'Ghép lần lượt các ô':'Xuất chuỗi sau nối',step===0?`Hàm <code>${fn.name}</code> đọc vùng <b>A1:A5</b>. ${fn.name==='TEXTJOIN'&&state.ignoreEmpty?'Các ô rỗng sẽ được bỏ qua.':'Tất cả ô trong vùng được giữ theo thứ tự từ trên xuống.'}`:step===1?`Thực hiện nối theo thứ tự A1 → A5. ${fn.name==='CONCAT'?'Không chèn ký tự ngăn cách.':`Chèn dấu phân cách <code>${escapeHTML(state.delimiter)}</code> giữa các phần tử được nối.`}`:`Kết quả cuối cùng gồm <b>${e.rawResult.length}</b> ký tự: <code>${escapeHTML(e.rawResult)}</code>.`);
+                return;
+            }
+
+            if(fn.name==='SUBSTITUTE') {
+                const ranges=e.occurrences.map(o=>({...o,isReplaced:e.replacedOrders.includes(o.order)}));
+                stage.innerHTML=`<div class="space-y-4">${heading(1,`Dò nội dung “${escapeHTML(e.oldTxt)}” trong chuỗi`)}${tape(step>=1?{subRanges:ranges}:{})}${step===0?`<div class="text-sm rounded-lg bg-sky-50 border border-sky-200 p-3">Đã tìm thấy <b>${e.occurrences.length}</b> lần xuất hiện. Mỗi cụm được đánh số theo thứ tự từ trái sang phải.</div>`:''}${step===1?`<div class="space-y-2">${e.occurrences.map(o=>`<div class="flex items-center justify-between rounded-lg border p-2 text-xs ${e.replacedOrders.includes(o.order)?'bg-emerald-50 border-emerald-300':'bg-slate-50 border-slate-200'}"><b>Lần #${o.order}</b><span>Vị trí ${o.start1}–${o.end1}</span><strong>${e.replacedOrders.includes(o.order)?`“${escapeHTML(e.newTxt)}” · Đã thay`:'Giữ nguyên'}</strong></div>`).join('')||'<div class="text-sm text-rose-600">Không tìm thấy nội dung cần thay.</div>'}</div>`:''}${step===2?resultCard('Chuỗi sau thay thế'):''}</div>`;
+                setText(step===0?'Tìm tất cả vị trí trùng khớp':step===1?'Xác định lần xuất hiện được thay':'Tạo chuỗi kết quả',step===0?`<code>SUBSTITUTE</code> tìm theo <b>nội dung</b>, phát hiện ${e.occurrences.length} lần xuất hiện của <code>${escapeHTML(e.oldTxt)}</code>.`:step===1?(e.inst===0?`Không chỉ định <code>instance_num</code>, vì vậy tất cả các lần xuất hiện đều được thay bằng <code>${escapeHTML(e.newTxt)}</code>.`:`Chỉ thay lần thứ <b>${e.inst}</b>; các lần còn lại được giữ nguyên.`):`Chuỗi sau thay thế là <code>${escapeHTML(e.rawResult)}</code>.`);
+                return;
+            }
+            stage.innerHTML=`<div class="space-y-4">${tape()}${step===2?resultCard():''}</div>`;
+            setText('Mô phỏng xử lý chuỗi',`Hàm <code>${fn.name}</code> trả về <b>${escapeHTML(e.result)}</b>.`);
+        }
+
+        // Autoplay dùng timeout tuần tự để không bị chạy chồng khi người học thao tác.
+        function startAutoPlay() {
+            stopAutoPlay();
+            state.isPlaying = true;
+            document.getElementById('playPauseIcon').textContent = '⏸';
+            document.getElementById('playPauseText').textContent = 'Tạm dừng';
+            const advance = () => {
+                if (!state.isPlaying) return;
+                if (state.stepIndex >= state.maxSteps - 1) { stopAutoPlay(); return; }
+                state.stepIndex += 1;
+                renderAll(true);
+                state.timer = setTimeout(advance, state.speedMs);
+            };
+            state.timer = setTimeout(advance, state.speedMs);
+        }
+        function stopAutoPlay() {
+            state.isPlaying = false;
+            if (state.timer) { clearTimeout(state.timer); clearInterval(state.timer); state.timer = null; }
+            const icon=document.getElementById('playPauseIcon');
+            const label=document.getElementById('playPauseText');
+            if(icon) icon.textContent='▶';
+            if(label) label.textContent='Chạy từng bước';
+        }
+
+
+        /**
+         * RENDER MODAL BẢNG TRA CỨU 14 HÀM CHUỖI
+         */
+        function renderCatalogModal() {
+            const tbody = document.getElementById('catalogTableBody');
+            tbody.innerHTML = '';
+            FUNCTIONS_DB.forEach((fn, i) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-excel-50 cursor-pointer transition';
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 border-r border-slate-200 text-center font-mono font-bold text-slate-500">${i + 1}</td>
+                    <td class="py-2.5 px-3 border-r border-slate-200 font-mono font-extrabold text-excel-700">
+                        ${fn.name}
+                        <div class="text-[11px] font-sans font-medium text-slate-500">${fn.shortVi}</div>
+                    </td>
+                    <td class="py-2.5 px-3 border-r border-slate-200 font-mono text-xs text-slate-700">${fn.syntax}</td>
+                    <td class="py-2.5 px-3 text-xs text-slate-600">${fn.purpose}</td>
+                `;
+                tr.addEventListener('click', () => {
+                    document.getElementById('catalogModal').classList.add('hidden');
+                    document.getElementById('catalogModal').classList.remove('flex');
+                    selectFunction(i);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * CẬP NHẬT TOÀN BỘ GIAO DIỆN
+         */
+        function renderAll(skipPanelRebuild = false) {
+            if (!skipPanelRebuild) {
+                renderDynamicParamsPanel();
+            }
+            renderSpreadsheet();
+            renderStepPills();
+            renderVisualStage();
+        }
+
+        /**
+         * ĐIỀU KHIỂN CHẠY TỰ ĐỘNG TỪNG BƯỚC
+         */
+        function startAutoPlay() {
+            state.isPlaying = true;
+            document.getElementById('playPauseIcon').textContent = '⏸';
+            document.getElementById('playPauseText').textContent = 'Tạm dừng';
+            state.timer = setInterval(() => {
+                if (state.stepIndex < state.maxSteps - 1) {
+                    state.stepIndex++;
+                    renderAll(true);
+                } else {
+                    stopAutoPlay();
+                }
+            }, state.speedMs);
+        }
+
+        function stopAutoPlay() {
+            state.isPlaying = false;
+            if (state.timer) {
+                clearInterval(state.timer);
+                state.timer = null;
+            }
+            document.getElementById('playPauseIcon').textContent = '▶';
+            document.getElementById('playPauseText').textContent = 'Chạy từng bước';
+        }
+
+        /**
+         * KHỞI TẠO SỰ KIỆN TƯƠNG TÁC
+         */
+        function initEvents() {
+            document.getElementById('btnPlayPause').addEventListener('click', () => {
+                if (state.isPlaying) {
+                    stopAutoPlay();
+                } else {
+                    state.stepIndex = 0;
+                    renderAll(true);
+                    startAutoPlay();
+                }
+            });
+
+            document.getElementById('btnStep').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = (state.stepIndex + 1) % state.maxSteps;
+                renderAll(true);
+            });
+
+            document.getElementById('btnReset').addEventListener('click', () => {
+                stopAutoPlay();
+                state.stepIndex = 0;
+                renderAll(true);
+            });
+
+            document.getElementById('speedSelect').addEventListener('change', e => {
+                state.speedMs = Number(e.target.value);
+                if (state.isPlaying) {
+                    stopAutoPlay();
+                    startAutoPlay();
+                }
+            });
+
+            // 4 nút nạp nhanh bộ dữ liệu mẫu
+            document.getElementById('btnPresetCodes').addEventListener('click', () => {
+                state.cells = [...PRESET_DATASETS.CODES.rows];
+                state.activeRow = PRESET_DATASETS.CODES.activeRow;
+                renderAll();
+            });
+
+            document.getElementById('btnPresetSpaces').addEventListener('click', () => {
+                state.cells = [...PRESET_DATASETS.SPACES.rows];
+                state.activeRow = PRESET_DATASETS.SPACES.activeRow;
+                if (!['TRIM', 'PROPER', 'UPPER', 'LOWER', 'LEN'].includes(currentFunc().name)) {
+                    selectFunction(9); // Nhảy tới TRIM
+                } else {
+                    renderAll();
+                }
+            });
+
+            document.getElementById('btnPresetJoin').addEventListener('click', () => {
+                state.cells = [...PRESET_DATASETS.JOIN.rows];
+                state.activeRow = PRESET_DATASETS.JOIN.activeRow;
+                if (currentFunc().name !== 'CONCAT' && currentFunc().name !== 'TEXTJOIN') {
+                    selectFunction(11); // Nhảy tới TEXTJOIN
+                } else {
+                    renderAll();
+                }
+            });
+
+            document.getElementById('btnPresetReplace').addEventListener('click', () => {
+                state.cells = [...PRESET_DATASETS.REPLACE.rows];
+                state.activeRow = PRESET_DATASETS.REPLACE.activeRow;
+                if (currentFunc().name !== 'REPLACE' && currentFunc().name !== 'SUBSTITUTE') {
+                    selectFunction(13); // Nhảy tới SUBSTITUTE
+                } else {
+                    renderAll();
+                }
+            });
+
+            // Modal bảng tra cứu 14 hàm
+            const modal = document.getElementById('catalogModal');
+            document.getElementById('btnOpenCatalogModal').addEventListener('click', () => {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            });
+            document.getElementById('btnCloseCatalogModal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
+            modal.addEventListener('click', e => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initEvents();
+            renderCatalogModal();
+            selectFunction(0);
+        });
+    </script>
+</body>
+</html>
