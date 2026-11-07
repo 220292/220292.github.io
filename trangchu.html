@@ -53,20 +53,33 @@
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 15px;
+            gap: 16px 24px;
         }
 
-        .university-info h3 {
-            font-size: 0.95rem;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .university-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+            min-width: 0;
         }
 
         .university-info h2 {
-            font-size: 1.25rem;
+            order: 1;
+            font-size: 1.3rem;
+            line-height: 1.25;
             color: var(--secondary-color);
-            font-weight: 700;
+            font-weight: 800;
+            letter-spacing: 0.2px;
+        }
+
+        .university-info h3 {
+            order: 2;
+            font-size: 0.88rem;
+            line-height: 1.45;
+            color: #64748b;
+            font-weight: 600;
+            letter-spacing: 0.35px;
         }
 
         .header-badge {
@@ -87,9 +100,12 @@
         }
 
         .hero h1 {
-            font-size: 2.2rem;
+            font-size: clamp(1.65rem, 4vw, 2.2rem);
+            line-height: 1.2;
             color: var(--secondary-color);
-            margin-bottom: 10px;
+            margin: 0 auto 12px;
+            max-width: 100%;
+            overflow-wrap: anywhere;
             font-weight: 800;
         }
 
@@ -327,8 +343,16 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            .hero h1 { font-size: 1.75rem; }
+            header { padding: 16px 0; }
+            .header-content { align-items: flex-start; }
+            .university-info h2 { font-size: 1.15rem; }
+            .university-info h3 { font-size: 0.78rem; }
+            .header-badge { font-size: 0.78rem; }
+            .hero { padding: 42px 0 32px; }
+            .hero h1 { font-size: clamp(1.5rem, 6vw, 1.85rem); }
+            .hero p { font-size: 1rem; }
             .dashboard-grid { grid-template-columns: 1fr; }
+            .assessment-section { padding: 20px; overflow-x: auto; }
             .modal-container { width: 95%; max-height: 90vh; }
         }
     </style>
@@ -341,7 +365,6 @@
             <div class="university-info">
                 <h2>ĐẠI HỌC TRÀ VINH</h2>
                 <h3>Trường Kỹ thuật và Công nghệ - Khoa CNTT</h3>
-                
             </div>
             <div class="header-badge">
                 <i class="fa-solid fa-graduation-cap"></i> Khóa học E-Learning
