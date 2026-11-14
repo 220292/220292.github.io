@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Các thành phần chính của kiến trúc Von Neumann</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f6fa;--panel:#fff;--ink:#12202f;--mut:#566779;--line:#d9e1ea;--cpu:#2563eb;--mem:#16a34a;--bus:#475569;--io:#d97706;--a:#8b5cf6;--d:#0891b2;--c:#e11d48;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.6 "Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:26px 18px 44px}
+h1{font-size:clamp(25px,4vw,38px);line-height:1.15;margin:0 0 8px;font-weight:800;letter-spacing:-.02em}
+.lead{color:var(--mut);max-width:72ch;margin:0 0 18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+button{font:inherit;color:var(--ink);cursor:pointer}
+button:focus-visible,.comp:focus-visible{outline:2px solid var(--cpu);outline-offset:2px}
+.seg{display:inline-flex;gap:2px;padding:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:14px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:8px 16px;border-radius:9px;font-weight:500;transition:background .2s,color .2s}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.main{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+.dia{padding:10px}
+svg{width:100%;height:auto;display:block}
+.panel{padding:18px 20px;min-height:420px}
+.panel h2{margin:0 0 4px;font-size:21px;line-height:1.25}
+.btn{border:1px solid var(--line);background:var(--panel);padding:8px 14px;border-radius:10px;font-weight:500;transition:border-color .2s}
+.btn:hover:not(:disabled){border-color:var(--ink)}.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.chip{border:1.5px solid var(--k,var(--line));background:#fff;border-radius:999px;padding:6px 14px;font-size:14px;font-weight:500;transition:all .2s}
+.chip[aria-pressed="true"]{background:var(--k);color:#fff}
+.nav{display:flex;gap:8px;align-items:center;margin-top:14px;color:var(--mut);font-size:13px}
+.an{margin:10px 0;padding:10px 14px;border-radius:10px;background:var(--k);background:color-mix(in srgb,var(--k) 11%,#fff);border-left:4px solid var(--k);font-weight:700}
+.an small{display:block;font-weight:500;color:var(--mut);font-size:12px}
+.pd{margin:8px 0;padding:10px 14px;border-radius:10px;background:var(--bg);min-height:3.4em}
+.key{margin-top:12px;padding:10px 14px;border:1px dashed var(--k);border-radius:10px;font-size:14px}
+.cap{padding:12px 14px;border-radius:10px;background:var(--bg);margin:10px 0;min-height:4.6em}
+ol.st{margin:8px 0;padding-left:20px}ol.st li{color:var(--mut);padding:2px 0}ol.st li.on{color:var(--ink);font-weight:700}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.opts button{padding:10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font-weight:500}
+.opts button:hover:not(:disabled){border-color:var(--ink)}
+.opts .ok{background:#dcfce7;border-color:var(--mem)}.opts .no{background:#fee2e2;border-color:var(--c)}
+.bar{height:6px;background:var(--bg);border-radius:4px;overflow:hidden;margin-bottom:10px}.bar div{height:100%;background:var(--cpu);transition:width .3s}
+.hide{display:none}
+.comp{cursor:pointer;transition:opacity .3s}.comp.dim{opacity:.3}
+.comp .cb{stroke-width:2;transition:stroke-width .2s}.comp:hover .cb,.comp.sel .cb{stroke-width:4}
+.part rect.pb{fill:#fff;stroke:#b6c3d3;stroke-width:1.3;transition:all .25s}
+.part.hot rect.pb{stroke:#f59e0b;stroke-width:3.5;fill:#fff3c4}
+.part.hot text.pt,.part.hot text.pa{fill:#b45309;font-weight:800}
+#p-addr rect.pb{fill:none;stroke:none}
+#p-addrbus rect.pb{stroke:#8b5cf6;fill:rgba(139,92,246,.14)}#p-databus rect.pb{stroke:#0891b2;fill:rgba(8,145,178,.14)}#p-ctrlbus rect.pb{stroke:#e11d48;fill:rgba(225,29,72,.14)}
+#p-addr.hot rect.pb,#p-addrbus.hot rect.pb,#p-databus.hot rect.pb,#p-ctrlbus.hot rect.pb{stroke:#f59e0b;stroke-width:3.5;fill:#fff3c4}
+.ttl{font:800 13px "Be Vietnam Pro",system-ui,sans-serif}
+.pt{font:700 12px "Be Vietnam Pro",system-ui,sans-serif;fill:#12202f}
+.ps{font:400 10px "Be Vietnam Pro",system-ui,sans-serif;fill:#566779}
+.pa{font:500 11px ui-monospace,Menlo,Consolas,monospace;fill:#566779}
+.pk text{font:700 11px ui-monospace,Menlo,Consolas,monospace;fill:#fff;text-anchor:middle}
+@media (max-width:900px){.main{grid-template-columns:1fr}.panel{min-height:0}.wrap{padding:18px 10px 36px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Bốn thành phần chính của kiến trúc Von Neumann</h1>
+<p class="lead">CPU, bộ nhớ, hệ thống vào/ra và bus hệ thống phối hợp với nhau như thế nào? Bấm vào từng khối trong sơ đồ, xem luồng hoạt động hoặc tự kiểm tra kiến thức.</p>
+<div class="seg" id="modes" role="group" aria-label="Chế độ học">
+ <button data-m="x" aria-pressed="true">Khám phá thành phần</button>
+ <button data-m="f" aria-pressed="false">Luồng hoạt động</button>
+ <button data-m="q" aria-pressed="false">Tự kiểm tra</button>
+</div>
+<div class="main">
+ <div class="card dia">
+<svg id="svg" viewBox="0 0 800 470" role="img" aria-label="Sơ đồ bốn thành phần: CPU, bộ nhớ, bus hệ thống và vào ra">
+<defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0L8,4L0,8z" fill="#94a3b8"/></marker></defs>
+
+<g class="comp" id="c-CPU" tabindex="0" role="button" aria-label="Bộ xử lý trung tâm CPU">
+ <rect class="cb" x="20" y="20" width="380" height="230" rx="14" fill="#eef4ff" stroke="#2563eb"/>
+ <text class="ttl" x="36" y="43" fill="#1d4ed8">Bộ xử lý trung tâm (CPU)</text>
+ <g class="part" id="p-CU"><rect class="pb" x="36" y="56" width="160" height="78" rx="9"/><text class="pt" x="116" y="92" text-anchor="middle">Đơn vị điều khiển</text><text class="ps" x="116" y="110" text-anchor="middle">CU · giải mã, điều phối</text></g>
+ <g class="part" id="p-ALU"><rect class="pb" x="224" y="56" width="160" height="78" rx="9"/><text class="pt" x="304" y="92" text-anchor="middle">Đơn vị số học và logic</text><text class="ps" x="304" y="110" text-anchor="middle">ALU · tính toán</text></g>
+ <g class="part" id="p-REG"><rect class="pb" x="36" y="148" width="348" height="88" rx="9"/><text class="pt" x="48" y="168">Thanh ghi</text>
+  <g class="ps"><rect x="42" y="182" width="60" height="38" rx="6" fill="#eef4ff" stroke="#9db8ef"/><rect x="111" y="182" width="60" height="38" rx="6" fill="#eef4ff" stroke="#9db8ef"/><rect x="180" y="182" width="60" height="38" rx="6" fill="#eef4ff" stroke="#9db8ef"/><rect x="249" y="182" width="60" height="38" rx="6" fill="#eef4ff" stroke="#9db8ef"/><rect x="318" y="182" width="60" height="38" rx="6" fill="#eef4ff" stroke="#9db8ef"/></g>
+  <text class="pa" x="72" y="205" text-anchor="middle">PC</text><text class="pa" x="141" y="205" text-anchor="middle">IR</text><text class="pa" x="210" y="205" text-anchor="middle">MAR</text><text class="pa" x="279" y="205" text-anchor="middle">MDR</text><text class="pa" x="348" y="205" text-anchor="middle">ACC</text></g>
+</g>
+
+<g class="comp" id="c-MEM" tabindex="0" role="button" aria-label="Bộ nhớ chính">
+ <rect class="cb" x="430" y="20" width="350" height="230" rx="14" fill="#effaf3" stroke="#16a34a"/>
+ <text class="ttl" x="446" y="43" fill="#15803d">Bộ nhớ chính (Memory)</text>
+ <g class="part" id="p-rom"><rect class="pb" x="446" y="56" width="94" height="180" rx="9"/><text class="pt" x="493" y="130" text-anchor="middle">ROM</text><text class="ps" x="493" y="148" text-anchor="middle">chương trình</text><text class="ps" x="493" y="161" text-anchor="middle">khởi động</text></g>
+ <g class="part" id="p-ram"><rect class="pb" x="552" y="56" width="214" height="180" rx="9"/><text class="pt" x="564" y="74">RAM</text>
+  <g id="rows"></g></g>
+</g>
+
+<g class="comp" id="c-BUS" tabindex="0" role="button" aria-label="Bus hệ thống">
+ <rect class="cb" x="20" y="258" width="760" height="94" rx="12" fill="#eef1f6" stroke="#475569"/>
+ <text class="ttl" x="32" y="271" fill="#334155" style="font-size:10px">Bus hệ thống</text>
+ <g id="taps"></g>
+ <g class="part" id="p-addrbus"><rect class="pb" x="32" y="277" width="736" height="16" rx="8"/><text class="pa" x="44" y="289" style="fill:#6d3fd6;font-size:10px">Bus địa chỉ · một chiều</text></g>
+ <g class="part" id="p-databus"><rect class="pb" x="32" y="297" width="736" height="16" rx="8"/><text class="pa" x="44" y="309" style="fill:#0e7490;font-size:10px">Bus dữ liệu · hai chiều</text></g>
+ <g class="part" id="p-ctrlbus"><rect class="pb" x="32" y="317" width="736" height="16" rx="8"/><text class="pa" x="44" y="329" style="fill:#be123c;font-size:10px">Bus điều khiển · tín hiệu</text></g>
+</g>
+
+<g class="comp" id="c-IO" tabindex="0" role="button" aria-label="Hệ thống vào ra">
+ <rect class="cb" x="20" y="366" width="760" height="90" rx="14" fill="#fff7ea" stroke="#d97706"/>
+ <text class="ttl" x="36" y="387" fill="#b45309">Hệ thống vào/ra (I/O)</text>
+ <g class="part" id="p-in"><rect class="pb" x="40" y="396" width="200" height="46" rx="9"/><text class="pt" x="140" y="424" text-anchor="middle">⌨️ 🖱️ Thiết bị vào</text></g>
+ <g class="part" id="p-ctl"><rect class="pb" x="300" y="392" width="200" height="54" rx="9"/><text class="pt" x="400" y="424" text-anchor="middle">Bộ điều khiển I/O</text></g>
+ <g class="part" id="p-out"><rect class="pb" x="560" y="396" width="200" height="46" rx="9"/><text class="pt" x="660" y="424" text-anchor="middle">🖥️ 🖨️ Thiết bị ra</text></g>
+ <line x1="240" y1="419" x2="298" y2="419" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/><line x1="500" y1="419" x2="558" y2="419" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+</g>
+<g id="lay"></g>
+</svg>
+ </div>
+
+ <div class="card panel">
+  <section id="sx"></section>
+  <section id="sf" class="hide"></section>
+  <section id="sq" class="hide"></section>
+ </div>
+</div>
+</div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)},NS='http://www.w3.org/2000/svg';
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var K={CPU:'#2563eb',MEM:'#16a34a',BUS:'#475569',IO:'#d97706'},ORDER=['CPU','MEM','BUS','IO'];
+var NAME={CPU:'CPU',MEM:'Bộ nhớ',BUS:'Bus hệ thống',IO:'Vào/ra'};
+var D={
+CPU:{n:'Bộ xử lý trung tâm (CPU)',an:'Bộ não của máy tính',as:'Điều khiển và tính toán mọi thứ',w:'CPU thực hiện các lệnh của chương trình theo chu trình: nạp lệnh từ bộ nhớ, giải mã, rồi thực thi.',
+ p:[['CU','Đơn vị điều khiển (CU)','Đọc và giải mã lệnh, rồi phát tín hiệu điều phối ALU, bộ nhớ và thiết bị vào/ra.'],['ALU','Đơn vị số học và logic (ALU)','Thực hiện phép cộng, trừ, so sánh và các phép logic như AND, OR, NOT.'],['REG','Thanh ghi','Các ô nhớ rất nhỏ và rất nhanh nằm trong CPU: PC giữ địa chỉ lệnh kế tiếp, IR giữ lệnh hiện tại, MAR và MDR trao đổi với bộ nhớ, ACC chứa kết quả.']],
+ k:'CPU nhanh hơn bộ nhớ rất nhiều, nên thanh ghi giúp giữ dữ liệu ngay bên trong để xử lý.'},
+MEM:{n:'Bộ nhớ chính (Memory)',an:'Kệ sách chung của máy tính',as:'Chứa cả chương trình lẫn dữ liệu',w:'Bộ nhớ lưu chương trình và dữ liệu đang xử lý. Mỗi ô nhớ có một địa chỉ duy nhất, CPU truy cập ô nhớ bằng địa chỉ đó.',
+ p:[['addr','Địa chỉ ô nhớ','Mỗi ô nhớ được đánh số 0, 1, 2... Địa chỉ giống số nhà: biết số nhà là tìm được nội dung bên trong.'],['ram','RAM','Đọc và ghi được, truy cập nhanh. Mất dữ liệu khi tắt nguồn. Nơi chứa chương trình và dữ liệu đang chạy.'],['rom','ROM','Thường chỉ đọc, giữ được dữ liệu khi tắt nguồn. Chứa chương trình khởi động máy.']],
+ k:'Đặc trưng Von Neumann: lệnh (ô xanh dương) và dữ liệu (ô xanh lá) nằm chung một bộ nhớ.'},
+BUS:{n:'Bus hệ thống (System Bus)',an:'Đường cao tốc nối các thành phần',as:'Chở địa chỉ, dữ liệu và tín hiệu',w:'Bus là tập hợp các đường dẫn tín hiệu nối CPU, bộ nhớ và hệ thống vào/ra, gồm ba nhóm đường với ba nhiệm vụ khác nhau.',
+ p:[['addrbus','Bus địa chỉ','CPU gửi địa chỉ ô nhớ hoặc cổng I/O cần truy cập. Một chiều. Bus rộng n bit đánh địa chỉ được 2ⁿ ô nhớ.'],['databus','Bus dữ liệu','Mang dữ liệu và lệnh giữa CPU, bộ nhớ và I/O. Hai chiều. Bus càng rộng, mỗi lần truyền được càng nhiều bit.'],['ctrlbus','Bus điều khiển','Mang tín hiệu điều khiển như READ, WRITE, ngắt và xung nhịp, cho biết thao tác nào đang diễn ra.']],
+ k:'Lệnh và dữ liệu dùng chung bus nên không thể truyền cùng lúc. Đó là nút thắt cổ chai Von Neumann.'},
+IO:{n:'Hệ thống vào/ra (I/O)',an:'Cửa ngõ giao tiếp với thế giới bên ngoài',as:'Đưa dữ liệu vào, đưa kết quả ra',w:'Hệ thống vào/ra giúp máy tính nhận dữ liệu từ người dùng hoặc môi trường, và đưa kết quả xử lý ra ngoài.',
+ p:[['in','Thiết bị vào','Bàn phím, chuột, micro, cảm biến: biến thao tác bên ngoài thành tín hiệu cho máy.'],['ctl','Bộ điều khiển I/O','Cầu nối giữa CPU và thiết bị: chuyển đổi định dạng, đệm dữ liệu và báo ngắt khi thiết bị sẵn sàng.'],['out','Thiết bị ra','Màn hình, máy in, loa: hiển thị hoặc phát kết quả cho người dùng.']],
+ k:'Thiết bị ngoại vi chậm hơn CPU rất nhiều, nên cần bộ điều khiển và cơ chế ngắt để CPU không phải chờ.'}};
+var S={sel:null,mode:'x'};
+
+/* build bộ nhớ + chấu bus */
+(function(){var R=[['0','LOAD 10','i'],['1','ADD 11','i'],['2','STORE 12','i'],['10','7','d'],['11','5','d'],['12','…','d']],h='',a='';
+ R.forEach(function(r,i){var y=82+i*25,c=r[2]==='i'?'#1d4ed8':'#15803d',f=r[2]==='i'?'#e0eaff':'#dcf5e5';
+  h+='<rect x="562" y="'+y+'" width="194" height="22" rx="5" fill="'+f+'"/><text class="pa" x="576" y="'+(y+15)+'" style="fill:'+c+'">'+r[1]+'</text><text class="ps" x="746" y="'+(y+15)+'" text-anchor="end">'+(r[2]==='i'?'lệnh':'dữ liệu')+'</text>';
+  a+='<text class="pa" x="570" y="'+(y+15)+'" style="font-weight:700">'+r[0]+'</text>'});
+ $('rows').innerHTML=h+'<g class="part" id="p-addr"><rect class="pb" x="564" y="80" width="30" height="152" rx="5"/></g>';
+ /* địa chỉ: chồng lên */
+ $('rows').querySelectorAll('text.pa').forEach(function(t){t.setAttribute('x','600')});
+ var g=$('p-addr');g.innerHTML+=a.replace(/x="570"/g,'x="570"').replace(/class="pa"/g,'class="pa pa2"');
+ var t='';[[210,'CPU'],[605,'MEM'],[400,'IO']].forEach(function(p){[[-14,'#8b5cf6',285],[0,'#0891b2',305],[14,'#e11d48',325]].forEach(function(o){
+  var y1=p[1]==='IO'?366:250;t+='<line x1="'+(p[0]+o[0])+'" x2="'+(p[0]+o[0])+'" y1="'+y1+'" y2="'+o[2]+'" stroke="'+o[1]+'" stroke-width="2.5"/>'})});
+ $('taps').innerHTML=t;
+})();
+
+function clearView(){ORDER.forEach(function(c){var e=$('c-'+c);e.classList.remove('dim','sel')});document.querySelectorAll('.part').forEach(function(p){p.classList.remove('hot')})}
+function focusOn(list,sel){ORDER.forEach(function(c){var e=$('c-'+c);e.classList.toggle('dim',list.indexOf(c)<0);e.classList.toggle('sel',c===sel)})}
+
+/* ---- Khám phá ---- */
+function chipsHtml(){return '<div class="chips">'+ORDER.map(function(c){return '<button class="chip" data-c="'+c+'" style="--k:'+K[c]+'" aria-pressed="'+(S.sel===c)+'">'+NAME[c]+'</button>'}).join('')+'</div>'}
+function showComp(id){S.sel=id;var x=$('sx');clearView();
+ if(!id){x.innerHTML='<h2>Chọn một thành phần</h2><p>Kiến trúc Von Neumann gồm bốn thành phần chính. Bấm vào khối trong sơ đồ hoặc chọn bên dưới.</p>'+chipsHtml()+'<div class="nav"><button class="btn pri" data-go="0">Bắt đầu tham quan</button></div>';bind();return}
+ var d=D[id],i=ORDER.indexOf(id);focusOn([id],id);
+ x.innerHTML='<h2 style="color:'+K[id]+'">'+d.n+'</h2>'+chipsHtml()+'<div class="an" style="--k:'+K[id]+'">'+d.an+'<small>'+d.as+'</small></div><p>'+d.w+'</p>'+
+  '<div class="chips">'+d.p.map(function(p){return '<button class="chip" data-p="'+p[0]+'" style="--k:'+K[id]+'" aria-pressed="false">'+p[1].split(' (')[0]+'</button>'}).join('')+'</div><div class="pd" id="pd">Bấm vào một bộ phận để xem chi tiết và thấy nó sáng lên trong sơ đồ.</div>'+
+  '<div class="key" style="--k:'+K[id]+'"><b>Cần nhớ:</b> '+d.k+'</div>'+
+  '<div class="nav"><button class="btn" data-go="'+((i+3)%4)+'">‹ Trước</button><button class="btn pri" data-go="'+((i+1)%4)+'">Tiếp ›</button><span>'+(i+1)+' / 4</span></div>';
+ bind()}
+function pickPart(key){var d=D[S.sel];if(!d)return;document.querySelectorAll('.part').forEach(function(p){p.classList.remove('hot')});
+ var el=$('p-'+key);if(el)el.classList.add('hot');
+ document.querySelectorAll('#sx [data-p]').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.p===key)});
+ d.p.forEach(function(p){if(p[0]===key)$('pd').innerHTML='<b>'+p[1]+'.</b> '+p[2]})}
+function bind(){document.querySelectorAll('#sx [data-c]').forEach(function(b){b.onclick=function(){showComp(b.dataset.c)}});
+ document.querySelectorAll('#sx [data-go]').forEach(function(b){b.onclick=function(){showComp(ORDER[+b.dataset.go])}});
+ document.querySelectorAll('#sx [data-p]').forEach(function(b){b.onclick=function(){pickPart(b.dataset.p)}})}
+ORDER.forEach(function(c){var e=$('c-'+c);
+ e.addEventListener('click',function(ev){if(S.mode!=='x')return;showComp(c);var p=ev.target.closest('.part');if(p)pickPart(p.id.slice(2))});
+ e.addEventListener('keydown',function(ev){if((ev.key==='Enter'||ev.key===' ')&&S.mode==='x'){ev.preventDefault();showComp(c)}})});
+
+/* ---- Luồng hoạt động ---- */
+var X={CPU:210,MEM:605,IO:400},Y0={CPU:250,MEM:250,IO:366},OF={addr:-14,data:0,ctrl:14},LY={addr:285,data:305,ctrl:325},CK={addr:'#8b5cf6',data:'#0891b2',ctrl:'#e11d48'};
+function bp(a,b,k){var x1=X[a]+OF[k],x2=X[b]+OF[k];return [[x1,Y0[a]],[x1,LY[k]],[x2,LY[k]],[x2,Y0[b]]]}
+var SC=[
+ {n:'CPU đọc một lệnh từ bộ nhớ',st:[
+  {t:'CPU đặt địa chỉ ô nhớ chứa lệnh lên bus địa chỉ và gửi tín hiệu READ qua bus điều khiển.',f:[['b','CPU','MEM','addr','địa chỉ 0'],['b','CPU','MEM','ctrl','READ']]},
+  {t:'Bộ nhớ đưa nội dung ô nhớ lên bus dữ liệu. Lệnh LOAD 10 được chuyển về CPU để giải mã và thực thi.',f:[['b','MEM','CPU','data','LOAD 10']]}]},
+ {n:'CPU ghi kết quả vào bộ nhớ',st:[
+  {t:'CPU gửi địa chỉ ô nhớ đích qua bus địa chỉ, tín hiệu WRITE qua bus điều khiển, đồng thời đặt giá trị cần ghi lên bus dữ liệu.',f:[['b','CPU','MEM','addr','địa chỉ 13'],['b','CPU','MEM','ctrl','WRITE'],['b','CPU','MEM','data','9']]},
+  {t:'Bộ nhớ nhận giá trị 9 và lưu vào ô nhớ 13. Dữ liệu cũ trong ô đó bị thay thế.',f:[]}]},
+ {n:'Nhập dữ liệu từ bàn phím',st:[
+  {t:'Người dùng gõ phím. Thiết bị vào gửi tín hiệu đến bộ điều khiển I/O.',f:[['l',[[240,419],[300,419]],'phím A','#d97706']]},
+  {t:'Bộ điều khiển I/O báo ngắt cho CPU qua bus điều khiển, rồi CPU nhận ký tự qua bus dữ liệu.',f:[['b','IO','CPU','ctrl','ngắt'],['b','IO','CPU','data','A']]}]},
+ {n:'Xuất kết quả ra màn hình',st:[
+  {t:'CPU gửi kết quả qua bus dữ liệu và tín hiệu WRITE qua bus điều khiển tới bộ điều khiển I/O.',f:[['b','CPU','IO','data','9'],['b','CPU','IO','ctrl','WRITE']]},
+  {t:'Bộ điều khiển I/O chuyển kết quả sang thiết bị ra để hiển thị cho người dùng.',f:[['l',[[500,419],[560,419]],'9','#d97706']]}]}];
+var F={s:-1,i:0,busy:false,run:false};
+function flowUI(){var h='<h2>Luồng hoạt động</h2><p>Chọn một tình huống, rồi bấm "Bước tiếp" để xem dữ liệu và tín hiệu di chuyển trên bus.</p><div class="chips">'+
+ SC.map(function(s,i){return '<button class="chip" data-s="'+i+'" style="--k:#12202f" aria-pressed="'+(F.s===i)+'">'+s.n+'</button>'}).join('')+'</div>';
+ if(F.s>=0){var s=SC[F.s];h+='<ol class="st">'+s.st.map(function(t,i){return '<li class="'+(i===F.i-1?'on':'')+'">'+(i===F.i-1?'Đang diễn ra: ':'')+t.t.split('.')[0]+'</li>'}).join('')+'</ol>'+
+  '<div class="cap" id="cap">'+(F.i?s.st[F.i-1].t:'Bấm "Bước tiếp" để bắt đầu.')+'</div>'+
+  '<div class="nav"><button class="btn pri" id="fn"'+(F.busy?' disabled':'')+'>'+(F.i>=s.st.length?'Chạy lại':'Bước tiếp')+'</button><button class="btn" id="fa"'+(F.busy?' disabled':'')+'>Chạy liên tục</button></div>'+
+  '<div class="chips" style="font-size:13px;color:var(--mut)"><span style="color:#8b5cf6">● bus địa chỉ</span><span style="color:#0891b2">● bus dữ liệu</span><span style="color:#e11d48">● bus điều khiển</span></div>'}
+ $('sf').innerHTML=h;
+ document.querySelectorAll('#sf [data-s]').forEach(function(b){b.onclick=function(){if(F.busy)return;F.s=+b.dataset.s;F.i=0;clearView();flowUI()}});
+ if($('fn'))$('fn').onclick=function(){if(F.i>=SC[F.s].st.length)F.i=0;stepFlow()};
+ if($('fa'))$('fa').onclick=async function(){F.i=0;while(F.i<SC[F.s].st.length&&S.mode==='f'){await stepFlow();await wait(500)}}}
+function wait(ms){return new Promise(function(r){setTimeout(r,reduce?0:ms)})}
+async function stepFlow(){var st=SC[F.s].st[F.i];F.i++;F.busy=true;
+ var inv=[];st.f.forEach(function(f){if(f[0]==='b'){inv.push(f[1],f[2]);inv.push('BUS')}else inv.push('IO')});if(!st.f.length)inv=['MEM'];
+ flowUI();focusOn(inv,null);
+ await Promise.all(st.f.map(function(f){return f[0]==='b'?fly(bp(f[1],f[2],f[3]),CK[f[3]],f[4]):fly(f[1],f[3],f[2])}));
+ if(!st.f.length)await wait(900);
+ F.busy=false;flowUI()}
+function fly(pts,c,tx){return new Promise(function(res){var lay=$('lay'),w=tx.length*7+14,g=document.createElementNS(NS,'g');g.setAttribute('class','pk');
+ var d=pts.map(function(p){return p.join(',')}).join(' ');
+ g.innerHTML='<polyline points="'+d+'" fill="none" stroke="'+c+'" stroke-width="3" opacity=".6" stroke-dasharray="5 4"/><g id="pp"><rect x="'+(-w/2)+'" y="-10" width="'+w+'" height="20" rx="10" fill="'+c+'"/><text y="4">'+tx+'</text></g>';
+ lay.appendChild(g);var pk=g.querySelector('#pp');pk.removeAttribute('id');
+ var seg=[],tot=0;for(var i=1;i<pts.length;i++){var l=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(l);tot+=l}
+ function pos(u){var r=u*tot,j=0;while(j<seg.length-1&&r>seg[j]){r-=seg[j];j++}var q=Math.min(1,r/(seg[j]||1));
+  pk.setAttribute('transform','translate('+(pts[j][0]+(pts[j+1][0]-pts[j][0])*q)+','+(pts[j][1]+(pts[j+1][1]-pts[j][1])*q)+')')}
+ pos(0);var t0=null,dur=reduce?0:1700;
+ function done(){setTimeout(function(){lay.removeChild(g);res()},reduce?0:350)}
+ if(!dur){pos(1);return done()}
+ (function tick(ts){if(t0===null)t0=ts;var u=Math.min(1,(ts-t0)/dur);pos(u);u<1?requestAnimationFrame(tick):done()})(performance.now())})}
+
+/* ---- Tự kiểm tra ---- */
+var Q=[['Thành phần nào giải mã và thực thi các lệnh của chương trình?','CPU','CPU chứa CU để giải mã lệnh và ALU để tính toán.'],
+['Thành phần nào lưu cả lệnh lẫn dữ liệu, mỗi ô có một địa chỉ riêng?','MEM','Đặc trưng Von Neumann: lệnh và dữ liệu dùng chung một bộ nhớ.'],
+['Bus địa chỉ, bus dữ liệu và bus điều khiển thuộc thành phần nào?','BUS','Đó là ba nhóm đường dẫn của bus hệ thống.'],
+['Bàn phím, màn hình và bộ điều khiển thiết bị thuộc thành phần nào?','IO','Hệ thống vào/ra đưa dữ liệu vào và đưa kết quả ra.'],
+['Thanh ghi PC và IR nằm ở đâu?','CPU','Thanh ghi là các ô nhớ nhỏ, rất nhanh, nằm ngay trong CPU.'],
+['Độ rộng của nó quyết định số ô nhớ tối đa mà CPU đánh địa chỉ được. Đó là bus của thành phần nào?','BUS','Bus địa chỉ rộng n bit đánh được 2ⁿ ô nhớ.']];
+var Z={i:0,sc:0,ans:false};
+function quizUI(){var x=$('sq');
+ if(Z.i>=Q.length){x.innerHTML='<h2>Hoàn thành</h2><p>Bạn trả lời đúng <b>'+Z.sc+' / '+Q.length+'</b> câu. '+(Z.sc>=5?'Rất tốt, bạn nắm chắc các thành phần của kiến trúc Von Neumann.':'Hãy quay lại phần Khám phá để ôn các thành phần còn nhầm.')+'</p><button class="btn pri" id="qr">Làm lại</button>';
+  $('qr').onclick=function(){Z={i:0,sc:0,ans:false};clearView();quizUI()};return}
+ var q=Q[Z.i];x.innerHTML='<h2>Tự kiểm tra</h2><div class="bar"><div style="width:'+(Z.i/Q.length*100)+'%"></div></div><p><b>Câu '+(Z.i+1)+'/'+Q.length+'.</b> '+q[0]+'</p><div class="opts">'+
+  ORDER.map(function(c){return '<button data-a="'+c+'">'+NAME[c]+'</button>'}).join('')+'</div><div class="cap" id="fb">Chọn một đáp án.</div><button class="btn pri hide" id="qn">'+(Z.i===Q.length-1?'Xem kết quả':'Câu tiếp')+'</button>';
+ Z.ans=false;
+ document.querySelectorAll('#sq [data-a]').forEach(function(b){b.onclick=function(){if(Z.ans)return;Z.ans=true;var ok=b.dataset.a===q[1];if(ok)Z.sc++;
+  document.querySelectorAll('#sq [data-a]').forEach(function(o){o.disabled=true;if(o.dataset.a===q[1])o.classList.add('ok')});if(!ok)b.classList.add('no');
+  $('fb').innerHTML='<b>'+(ok?'Chính xác. ':'Chưa đúng. ')+'</b>Đáp án: '+NAME[q[1]]+'. '+q[2];focusOn([q[1]],q[1]);$('qn').classList.remove('hide')}});
+ $('qn').onclick=function(){Z.i++;clearView();quizUI()}}
+
+/* ---- chuyển chế độ ---- */
+document.querySelectorAll('#modes button').forEach(function(b){b.onclick=function(){
+ if(F.busy)return;S.mode=b.dataset.m;
+ document.querySelectorAll('#modes button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});
+ ['x','f','q'].forEach(function(m){$('s'+m).classList.toggle('hide',m!==S.mode)});clearView();
+ if(S.mode==='x')showComp(S.sel);else if(S.mode==='f')flowUI();else quizUI()}});
+showComp(null);
+})();
+</script>
+</body>
+</html>
