@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mô phỏng Bus hệ thống (System Bus)</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f3f6fa;--panel:#fff;--ink:#12202f;--mut:#566779;--line:#d9e1ea;--ad:#16a34a;--da:#2563eb;--ct:#ea580c;color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 "Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1260px;margin:0 auto;padding:26px 18px 44px}
+h1{font-size:clamp(25px,4vw,38px);line-height:1.15;margin:0 0 8px;font-weight:800;letter-spacing:-.02em}
+.lead{color:var(--mut);max-width:74ch;margin:0 0 18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+button{font:inherit;color:var(--ink);cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--da);outline-offset:2px}
+.ctl{display:flex;flex-wrap:wrap;gap:14px 24px;padding:14px 16px;margin-bottom:14px;align-items:flex-end}
+.fld{display:flex;flex-direction:column;gap:5px;font-size:12.5px;color:var(--mut)}
+.fld output{color:var(--ink);font-weight:700}
+.seg{display:inline-flex;gap:2px;padding:3px;background:var(--bg);border:1px solid var(--line);border-radius:10px}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:7px;font-weight:500;font-size:14px;transition:background .2s,color .2s}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+input[type=range]{width:150px;accent-color:var(--da)}
+.btn{border:1px solid var(--line);background:#fff;padding:8px 16px;border-radius:10px;font-weight:500}
+.btn:hover:not(:disabled){border-color:var(--ink)}.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.sw{display:flex;align-items:center;gap:12px;padding:8px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);cursor:pointer;user-select:none}
+.sw input{appearance:none;-webkit-appearance:none;position:relative;width:48px;height:28px;border-radius:14px;background:#cbd5e1;margin:0;cursor:pointer;transition:background .25s;flex:none}
+.sw input::before{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .25s}
+.sw input:checked{background:#16a34a}.sw input:checked::before{transform:translateX(20px)}
+.swl{display:flex;flex-direction:column;font-weight:700;font-size:14px;line-height:1.25}.swl b{font-size:12.5px;color:#16a34a}.sw input:not(:checked)~.swl b{color:var(--mut)}
+svg.off .flow{animation-play-state:paused}
+.main{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(280px,1fr);gap:14px;margin-bottom:14px;align-items:stretch}
+.dia{padding:10px}svg{width:100%;height:auto;display:block}
+.ins{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.ins h2{margin:0;font-size:17px}
+.ph{padding:9px 12px;border-radius:10px;background:var(--bg);font-size:14px;min-height:3.3em}
+.row{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+.row i{width:10px;height:10px;border-radius:50%;display:inline-block;align-self:center}
+.row span{font-weight:500}.row code{grid-column:2;font:600 13px ui-monospace,Menlo,Consolas,monospace;color:var(--mut)}
+.row.on code{color:var(--ink)}
+.dec{font-size:13px;color:var(--mut)}
+.bw{font-size:30px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.bar{height:10px;background:var(--bg);border-radius:6px;overflow:hidden;border:1px solid var(--line)}.bar div{height:100%;background:linear-gradient(90deg,var(--da),#38bdf8);transition:width .4s}
+.sm{font-size:13px;color:var(--mut)}
+.tim{padding:14px 16px;margin-bottom:14px}.tim h2{margin:0 0 2px;font-size:17px}canvas{width:100%;height:250px;display:block;margin-top:8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.cards button{text-align:left;padding:14px 16px;border:1px solid var(--line);border-top:4px solid var(--k);border-radius:14px;background:#fff;transition:transform .2s,box-shadow .2s}
+.cards button:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(18,32,47,.08)}
+.cards h3{margin:0 0 4px;font-size:16px;color:var(--k)}.cards p{margin:0;color:var(--mut);font-size:13.5px}
+.dv{transition:opacity .3s}.dv.dim{opacity:.4}.dv.sel .db{stroke:#16a34a;stroke-width:3.5;fill:#f0fbf4}.dv .cs{opacity:0;transition:opacity .25s}.dv.sel .cs{opacity:1}
+.lane rect{transition:fill-opacity .25s,stroke-opacity .25s}.lane.act rect{fill-opacity:.35;stroke-opacity:1}
+.flow{animation:fl 1s linear infinite}@keyframes fl{to{stroke-dashoffset:-12}}
+svg[data-view="addr"] .k-data,svg[data-view="addr"] .k-ctrl,svg[data-view="data"] .k-addr,svg[data-view="data"] .k-ctrl,svg[data-view="ctrl"] .k-addr,svg[data-view="ctrl"] .k-data{opacity:.18}
+.k-addr,.k-data,.k-ctrl{transition:opacity .3s}
+.t{font:700 11px "Be Vietnam Pro",system-ui,sans-serif}
+.cpuf{animation:cf 2s ease-in-out infinite}@keyframes cf{50%{fill:#eef4ff}}
+@media (max-width:920px){.main{grid-template-columns:1fr}.wrap{padding:18px 10px 36px}}
+@media (prefers-reduced-motion:reduce){.flow,.cpuf{animation:none}*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Bus hệ thống (System Bus)</h1>
+<p class="lead">Quan sát mỗi chu kỳ truyền dữ liệu: bus địa chỉ chọn thiết bị, bus điều khiển ra lệnh đọc hoặc ghi, bus dữ liệu chở các bit đi. Chỉnh độ rộng và xung nhịp để thấy tốc độ bus thay đổi.</p>
+
+<section class="card ctl" aria-label="Điều khiển mô phỏng">
+ <label class="sw"><input type="checkbox" role="switch" id="sim" checked><span class="swl">Mô phỏng truyền dữ liệu<b id="swt">Bật</b></span></label>
+ <div class="fld">Thiết bị đích<div class="seg" data-k="tgt"><button data-v="RAM" aria-pressed="true">RAM</button><button data-v="STO" aria-pressed="false">Ổ lưu trữ</button><button data-v="IO" aria-pressed="false">Thiết bị I/O</button></div></div>
+ <div class="fld">Thao tác<div class="seg" data-k="dir"><button data-v="read" aria-pressed="true">Đọc</button><button data-v="write" aria-pressed="false">Ghi</button></div></div>
+ <div class="fld">Đang xem<div class="seg" data-k="view"><button data-v="all" aria-pressed="true">Tất cả</button><button data-v="addr" aria-pressed="false">Địa chỉ</button><button data-v="data" aria-pressed="false">Dữ liệu</button><button data-v="ctrl" aria-pressed="false">Điều khiển</button></div></div>
+ <label class="fld">Độ rộng bus dữ liệu: <output id="ow"></output><input type="range" id="rw" min="0" max="3" value="2"></label>
+ <label class="fld">Xung nhịp bus: <output id="oc"></output><input type="range" id="rc" min="0" max="5" value="3"></label>
+ <button class="btn" id="step">Một chu kỳ</button>
+</section>
+
+<div class="main">
+ <div class="card dia">
+<svg id="svg" viewBox="0 0 900 440" data-view="all" role="img" aria-label="Sơ đồ bus địa chỉ, bus dữ liệu và bus điều khiển nối CPU với RAM, ổ lưu trữ và thiết bị I/O"></svg>
+ </div>
+ <aside class="card ins" aria-live="polite">
+  <h2>Chu kỳ bus hiện tại</h2>
+  <div class="ph" id="ph">Đang khởi động...</div>
+  <div>
+   <div class="row" id="rA"><i style="background:var(--ad)"></i><span>Bus địa chỉ</span><code id="iA">—</code></div>
+   <div class="row" id="rC"><i style="background:var(--ct)"></i><span>Bus điều khiển</span><code id="iC">—</code></div>
+   <div class="row" id="rD"><i style="background:var(--da)"></i><span>Bus dữ liệu</span><code id="iD">—</code></div>
+  </div>
+  <div class="dec" id="dec">Bộ giải mã địa chỉ so địa chỉ với vùng của từng thiết bị để chọn thiết bị (CS).</div>
+  <div><div class="sm">Băng thông lý thuyết</div><div class="bw" id="bw"></div><div class="bar" style="margin:6px 0"><div id="bb"></div></div><div class="sm" id="bf"></div></div>
+  <div class="sm" id="vd"></div>
+  <div class="sm">Đã truyền: <b id="tot">0 byte</b></div>
+ </aside>
+</div>
+
+<section class="card tim">
+ <h2>Giản đồ định thời</h2>
+ <div class="sm">Một chu kỳ bus gồm 4 xung nhịp (T1 đến T4): địa chỉ hợp lệ trước, tín hiệu điều khiển kéo dài, dữ liệu hợp lệ ở cuối.</div>
+ <canvas id="tc" aria-label="Giản đồ định thời các tín hiệu CLK, ADDR, READ, WRITE, DATA"></canvas>
+</section>
+
+<section class="cards" aria-label="Ba loại bus">
+ <button data-v="data" style="--k:var(--da)"><h3>Bus dữ liệu (Data Bus)</h3><p>Truyền dữ liệu thực tế, hai chiều. Bus càng rộng thì mỗi lần truyền được càng nhiều bit.</p></button>
+ <button data-v="addr" style="--k:var(--ad)"><h3>Bus địa chỉ (Address Bus)</h3><p>Mang địa chỉ ô nhớ hoặc thiết bị, một chiều từ CPU. Rộng n bit đánh được 2ⁿ địa chỉ.</p></button>
+ <button data-v="ctrl" style="--k:var(--ct)"><h3>Bus điều khiển (Control Bus)</h3><p>Mang tín hiệu đọc, ghi, xung nhịp và chọn thiết bị để mọi thành phần hoạt động đồng bộ.</p></button>
+</section>
+</div>
+
+<script>
+(function(){
+var $=function(i){return document.getElementById(i)},NS='http://www.w3.org/2000/svg';
+var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var C={addr:'#16a34a',data:'#2563eb',ctrl:'#ea580c'},LY={addr:205,data:235,ctrl:265},OF={addr:-14,data:0,ctrl:14};
+var WD=[8,16,32,64],CL=[100,200,400,800,1600,3200];
+var DV={RAM:{n:'RAM',ico:'🧩',role:'Bộ nhớ chính',lo:0,hi:0x7FFF,cx:330,top:1},STO:{n:'Ổ lưu trữ',ico:'💾',role:'Bộ nhớ ngoài',lo:0x8000,hi:0xBFFF,cx:490,top:0},IO:{n:'Thiết bị I/O',ico:'🖥️',role:'Vào / ra',lo:0xC000,hi:0xFFFF,cx:690,top:1}};
+var VD={all:'Ba bus phối hợp trong mỗi chu kỳ: địa chỉ chọn nơi đến, điều khiển ra lệnh, dữ liệu được chuyển đi.',
+ addr:'Bus địa chỉ: CPU gửi địa chỉ ô nhớ hoặc cổng I/O, một chiều. Với 16 bit có 2¹⁶ = 65.536 địa chỉ.',
+ data:'Bus dữ liệu: mang dữ liệu thực tế, hai chiều. Độ rộng 8 đến 64 bit quyết định số bit truyền mỗi lần.',
+ ctrl:'Bus điều khiển: mang tín hiệu READ, WRITE, xung nhịp và chọn chip để các thành phần hoạt động đồng bộ.'};
+var S={tgt:'RAM',dir:'read',view:'all',wi:2,ci:3,play:!reduce,busy:false,loop:false,tot:0,gen:0};
+var h4=function(n){return '0x'+('0000'+n.toString(16).toUpperCase()).slice(-4)};
+function hexOf(b){var s='',i,v;for(i=0;i<b.length;i+=4){v=0;for(var j=0;j<4&&i+j<b.length;j++)v=v*2+b[i+j];s+=v.toString(16).toUpperCase()}return '0x'+s}
+function bitsOf(n,l){var a=[];for(var i=l-1;i>=0;i--)a.push((n>>i)&1);return a}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function dur(){return reduce?0:[1700,1300,1000,750,550,400][S.ci]}
+
+/* ---- dựng sơ đồ ---- */
+(function(){var s='',i;
+ for(i=0;i<6;i++){s+='<line x1="10" x2="20" y1="'+(166+i*22)+'" y2="'+(166+i*22)+'" stroke="#94a3b8" stroke-width="3"/><line x1="'+(42+i*14)+'" x2="'+(42+i*14)+'" y1="140" y2="150" stroke="#94a3b8" stroke-width="3"/><line x1="'+(42+i*14)+'" x2="'+(42+i*14)+'" y1="290" y2="300" stroke="#94a3b8" stroke-width="3"/>'}
+ s+='<rect x="20" y="150" width="130" height="140" rx="16" fill="#e6edf6" stroke="#64748b" stroke-width="2"/><rect class="cpuf" x="42" y="172" width="86" height="96" rx="8" fill="#fff" stroke="#94a3b8"/><text x="85" y="226" text-anchor="middle" style="font:800 22px \'Be Vietnam Pro\',system-ui,sans-serif" fill="#12202f">CPU</text><text x="85" y="246" text-anchor="middle" style="font:500 11px \'Be Vietnam Pro\',system-ui,sans-serif" fill="#566779">Bộ xử lý</text>';
+ [['addr','Bus địa chỉ → 16 bit'],['data','Bus dữ liệu ⇄ '],['ctrl','Bus điều khiển →']].forEach(function(l){var k=l[0],y=LY[k];
+  s+='<g class="lane k-'+k+'" id="l-'+k+'"><rect x="150" y="'+(y-13)+'" width="730" height="26" rx="13" fill="'+C[k]+'" fill-opacity=".12" stroke="'+C[k]+'" stroke-opacity=".5"/><line class="flow" x1="300" x2="868" y1="'+y+'" y2="'+y+'" stroke="'+C[k]+'" stroke-width="2" stroke-dasharray="3 9" stroke-linecap="round" opacity=".55"/><rect x="160" y="'+(y-9)+'" width="'+(k==='data'?158:152)+'" height="18" rx="9" fill="#fff"/><text class="t" x="170" y="'+(y+4)+'" fill="'+C[k]+'">'+l[1]+(k==='data'?'<tspan id="wl">32</tspan> bit':'')+'</text><circle cx="150" cy="'+y+'" r="4.5" fill="'+C[k]+'"/></g>'});
+ for(var id in DV){var d=DV[id],y0=d.top?40:330;
+  ['addr','data','ctrl'].forEach(function(k){var x=d.cx+OF[k];s+='<g class="k-'+k+'"><line x1="'+x+'" x2="'+x+'" y1="'+(d.top?130:330)+'" y2="'+LY[k]+'" stroke="'+C[k]+'" stroke-width="2.5"/><circle cx="'+x+'" cy="'+LY[k]+'" r="3.5" fill="'+C[k]+'"/></g>'});
+  s+='<g class="dv" id="d-'+id+'"><rect class="db" x="'+(d.cx-75)+'" y="'+y0+'" width="150" height="90" rx="12" fill="#fff" stroke="#b6c3d3" stroke-width="2"/><text x="'+(d.cx-60)+'" y="'+(y0+42)+'" font-size="26">'+d.ico+'</text><text x="'+(d.cx-24)+'" y="'+(y0+34)+'" style="font:800 15px \'Be Vietnam Pro\',system-ui,sans-serif" fill="#12202f">'+d.n+'</text><text x="'+(d.cx-24)+'" y="'+(y0+51)+'" style="font:400 11px \'Be Vietnam Pro\',system-ui,sans-serif" fill="#566779">'+d.role+'</text><text x="'+d.cx+'" y="'+(y0+78)+'" text-anchor="middle" style="font:600 11px ui-monospace,Menlo,Consolas,monospace" fill="#566779">'+h4(d.lo)+' – '+h4(d.hi)+'</text><g class="cs"><rect x="'+(d.cx+30)+'" y="'+(y0+8)+'" width="38" height="18" rx="9" fill="#16a34a"/><text x="'+(d.cx+49)+'" y="'+(y0+21)+'" text-anchor="middle" style="font:700 11px sans-serif" fill="#fff">CS</text></g></g>'}
+ s+='<defs><clipPath id="cp"><rect x="150" y="0" width="750" height="440"/></clipPath></defs><g id="lay" clip-path="url(#cp)"></g>';
+ $('svg').innerHTML=s})();
+
+/* ---- gói tin ---- */
+function fly(pts,kind,bits,label,ms){var gen=S.gen;return new Promise(function(res){
+ if(!ms||(S.view!=='all'&&S.view!==kind))return setTimeout(res,ms);
+ var col=C[kind],lay=$('lay'),g=document.createElementNS(NS,'g'),n=bits?bits.length:0,cw=n?Math.max(2,Math.min(11,170/n)):0,tw=n?n*cw:label.length*7+18,h='',i;
+ var trail='<polyline points="'+pts.map(function(p){return p.join(',')}).join(' ')+'" fill="none" stroke="'+col+'" stroke-width="3" opacity=".35" stroke-dasharray="4 4"/>';
+ if(n){h='<rect x="'+(-tw/2-3)+'" y="-9" width="'+(tw+6)+'" height="18" rx="4" fill="#fff" stroke="'+col+'" stroke-width="1.5"/>';
+  for(i=0;i<n;i++)h+='<rect x="'+(-tw/2+i*cw)+'" y="-6" width="'+Math.max(1,cw-(cw>4?1:0))+'" height="12" fill="'+col+'" fill-opacity="'+(bits[i]?1:.18)+'"/>';
+  h+='<text y="-14" text-anchor="middle" style="font:700 10px ui-monospace,Menlo,monospace" fill="'+col+'">'+label+'</text>'}
+ else h='<rect x="'+(-tw/2)+'" y="-9" width="'+tw+'" height="18" rx="9" fill="'+col+'"/><text y="4" text-anchor="middle" style="font:700 11px ui-monospace,Menlo,monospace" fill="#fff">'+label+'</text>';
+ g.innerHTML=h;var tr=document.createElementNS(NS,'g');tr.innerHTML=trail;lay.appendChild(tr);lay.appendChild(g);
+ var seg=[],tot=0;for(i=1;i<pts.length;i++){var l=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);seg.push(l);tot+=l}
+ function pos(u){u=u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;var r=u*tot,j=0;while(j<seg.length-1&&r>seg[j]){r-=seg[j];j++}var q=Math.min(1,r/(seg[j]||1));
+  g.setAttribute('transform','translate('+(pts[j][0]+(pts[j+1][0]-pts[j][0])*q)+','+(pts[j][1]+(pts[j+1][1]-pts[j][1])*q)+')')}
+ pos(0);var t0=null;
+ (function tick(ts){if(t0===null)t0=ts;var u=Math.min(1,(ts-t0)/ms);pos(u);if(u<1&&gen===S.gen)requestAnimationFrame(tick);else setTimeout(function(){g.remove();tr.remove();res()},gen===S.gen?160:0)})(performance.now())})}
+function route(k,rev){var d=DV[S.tgt],x=d.cx+OF[k],p=[[150,LY[k]],[x,LY[k]],[x,d.top?130:330]];return rev?p.reverse():p}
+
+/* ---- giao diện ---- */
+function lanes(a){['addr','data','ctrl'].forEach(function(k){$('l-'+k).classList.toggle('act',a.indexOf(k)>=0)})}
+function sel(){for(var id in DV){var e=$('d-'+id);e.classList.toggle('sel',id===S.tgt);e.classList.toggle('dim',id!==S.tgt&&S.busy)}}
+function row(id,on,t){var r=$('r'+id);r.classList.toggle('on',on);$('i'+id).textContent=t}
+function ro(){var w=WD[S.wi],f=CL[S.ci],bw=w/8*f*1e6;
+ $('ow').textContent=w+' bit';$('oc').textContent=(f>=1000?(f/1000)+' GHz':f+' MHz');$('wl').textContent=w;
+ $('bw').textContent=bw>=1e9?(bw/1e9).toLocaleString('vi-VN',{maximumFractionDigits:1})+' GB/s':(bw/1e6).toLocaleString('vi-VN',{maximumFractionDigits:0})+' MB/s';
+ $('bb').style.width=Math.max(2,bw/25.6e9*100)+'%';$('bf').textContent=w+' bit ÷ 8 × '+(f>=1000?(f/1000)+' GHz':f+' MHz')+' (mỗi xung nhịp truyền một lần)'}
+function total(){var b=S.tot;$('tot').textContent=b>=1024?(b/1024).toLocaleString('vi-VN',{maximumFractionDigits:1})+' KB':b+' byte'}
+
+async function cycle(){if(S.busy)return;S.busy=true;
+ var gn=S.gen,d=DV[S.tgt],w=WD[S.wi],ms=dur(),rd=S.dir==='read',i,db=[];
+ var addr=d.lo+Math.floor(Math.random()*(d.hi-d.lo+1)),ab=bitsOf(addr,16),sg=rd?'READ':'WRITE';
+ for(i=0;i<w;i++)db.push(Math.random()<.5?1:0);var hx=hexOf(db);
+ sel();row('A',0,'—');row('C',0,'—');row('D',0,'—');
+ $('ph').textContent='Bước 1: CPU đặt địa chỉ lên bus địa chỉ và phát tín hiệu '+sg+' trên bus điều khiển.';
+ $('dec').textContent=h4(addr)+' nằm trong vùng '+h4(d.lo)+' – '+h4(d.hi)+', nên bộ giải mã chọn '+d.n+' (CS).';
+ lanes(['addr','ctrl']);
+ await Promise.all([fly(route('addr'),'addr',ab,h4(addr),ms),fly(route('ctrl'),'ctrl',null,sg,ms)]);
+ if(gn!==S.gen)return;
+ row('A',1,h4(addr)+' → '+d.n);row('C',1,sg+(rd?' (đọc)':' (ghi)'));
+ $('ph').textContent='Bước 2: '+(rd?d.n+' đưa '+w+' bit lên bus dữ liệu, truyền về CPU.':'CPU đưa '+w+' bit lên bus dữ liệu, truyền tới '+d.n+' để ghi.');
+ lanes(['data']);
+ await fly(route('data',rd),'data',db,hx,ms*1.1);
+ if(gn!==S.gen)return;
+ row('D',1,hx+(rd?' → CPU':' → '+d.n));
+ lanes([]);S.tot+=w/8;total();
+ $('ph').textContent='Hoàn tất: đã '+(rd?'đọc':'ghi')+' '+w/8+' byte trong một chu kỳ bus. Chu kỳ mới sẽ bắt đầu với địa chỉ khác.';
+ S.busy=false;sel();await wait(reduce?0:350)}
+async function run(){if(S.loop)return;S.loop=true;while(S.play){await cycle();await wait(reduce?0:250)}S.loop=false}
+
+/* ---- điều khiển ---- */
+function setView(v){S.view=v;$('svg').setAttribute('data-view',v);$('vd').textContent=VD[v];
+ document.querySelector('.seg[data-k="view"]').querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',b.dataset.v===v)})}
+document.querySelectorAll('.seg').forEach(function(g){g.querySelectorAll('button').forEach(function(b){b.onclick=function(){
+ g.querySelectorAll('button').forEach(function(x){x.setAttribute('aria-pressed',x===b)});var k=g.dataset.k;
+ if(k==='view')setView(b.dataset.v);else{S[k]=b.dataset.v;sel()}}})});
+document.querySelectorAll('.cards button').forEach(function(b){b.onclick=function(){setView(b.dataset.v);$('svg').scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'})}});
+$('rw').oninput=function(){S.wi=+this.value;ro()};$('rc').oninput=function(){S.ci=+this.value;ro()};
+function power(on){S.play=on;$('sim').checked=on;$('swt').textContent=on?'Bật':'Tắt';$('svg').classList.toggle('off',!on);$('step').disabled=on;
+ if(on){run();return}
+ S.gen++;S.busy=false;$('lay').innerHTML='';lanes([]);sel();row('A',0,'—');row('C',0,'—');row('D',0,'—');
+ $('ph').textContent='Mô phỏng truyền dữ liệu đang tắt. Bật công tắc để chạy liên tục hoặc bấm "Một chu kỳ" để chạy từng lần.'}
+$('sim').onchange=function(){power(this.checked)};
+$('step').onclick=function(){if(!S.play&&!S.busy)cycle()};
+
+/* ---- giản đồ định thời ---- */
+var cv=$('tc'),cx=cv.getContext('2d'),dpr=1,off=0,lt=0;
+function rs(){dpr=window.devicePixelRatio||1;cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr}
+addEventListener('resize',rs);
+function drawT(ts){var dt=Math.min(50,ts-lt)||16;lt=ts;if(!reduce&&S.play)off+=dt*.001*[30,42,58,80,110,150][S.ci];
+ var w=cv.clientWidth,h=cv.clientHeight,c=cx,L=84,P=46,i,rd=S.dir==='read',rh=(h-28)/5;
+ c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+ var R=[['CLK','ctrl','#64748b'],['ADDR','addr',C.addr],['READ','ctrl',C.ctrl],['WRITE','ctrl',C.ctrl],['DATA','data',C.data]];
+ function X(u){return L+u*P-off}
+ function yc(r){return 28+rh*r+rh/2}
+ function al(r){return S.view==='all'||S.view===R[r][1]?1:.2}
+ c.font='500 12px "Be Vietnam Pro",system-ui,sans-serif';c.textBaseline='middle';
+ c.save();c.beginPath();c.rect(L,0,w-L,h);c.clip();
+ var u0=Math.floor(off/P)-1,u1=Math.ceil((w-L+off)/P)+1,u;
+ for(u=u0;u<=u1;u++){var x=X(u),m=((u%4)+4)%4;c.strokeStyle=m===0?'#b6c3d3':'#e6ecf3';c.lineWidth=m===0?1.5:1;c.beginPath();c.moveTo(x,24);c.lineTo(x,h);c.stroke();
+  c.fillStyle='#566779';c.textAlign='center';c.fillText('T'+(m+1),x+P/2,12)}
+ var k0=Math.floor(off/(4*P))-1,k1=Math.ceil((w-L+off)/(4*P))+1,k;
+ R.forEach(function(r,ri){var y=yc(ri),hi=y-rh*.28,lo=y+rh*.28,mid=y;c.globalAlpha=al(ri);c.lineWidth=2;c.strokeStyle=r[2];c.beginPath();
+  if(ri===0){for(u=u0;u<=u1;u++){c.lineTo(X(u),lo);c.lineTo(X(u),hi);c.lineTo(X(u+.5),hi);c.lineTo(X(u+.5),lo)}c.stroke()}
+  else if(ri===2||ri===3){var act=(ri===2)===rd;c.globalAlpha=al(ri)*(act?1:.35);c.moveTo(L-10,lo);
+   for(k=k0;k<=k1;k++){if(act){c.lineTo(X(4*k+.5),lo);c.lineTo(X(4*k+.5),hi);c.lineTo(X(4*k+3.5),hi);c.lineTo(X(4*k+3.5),lo)}}c.lineTo(w+10,lo);c.stroke();
+   if(act){c.globalAlpha=al(ri)*.1;c.fillStyle=r[2];for(k=k0;k<=k1;k++)c.fillRect(X(4*k+.5),hi,3*P,lo-hi)}}
+  else{c.setLineDash([3,4]);c.globalAlpha=al(ri)*.5;c.moveTo(L-10,mid);c.lineTo(w+10,mid);c.stroke();c.setLineDash([]);c.globalAlpha=al(ri);
+   var a=ri===1?0:2,b=ri===1?2.8:3.6,sl=9;for(k=k0;k<=k1;k++){var x0=X(4*k+a),x1=X(4*k+b);c.beginPath();c.moveTo(x0,mid);c.lineTo(x0+sl,hi);c.lineTo(x1-sl,hi);c.lineTo(x1,mid);c.lineTo(x1-sl,lo);c.lineTo(x0+sl,lo);c.closePath();
+    c.fillStyle=r[2];c.globalAlpha=al(ri)*.14;c.fill();c.globalAlpha=al(ri);c.stroke();c.fillStyle=r[2];c.textAlign='center';c.fillText(ri===1?'Địa chỉ':(rd?'Dữ liệu →CPU':'Dữ liệu →'+DV[S.tgt].n),(x0+x1)/2,mid)}}
+  c.globalAlpha=1});
+ c.restore();c.textAlign='left';c.font='700 12px "Be Vietnam Pro",system-ui,sans-serif';
+ R.forEach(function(r,ri){c.globalAlpha=al(ri);c.fillStyle=r[2];c.fillText(r[0],10,yc(ri));c.globalAlpha=1});
+ if(!reduce)requestAnimationFrame(drawT)}
+
+ro();total();setView('all');sel();rs();$('sim').checked=S.play;$('swt').textContent=S.play?'Bật':'Tắt';$('step').disabled=S.play;$('svg').classList.toggle('off',!S.play);
+$('ph').textContent=S.play?'Chu kỳ đầu tiên sắp bắt đầu.':'Mô phỏng đang tắt. Bật công tắc hoặc bấm "Một chu kỳ".';
+requestAnimationFrame(drawT);if(S.play)run();
+})();
+</script>
+</body>
+</html>
