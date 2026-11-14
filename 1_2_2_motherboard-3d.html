@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mô Phỏng Bo Mạch Chủ 3D - Nền Sáng</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+*{box-sizing:border-box}
+body{margin:0;height:100vh;display:flex;font-family:Inter,Segoe UI,Arial,sans-serif;background:#eef2f7;color:#0f172a;overflow:hidden}
+#view{position:relative;flex:1;background:radial-gradient(circle at 50% 35%,#fff,#e2e8f0 70%,#cbd5e1)}
+#three{width:100%;height:100%}
+#panel{width:350px;background:#f8fafc;border-left:1px solid #cbd5e1;overflow-y:auto;padding:14px}
+@media(max-width:900px){body{flex-direction:column}#view{height:55vh;flex:none}#panel{width:100%;flex:1;border-left:0;border-top:1px solid #cbd5e1}}
+.card{background:#fff;border:1px solid #cbd5e1;border-radius:12px;padding:12px;margin-bottom:12px}
+.card h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:#0369a1}
+.badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:5px;background:#e0f2fe;color:#0369a1;font-family:monospace}
+#i-title{font-size:15px;margin:6px 0}
+#i-desc{font-size:12px;line-height:1.55;color:#334155;margin:0 0 8px}
+.spec{background:#f1f5f9;border-radius:8px;padding:8px;font-size:12px}
+.spec div{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #e2e8f0}
+.spec div:last-child{border:0}.spec b{text-align:right;font-family:monospace;color:#0369a1;font-weight:600}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid #cbd5e1;background:#fff;color:#0f172a;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600}
+.btn:hover{background:#e0f2fe;border-color:#0284c7}
+.btn.pri{background:#0284c7;color:#fff;border-color:#0284c7}
+.btn.red{background:#dc2626;color:#fff;border-color:#dc2626}
+.btn.ok{background:#fff;color:#be123c;border-color:#fda4af}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px;background:#f1f5f9;border-radius:8px;margin-bottom:6px;font-size:12px}
+.row small{display:block;font-family:monospace;font-size:10px;margin-top:2px}
+.warn{color:#b45309}.good{color:#047857}.mute{color:#64748b}
+#bar{position:absolute;left:12px;right:12px;bottom:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;pointer-events:none}
+#bar>*{pointer-events:auto}
+.glass{background:rgba(255,255,255,.9);border:1px solid #cbd5e1;border-radius:12px;padding:6px;display:flex;gap:6px;flex-wrap:wrap;box-shadow:0 4px 14px rgba(15,23,42,.1)}
+#head{position:absolute;top:12px;left:12px;padding:8px 14px;font-size:13px}
+#head b{font-size:15px}
+#pw{position:absolute;top:12px;right:12px;padding:6px 12px;font:600 12px monospace;display:flex;gap:8px;align-items:center}
+#pdot{width:10px;height:10px;border-radius:50%;background:#94a3b8}
+#tip{position:fixed;pointer-events:none;opacity:0;background:#fff;border:1px solid #0284c7;border-radius:8px;padding:5px 10px;font-size:12px;z-index:9;box-shadow:0 4px 12px rgba(0,0,0,.15);transition:opacity .12s}
+#post{background:#0f172a;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;min-height:66px;margin-top:8px}
+#pt{font-weight:700;color:#94a3b8}#pd{font-size:11px;color:#94a3b8;margin-top:4px}
+.leds{display:flex;gap:4px;font:9px monospace}
+.led{padding:2px 6px;border-radius:4px;background:#e2e8f0;color:#64748b}
+.led.a{background:#f59e0b;color:#000;font-weight:700}.led.r{background:#dc2626;color:#fff;font-weight:700}.led.g{background:#16a34a;color:#fff;font-weight:700}
+input[type=range]{width:100%;accent-color:#0284c7}
+</style>
+</head>
+<body>
+<div id="tip"></div>
+<div id="view">
+  <div id="three"></div>
+  <div id="head" class="glass"><div><b>Z790 AORUS ULTRA 3D</b> <span class="badge">ATX</span><br><span class="mute">Mô phỏng phần cứng &amp; kiểm tra POST</span></div></div>
+  <div id="pw" class="glass"><span id="pdot"></span><span id="ptxt">STANDBY (OFF)</span></div>
+  <div id="bar">
+    <div class="glass">
+      <button class="btn" onclick="sel('pcb')">Tổng thể</button>
+      <button class="btn" onclick="sel('cpu_socket')">CPU Socket</button>
+      <button class="btn" onclick="sel('ram_slots')">Khe RAM</button>
+      <button class="btn" onclick="sel('pcie')">PCIe</button>
+      <button class="btn" onclick="sel('m2_slot')">M.2</button>
+      <button class="btn" onclick="sel('rear_io')">Cổng Rear I/O</button>
+      <button class="btn pri" id="btn-lbl" onclick="toggleLabels()">Nhãn cổng: Bật</button>
+    </div>
+  </div>
+</div>
+
+<div id="panel">
+  <div class="card">
+    <span class="badge" id="i-badge">Nền tảng</span>
+    <h2 id="i-title">Bản mạch PCB chuẩn ATX</h2>
+    <p id="i-desc"></p>
+    <div class="spec">
+      <div><span>Chuẩn thiết kế</span><b id="s-std"></b></div>
+      <div><span>Băng thông / điện áp</span><b id="s-bw"></b></div>
+      <div><span>Vai trò</span><b id="s-role"></b></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="display:flex;justify-content:space-between;align-items:center">Lắp ráp linh kiện <button class="btn" id="btn-all" onclick="toggleAll()">Lắp tất cả</button></h3>
+    <div id="parts"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="display:flex;justify-content:space-between;align-items:center">Kiểm tra khởi động (POST)
+      <span class="leds"><span class="led" id="l-cpu">CPU</span><span class="led" id="l-dram">DRAM</span><span class="led" id="l-vga">VGA</span><span class="led" id="l-boot">BOOT</span></span></h3>
+    <button class="btn pri" id="btn-pw" style="width:100%;padding:9px" onclick="togglePower()">Bật nguồn (POST)</button>
+    <div id="post"><div id="pt">[SYSTEM STANDBY]</div><div id="pd">Hãy lắp CPU và RAM rồi nhấn "Bật nguồn".</div></div>
+  </div>
+
+  <div class="card">
+    <h3>Camera</h3>
+    <div style="display:flex;justify-content:space-between;font-size:12px"><span>Phóng to / thu nhỏ</span><span id="zl" class="mute">100%</span></div>
+    <input id="zoom" type="range" min="6" max="42" step="0.5" value="25" oninput="setZoom(this.value)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px">
+      <span>Tự động xoay 360°</span><button class="btn" id="btn-rot" onclick="toggleRot()">Đang bật</button>
+    </div>
+    <input id="spd" type="range" min="0.2" max="4" step="0.2" value="1.2" oninput="controls.autoRotateSpeed=+this.value">
+    <button class="btn" style="margin-top:8px" onclick="sel('pcb')">Đặt lại góc nhìn</button>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const D={
+ pcb:{b:'Nền tảng',t:'Bản mạch PCB chuẩn ATX (8 lớp)',d:'Bản mạch in kết nối toàn bộ linh kiện, gồm 8 lớp sợi thủy tinh FR4 xen các đường đồng, truyền tín hiệu tốc độ cao và phân phối điện ổn định.',s:'ATX 305 x 244 mm',w:'8 lớp, đồng 2oz',r:'Liên kết cơ học & tín hiệu',p:[0,22,18],l:[0,0,0]},
+ cpu_socket:{b:'Xử lý',t:'Đế cắm CPU LGA 1700',d:'Chứa 1.700 chân tiếp xúc mạ vàng kết nối CPU với bo mạch. Khung ngàm kim loại và cần gạt giữ CPU với lực ép đều.',s:'LGA 1700 (Gen 12/13/14)',w:'20 làn PCIe + DDR5 kênh đôi',r:'Giao tiếp trực tiếp với CPU',p:[-1.2,9.5,4.5],l:[-1.2,.6,-2.5]},
+ vrm:{b:'Cấp nguồn',t:'Cụm VRM & tản nhiệt nhôm',d:'Cuộn cảm, tụ rắn và MOSFET hạ áp 12V từ PSU xuống khoảng 1.1 - 1.4V sạch và chính xác cho CPU.',s:'16+2+1 phase digital',w:'90A / Smart Power Stage',r:'Hạ áp, lọc nhiễu, tản nhiệt',p:[-7,11,3.5],l:[-3.2,1,-3.5]},
+ ram_slots:{b:'Bộ nhớ',t:'4 khe RAM DDR5 (kênh đôi)',d:'Bốn khe DIMM 288-pin chia 2 kênh. Khi chỉ lắp 2 thanh, hãy cắm vào khe A2 và B2 (màu xám sáng) để chạy kênh đôi.',s:'4x DDR5 (tối đa 192GB)',w:'XMP 3.0, 8000+ MT/s',r:'Lưu trữ tạm tốc độ cao cho CPU',p:[6.5,10.5,4.5],l:[2.7,.8,-2.2]},
+ pcie:{b:'Mở rộng',t:'Khe PCIe 5.0 x16 bọc thép',d:'Khe tốc độ cao nhất, nối trực tiếp CPU qua 16 làn. Vỏ thép gia cố giúp chống cong khi lắp card đồ họa nặng.',s:'PCIe 5.0 x16',w:'Tới 64 GB/s',r:'Kết nối card đồ họa rời',p:[-1,9,8.5],l:[-1,.6,1.8]},
+ m2_slot:{b:'Lưu trữ',t:'Khe M.2 NVMe & giáp tản nhiệt',d:'Hỗ trợ SSD M.2 2280 NVMe PCIe Gen4/5. Thanh tản nhiệt nhôm kèm miếng dẫn nhiệt chống giảm xung do quá nhiệt.',s:'M.2 Key M 2280',w:'PCIe 4.0 x4 (~7.500 MB/s)',r:'Gắn SSD khởi động hệ điều hành',p:[1.5,8.5,6.5],l:[-.6,.5,.3]},
+ chipset:{b:'Chipset',t:'Chipset Z790 (PCH) kèm LED ARGB',d:'Điều phối dữ liệu giữa CPU và SATA, USB, LAN, Wi-Fi, âm thanh, các khe PCIe phụ qua đường DMI 4.0.',s:'Intel Z790 + heatsink',w:'DMI 4.0 x8',r:'Quản lý I/O và khe phụ',p:[5.5,8.5,9.5],l:[3.2,.6,4.5]},
+ cmos:{b:'BIOS',t:'Pin CMOS CR2032',d:'Pin lithium 3V nuôi chip nhớ CMOS và đồng hồ thời gian thực khi rút điện, giúp không mất cấu hình BIOS.',s:'CR2032 3.0V',w:'Tuổi thọ 3 - 5 năm',r:'Lưu cấu hình BIOS & giờ',p:[-2,7,9],l:[-1.3,.4,3.6]},
+ power:{b:'Nguồn',t:'Cổng ATX 24-pin & EPS 8-pin',d:'ATX 24-pin ở mép phải cấp +12V, +5V, +3.3V cho toàn bo; EPS 8-pin ở góc trên cấp 12V riêng cho VRM của CPU. Bên cạnh có 4 đèn EZ Debug.',s:'ATX 24-pin & EPS 8-pin',w:'12V / 5V / 3.3V',r:'Cấp điện cho bo mạch',p:[8.5,9.5,3.5],l:[5.5,.8,-1.5]},
+ rear_io:{b:'Ngoại vi',t:'Cụm cổng phía sau (Rear I/O)',d:'Gồm HDMI/DisplayPort, USB 3.2 (xanh, đỏ), LAN RJ45 2.5GbE, ngàm ăng-ten Wi-Fi 6E mạ vàng và 3 jack âm thanh. Mỗi cổng có nhãn nổi để dễ nhận biết.',s:'I/O Shield tích hợp',w:'USB 20Gbps, LAN 2.5G, Wi-Fi 6E',r:'Màn hình, chuột, phím, mạng, âm thanh',p:[-14,8,-2.5],l:[-5.5,1.2,-2.5]}
+};
+
+let scene,camera,renderer,controls,ray,mouse,hover=null,selId='pcb',tr={on:false,p:new THREE.Vector3(),l:new THREE.Vector3()};
+const hits=[],rgb=[],fans=[],leds={},timers=[];
+let rot=true,state='OFF',labels=new THREE.Group(),m2Shield=null,lever=null;
+const A={
+ cpu:{on:0,det:[-1.2,8.5,-2.5],ins:[-1.2,.58,-2.5],name:'Vi xử lý Core i9-14900K',off:'Chưa lắp vào Socket',onT:'Đã khóa vào Socket LGA1700',req:1},
+ ram:{on:0,det:[3.05,8.5,-2.2],ins:[3.05,.45,-2.2],name:'2x RAM DDR5 RGB 32GB',off:'Chưa lắp vào khe A2/B2',onT:'Đã cắm kênh đôi A2/B2',req:1},
+ m2:{on:0,det:[-.5,6.5,.35],ins:[-.5,.4,.35],name:'SSD M.2 NVMe Gen4',off:'Tùy chọn (khe M2_1)',onT:'Đã lắp dưới giáp M.2',req:0},
+ gpu:{on:0,det:[-1.2,9.5,1.8],ins:[-1.2,.65,1.8],name:'Card đồ họa RTX 4080',off:'Tùy chọn (khe PCIe x16)',onT:'Đã cắm vào PCIe 5.0 x16',req:0}
+};
+
+const M=(c,r=.5,m=.2)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
+const plastic=M(0x2b3345,.55,.15),grey=M(0x94a3b8,.5,.2),metal=M(0xd1d5db,.25,.9),alum=M(0x64748b,.35,.7),gold=M(0xfbbf24,.25,.9);
+const V=a=>new THREE.Vector3(...a);
+function bx(p,w,h,d,m,x,y,z){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);p.add(o);return o}
+function cy(p,r,h,m,x,y,z,rz=0,rx=0){const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,20),m);o.position.set(x,y,z);o.rotation.z=rz;o.rotation.x=rx;p.add(o);return o}
+function tex(text,sub,bg,fg){const c=document.createElement('canvas');c.width=512;c.height=256;const g=c.getContext('2d');g.fillStyle=bg;g.fillRect(0,0,512,256);g.strokeStyle=fg;g.lineWidth=6;g.strokeRect(12,12,488,232);g.fillStyle=fg;g.textAlign='center';g.font='bold 50px sans-serif';g.fillText(text,256,sub?115:145);if(sub){g.font='bold 28px monospace';g.fillText(sub,256,175)}return new THREE.CanvasTexture(c)}
+function pcbTex(){const c=document.createElement('canvas');c.width=1024;c.height=1280;const g=c.getContext('2d');g.fillStyle='#0f3d3a';g.fillRect(0,0,1024,1280);g.strokeStyle='#1f6b63';g.lineWidth=3;for(let i=0;i<90;i++){const x=Math.random()*1024,y=Math.random()*1280,s=40+Math.random()*120;g.beginPath();g.moveTo(x,y);g.lineTo(x+s,y+s);g.lineTo(x+s,y+s+80);g.stroke()}g.strokeStyle='rgba(251,191,36,.35)';g.lineWidth=2;for(let i=0;i<36;i++){g.beginPath();g.moveTo(420,220+i*7);g.lineTo(540,245+i*7);g.lineTo(740,245+i*7);g.stroke()}g.fillStyle='rgba(226,232,240,.85)';g.font='bold 22px monospace';g.fillText('Z790 AORUS ULTRA 3D',65,1210);g.font='15px monospace';g.fillText('PCIEX16_GEN5',220,745);g.fillText('M2A_CPU_GEN4',380,620);g.fillText('DDR5_A1_A2_B1_B2',660,175);g.fillText('ATX_24PIN',880,460);g.fillText('LGA1700',385,210);const t=new THREE.CanvasTexture(c);t.anisotropy=4;return t}
+function reg(g,id){g.traverse(o=>{if(o.isMesh){o.userData.id=id;o.castShadow=o.receiveShadow=true;if(!o.userData.keep&&o.material.emissive)o.material=o.material.clone();hits.push(o)}});scene.add(g)}
+function tag(text,x,y,z,col){const c=document.createElement('canvas');c.width=320;c.height=80;const g=c.getContext('2d');g.fillStyle='rgba(255,255,255,.96)';g.strokeStyle=col;g.lineWidth=6;g.beginPath();g.roundRect(4,4,312,72,16);g.fill();g.stroke();g.fillStyle='#0f172a';g.font='bold 32px sans-serif';g.textAlign='center';g.fillText(text,160,52);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));s.scale.set(3.2,.8,1);s.position.set(x,y,z);s.renderOrder=10;labels.add(s)}
+
+function init(){
+ const box=$('three');
+ scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0xe8edf4,.008);
+ camera=new THREE.PerspectiveCamera(42,box.clientWidth/box.clientHeight,.1,200);camera.position.set(0,22,18);
+ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setSize(box.clientWidth,box.clientHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+ renderer.shadowMap.enabled=true;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.95;box.appendChild(renderer.domElement);
+ controls=new THREE.OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=6;controls.maxDistance=42;controls.autoRotate=true;controls.autoRotateSpeed=1.2;
+ controls.addEventListener('start',()=>{tr.on=false;controls.autoRotate=false});
+ controls.addEventListener('end',()=>{controls.autoRotate=rot});
+ controls.addEventListener('change',()=>{const d=camera.position.distanceTo(controls.target);$('zoom').value=Math.min(42,Math.max(6,d));zl(d)});
+ scene.add(new THREE.AmbientLight(0xffffff,.95));
+ const dl=new THREE.DirectionalLight(0xffffff,1.1);dl.position.set(14,26,16);dl.castShadow=true;dl.shadow.mapSize.set(2048,2048);Object.assign(dl.shadow.camera,{left:-14,right:14,top:14,bottom:-14,near:2,far:60});dl.shadow.bias=-.0005;scene.add(dl);
+ const pl=new THREE.PointLight(0x00f2fe,.35,35);pl.position.set(-14,10,-10);scene.add(pl);
+ const g=new THREE.GridHelper(50,50,0x94a3b8,0xcbd5e1);g.position.y=-2.2;scene.add(g);
+ ray=new THREE.Raycaster();mouse=new THREE.Vector2();
+ build();parts();ui();
+ const el=renderer.domElement;let dn=[0,0];
+ el.addEventListener('pointerdown',e=>dn=[e.clientX,e.clientY]);
+ el.addEventListener('pointerup',e=>{if(Math.hypot(e.clientX-dn[0],e.clientY-dn[1])>6)return;const h=pick(e);if(h)sel(h)});
+ el.addEventListener('pointermove',e=>{const h=pick(e),tip=$('tip');if(hover!==h){unlight();hover=h;light()}if(h){tip.textContent=D[h].t;tip.style.left=e.clientX+14+'px';tip.style.top=e.clientY+14+'px';tip.style.opacity=1}else tip.style.opacity=0});
+ addEventListener('resize',()=>{camera.aspect=box.clientWidth/box.clientHeight;camera.updateProjectionMatrix();renderer.setSize(box.clientWidth,box.clientHeight)});
+ sel('pcb');zl(25);
+}
+function pick(e){const r=renderer.domElement.getBoundingClientRect();mouse.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mouse,camera);const i=ray.intersectObjects(hits,false);return i.length?i[0].object.userData.id:null}
+function light(){if(!hover||hover==='pcb')return;hits.forEach(m=>{if(m.userData.id===hover&&!m.userData.keep&&m.material.emissive){m.material.emissive.setHex(0x075985);m.material.emissiveIntensity=.5}})}
+function unlight(){if(!hover)return;hits.forEach(m=>{if(m.userData.id===hover&&!m.userData.keep&&m.material.emissive){m.material.emissive.setHex(0);m.material.emissiveIntensity=1}})}
+
+function build(){
+ // PCB
+ const pcb=new THREE.Group();bx(pcb,12,.35,15,new THREE.MeshStandardMaterial({map:pcbTex(),roughness:.65,metalness:.2}),0,0,0);
+ [[-5.5,-7],[0,-7],[5.5,-7],[-5.5,-.5],[0,-.5],[5.5,-.5],[-5.5,6.8],[0,6.8],[5.5,6.8]].forEach(([x,z])=>cy(pcb,.28,.37,gold,x,0,z));
+ reg(pcb,'pcb');
+ // CPU socket
+ const s=new THREE.Group();s.position.set(-1.2,.18,-2.5);
+ bx(s,2.7,.22,3,plastic,0,.11,0);bx(s,2.1,.24,2.4,gold,0,.12,0);bx(s,.8,.26,1,plastic,0,.13,0);
+ bx(s,.22,.32,3.05,metal,-1.25,.18,0);bx(s,.22,.32,3.05,metal,1.25,.18,0);bx(s,2.72,.32,.28,metal,0,.18,-1.38);bx(s,2.72,.32,.28,metal,0,.18,1.38);
+ lever=new THREE.Group();lever.position.set(1.52,.18,-1.35);cy(lever,.055,3.1,metal,0,0,1.45,0,Math.PI/2);cy(lever,.055,.45,metal,.2,0,2.95,Math.PI/2);s.add(lever);
+ reg(s,'cpu_socket');
+ // VRM
+ const v=new THREE.Group();
+ bx(v,1.75,1.35,4.6,alum,-4.35,.85,-2.5);
+ const lab=new THREE.Mesh(new THREE.PlaneGeometry(1.3,3.8),new THREE.MeshBasicMaterial({map:tex('AORUS','VRM ARMOR','#0f172a','#38bdf8')}));lab.rotation.x=-Math.PI/2;lab.rotation.z=Math.PI/2;lab.position.set(-4.35,1.54,-2.5);lab.userData.keep=1;v.add(lab);
+ bx(v,4.4,1.15,1.35,alum,-1.1,.75,-5.6);cy(v,.11,3.8,M(0xd97706,.25,.85),-2.5,.95,-4.8,Math.PI/2);
+ const ch=M(0x334155,.4,.6);
+ for(let i=0;i<7;i++){bx(v,.38,.35,.38,ch,-3.1,.35,-4+i*.52);cy(v,.14,.36,metal,-2.65,.35,-4+i*.52)}
+ for(let i=0;i<6;i++){bx(v,.38,.35,.38,ch,-2.4+i*.54,.35,-4.6);cy(v,.14,.36,metal,-2.4+i*.54,.35,-4.15)}
+ reg(v,'vrm');
+ // RAM slots
+ const r=new THREE.Group();
+ [1.85,2.45,3.05,3.65].forEach((x,i)=>{const m=(i===1||i===3)?grey:plastic;const g=new THREE.Group();g.position.set(x,.18,-2.2);bx(g,.34,.38,6.2,m,0,.19,0);const gr=bx(g,.12,.4,5.9,new THREE.MeshBasicMaterial({color:0x05070b}),0,.2,0);gr.userData.keep=1;bx(g,.32,.41,.2,m,0,.2,-.35);bx(g,.38,.56,.32,m,0,.28,-3.2);bx(g,.38,.56,.32,m,0,.28,3.2);r.add(g)});
+ reg(r,'ram_slots');
+ // PCIe
+ const p=new THREE.Group();
+ bx(p,6.4,.44,.52,metal,-1.2,.4,1.8);const gv=bx(p,6,.46,.18,new THREE.MeshBasicMaterial({color:0x05070b}),-1.2,.41,1.8);gv.userData.keep=1;
+ bx(p,.55,.48,.65,M(0x0284c7,.3,.4),2.2,.42,1.8);bx(p,1.6,.36,.42,plastic,-3.5,.36,3.6);bx(p,6.2,.38,.46,plastic,-1.2,.36,5.4);
+ reg(p,'pcie');
+ // M.2
+ const m=new THREE.Group();m.position.set(-.5,.18,.35);
+ bx(m,.45,.34,1.15,plastic,2.1,.17,0);cy(m,.16,.34,gold,-2.1,.17,0);
+ m2Shield=new THREE.Group();bx(m2Shield,4.6,.26,1.25,M(0x64748b,.35,.7),0,.45,0);
+ const sl=new THREE.Mesh(new THREE.PlaneGeometry(3.8,.85),new THREE.MeshBasicMaterial({map:tex('M.2 NVMe GEN4','THERMAL GUARD','#e2e8f0','#0369a1')}));sl.rotation.x=-Math.PI/2;sl.position.y=.59;sl.userData.keep=1;m2Shield.add(sl);m.add(m2Shield);
+ reg(m,'m2_slot');
+ // Chipset
+ const c=new THREE.Group();c.position.set(3.2,.18,4.3);
+ bx(c,3.4,.65,3.6,alum,0,.33,0);
+ const rm=new THREE.MeshStandardMaterial({color:0x00f2fe,emissive:0x00f2fe,emissiveIntensity:.45});rgb.push(rm);const rg=bx(c,3.15,.14,3.35,rm,0,.7,0);rg.userData.keep=1;
+ bx(c,2.85,.12,3.05,plastic,0,.8,0);
+ const lg=new THREE.Mesh(new THREE.PlaneGeometry(2.6,2.6),new THREE.MeshBasicMaterial({map:tex('Z790','ULTRA PCH','#0f172a','#38bdf8')}));lg.rotation.x=-Math.PI/2;lg.position.y=.87;lg.userData.keep=1;c.add(lg);
+ reg(c,'chipset');
+ // CMOS
+ const b=new THREE.Group();b.position.set(-1.3,.18,3.6);
+ cy(b,.82,.22,plastic,0,.11,0);cy(b,.72,.22,M(0xf1f5f9,.15,.95),0,.2,0);bx(b,.3,.32,.22,metal,.75,.18,0);
+ reg(b,'cmos');
+ // Power + debug LEDs
+ const w=new THREE.Group();
+ const a24=new THREE.Group();a24.position.set(5.35,.18,-1.6);bx(a24,.85,.78,3.6,plastic,0,.39,0);
+ for(let i=0;i<12;i++)for(let j=0;j<2;j++)bx(a24,.24,.8,.2,gold,-.18+j*.36,.4,-1.55+i*.28);w.add(a24);
+ const e8=new THREE.Group();e8.position.set(-4.3,.18,-6.75);bx(e8,1.5,.78,.85,plastic,0,.39,0);
+ for(let i=0;i<4;i++)for(let j=0;j<2;j++)bx(e8,.22,.8,.22,gold,-.48+i*.32,.4,-.18+j*.36);w.add(e8);
+ ['cpu','dram','vga','boot'].forEach((k,i)=>{const mt=M(0x334155);mt.emissive=new THREE.Color(0);leds[k]={m:mt};const l=bx(w,.24,.15,.24,mt,4.55,.24,.8+i*.38);l.userData.keep=1});
+ reg(w,'power');
+ // Rear I/O
+ const io=new THREE.Group();io.position.set(-5.35,.18,-2.5);
+ bx(io,1.25,1.95,7.8,metal,.15,.98,0);
+ bx(io,1.1,1.1,1,plastic,-.1,.6,-2.9);
+ bx(io,1.2,1.35,1.1,M(0x0284c7,.3),-.12,.72,-1.4);bx(io,1.2,1.35,1.1,M(0xdc2626,.3),-.12,.72,.1);
+ bx(io,1.25,1.5,.95,plastic,-.1,.8,1.45);
+ for(let i=0;i<2;i++)cy(io,.16,.55,gold,-.65,.65+i*.55,2.45,Math.PI/2);
+ [0x22c55e,0xec4899,0x3b82f6].forEach((col,i)=>cy(io,.18,.45,M(col,.3),-.62,.48+i*.45,3.35,Math.PI/2));
+ reg(io,'rear_io');
+ // Nhãn cổng
+ tag('HDMI / DP',-7.4,2.6,-5.4,'#7c3aed');tag('USB 3.2',-7.4,2.6,-3.9,'#0284c7');tag('USB 3.2 (đỏ)',-7.4,2.6,-2.4,'#dc2626');
+ tag('LAN 2.5G',-7.4,2.6,-1,'#334155');tag('Wi-Fi 6E',-7.4,2.6,0,'#b45309');tag('Audio',-7.4,2.6,.9,'#16a34a');
+ tag('ATX 24-pin',5.4,2.4,-1.6,'#ea580c');tag('EPS 8-pin',-4.3,2.4,-7.4,'#ea580c');tag('DDR5 DIMM',2.7,2,-5.6,'#7c3aed');
+ tag('PCIe 5.0 x16',-1.2,1.7,1.8,'#0284c7');tag('M.2 NVMe',-.5,2.1,.35,'#059669');tag('CPU LGA1700',-1.2,1.6,-2.5,'#0369a1');
+ tag('EZ Debug LED',4.55,1.4,1.6,'#dc2626');tag('Chipset Z790',3.2,2.3,4.3,'#0369a1');tag('Pin CMOS',-1.3,1.6,3.6,'#475569');
+ scene.add(labels);
+}
+
+function parts(){
+ // CPU
+ const c=new THREE.Group();bx(c,2.15,.12,2.45,M(0x065f46,.5),0,0,0);
+ const ih=bx(c,1.75,.18,2.05,new THREE.MeshStandardMaterial({map:tex('CORE i9','14900K','#e2e8f0','#0f172a'),roughness:.25,metalness:.85}),0,.12,0);
+ A.cpu.g=c;
+ // RAM
+ const r=new THREE.Group(),rm=new THREE.MeshStandardMaterial({color:0x00f2fe,emissive:0x00f2fe,emissiveIntensity:.35});rgb.push(rm);
+ [-.6,.6].forEach(x=>{const s=new THREE.Group();s.position.x=x;bx(s,.24,1.55,5.85,M(0x1e293b,.3,.8),0,.85,0);bx(s,.26,.32,5.88,rm,0,1.72,0);r.add(s)});
+ A.ram.g=r;
+ // SSD
+ const m=new THREE.Group();bx(m,4.1,.1,.95,M(0x0f172a,.5),0,0,0);bx(m,.75,.14,.75,M(0x94a3b8,.2,.8),1.2,.05,0);bx(m,1.1,.14,.78,M(0x1e293b,.4),-.1,.05,0);bx(m,1.1,.14,.78,M(0x1e293b,.4),-1.35,.05,0);
+ A.m2.g=m;
+ // GPU
+ const g=new THREE.Group();bx(g,8.6,2.8,1.55,M(0x1e2533,.35,.75),.4,1.65,.45);bx(g,5.6,.45,.14,M(0xfbbf24,.2,.9),0,.15,0);
+ const gm=new THREE.MeshStandardMaterial({color:0x00f2fe,emissive:0x00f2fe,emissiveIntensity:.45});rgb.push(gm);bx(g,4.2,.22,.25,gm,.8,3.05,1.15);
+ [-1.8,2.4].forEach(x=>{const f=new THREE.Group();f.position.set(x,1.65,1.25);cy(f,.35,.12,M(0x0f172a,.5,.6),0,0,0,0,Math.PI/2);for(let i=0;i<6;i++){const bl=bx(f,.22,.95,.06,M(0x94a3b8,.4),0,0,0);bl.rotation.z=i*Math.PI/3}g.add(f);fans.push(f)});
+ A.gpu.g=g;
+ Object.values(A).forEach(p=>{p.g.position.copy(V(p.det));p.g.visible=false;p.g.traverse(o=>{if(o.isMesh)o.castShadow=true});scene.add(p.g)});
+}
+
+function ui(){
+ $('parts').innerHTML=Object.keys(A).map(k=>`<div class="row"><div><b>${A[k].name}</b><small id="st-${k}"></small></div><button class="btn" id="bt-${k}" onclick="toggle('${k}')"></button></div>`).join('');
+ refresh();
+}
+function refresh(){
+ Object.keys(A).forEach(k=>{const p=A[k],s=$('st-'+k),b=$('bt-'+k);s.textContent=p.on?p.onT:p.off;s.className=p.on?'good':(p.req?'warn':'mute');b.textContent=p.on?'Tháo ra':'Lắp vào';b.className='btn'+(p.on?' ok':' pri')});
+ $('btn-all').textContent=Object.values(A).every(p=>p.on)?'Tháo tất cả':'Lắp tất cả';
+ if(m2Shield)m2Shield.traverse(o=>{if(o.isMesh&&o.material&&!o.material.map){o.material.transparent=true;o.material.opacity=A.m2.on?.3:1}});
+}
+function toggle(k){A[k].on=!A[k].on;if(A[k].on)A[k].g.visible=true;refresh();if(state!=='OFF'&&(!A.cpu.on||!A.ram.on))shutdown()}
+function toggleAll(){const t=!Object.values(A).every(p=>p.on);Object.values(A).forEach(p=>{p.on=t;if(t)p.g.visible=true});refresh();if(!t&&state!=='OFF')shutdown()}
+
+function sel(id){const d=D[id];if(!d)return;selId=id;$('i-badge').textContent=d.b;$('i-title').textContent=d.t;$('i-desc').textContent=d.d;$('s-std').textContent=d.s;$('s-bw').textContent=d.w;$('s-role').textContent=d.r;tr.p.set(...d.p);tr.l.set(...d.l);tr.on=true}
+function toggleLabels(){labels.visible=!labels.visible;$('btn-lbl').textContent='Nhãn cổng: '+(labels.visible?'Bật':'Tắt')}
+function zl(d){$('zl').textContent=Math.round((42-d)/36*150+50)+'%'}
+function setZoom(v){tr.on=false;const dir=camera.position.clone().sub(controls.target).normalize();camera.position.copy(controls.target).addScaledVector(dir,+v);zl(+v)}
+function toggleRot(){rot=!rot;controls.autoRotate=rot;$('btn-rot').textContent=rot?'Đang bật':'Đang tắt'}
+
+// POST
+const T=(f,t)=>timers.push(setTimeout(f,t));
+function led(k,s){const m=leds[k].m,u=$('l-'+k),C={a:0xf59e0b,r:0xef4444,g:0x22c55e};if(!s){m.color.setHex(0x334155);m.emissive.setHex(0);m.emissiveIntensity=0;u.className='led'}else{m.color.setHex(C[s]);m.emissive.setHex(C[s]);m.emissiveIntensity=1.5;u.className='led '+s}}
+function msg(t,d,col){const a=$('pt'),b=$('pd');a.textContent=t;a.style.color=col;b.textContent=d}
+function status(txt,col){$('ptxt').textContent=txt;$('pdot').style.background=col}
+function shutdown(){timers.forEach(clearTimeout);timers.length=0;state='OFF';['cpu','dram','vga','boot'].forEach(k=>led(k,0));const b=$('btn-pw');b.textContent='Bật nguồn (POST)';b.className='btn pri';status('STANDBY (OFF)','#94a3b8');msg('[SYSTEM STANDBY]','Đã ngắt nguồn. Bạn có thể lắp hoặc tháo linh kiện.','#94a3b8')}
+function togglePower(){if(state!=='OFF')return shutdown();timers.length=0;state='POST';const b=$('btn-pw');b.textContent='Tắt nguồn';b.className='btn red';status('POST CHECKING...','#f59e0b');
+ led('cpu','a');msg('[1/3] Đang kiểm tra CPU...','Cấp nguồn VRM 12V, kiểm tra Socket LGA 1700...','#fbbf24');
+ if(!A.cpu.on)return T(()=>{state='ERR';led('cpu','r');status('POST ERROR (CPU)','#ef4444');msg('POST FAILED: CPU NOT DETECTED','Đèn EZ Debug CPU báo đỏ. Hãy lắp CPU rồi bật lại.','#f87171')},700);
+ T(()=>{led('cpu',0);led('dram','a');msg('[2/3] Đang kiểm tra DRAM...','Memory Training trên các khe DDR5...','#fbbf24');
+  if(!A.ram.on)return T(()=>{state='ERR';led('dram','r');status('POST ERROR (DRAM)','#ef4444');msg('POST FAILED: NO MEMORY DETECTED','Đèn EZ Debug DRAM báo đỏ. Hãy lắp 2 thanh RAM DDR5.','#f87171')},700);
+  T(()=>{led('dram',0);led('vga','a');msg('[3/3] Khởi tạo đồ họa & UEFI...','','#fbbf24');
+   T(()=>{state='RUN';led('vga',0);led('boot','g');status('SYSTEM RUNNING (RGB ON)','#22c55e');msg('POST Successful - Booting to BIOS',`CPU i9-14900K | RAM 32GB DDR5 | GPU ${A.gpu.on?'RTX 4080':'iGPU UHD 770'} | ${A.m2.on?'NVMe Gen4':'BIOS Setup'}`,'#4ade80')},600)},700)},700)}
+
+const clk=new THREE.Clock();
+function loop(){requestAnimationFrame(loop);const t=clk.getElapsedTime();
+ if(tr.on){camera.position.lerp(tr.p,.08);controls.target.lerp(tr.l,.08);if(camera.position.distanceTo(tr.p)<.08)tr.on=false}
+ Object.values(A).forEach(p=>{p.g.position.lerp(V(p.on?p.ins:p.det),.12);if(!p.on&&p.g.position.distanceTo(V(p.det))<.35)p.g.visible=false});
+ if(lever)lever.rotation.x+=((A.cpu.on?0:-Math.PI*.35)-lever.rotation.x)*.12;
+ if(state==='RUN'){rgb.forEach((m,i)=>{const h=(t*.25+i*.18)%1;m.color.setHSL(h,.95,.55);m.emissive.setHSL(h,.95,.5);m.emissiveIntensity=1.25});if(A.gpu.on)fans.forEach(f=>f.rotation.z-=.22)}
+ else if(state==='ERR'){const p=(Math.sin(t*10)+1)/2;rgb.forEach(m=>{m.color.setHex(0xef4444);m.emissive.setHex(0xef4444);m.emissiveIntensity=.2+p*1.1})}
+ else{const b=(Math.sin(t*2)+1)/2;rgb.forEach(m=>{m.color.setHex(0x00f2fe);m.emissive.setHex(0x00f2fe);m.emissiveIntensity=.15+b*.25})}
+ controls.update();renderer.render(scene,camera)}
+window.onload=()=>{init();loop()};
+</script>
+</body>
+</html>
