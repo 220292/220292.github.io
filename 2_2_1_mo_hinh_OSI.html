@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô phỏng Mô hình OSI 7 Tầng - Interactive Simulator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    boxShadow: {
+                        'soft': '0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.04)',
+                        'glow-blue': '0 0 20px rgba(59, 130, 246, 0.35)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: #0f172a;
+        }
+
+        /* Hiệu ứng chuyển động cho các tầng OSI */
+        .layer-card {
+            transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .layer-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .layer-card.selected-layer {
+            transform: scale(1.02);
+            z-index: 10;
+        }
+
+        .layer-card.sim-active {
+            animation: pulseRing 1.4s infinite;
+            z-index: 20;
+        }
+
+        @keyframes pulseRing {
+            0% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45);
+            }
+            70% {
+                box-shadow: 0 0 0 8px rgba(37, 99, 235, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+            }
+        }
+
+        /* Hiệu ứng bit truyền qua cáp vật lý */
+        @keyframes bitFlow {
+            0% {
+                background-position: 0 0;
+            }
+            100% {
+                background-position: 48px 0;
+            }
+        }
+
+        .cable-active {
+            background: repeating-linear-gradient(
+                90deg,
+                #2563eb,
+                #2563eb 12px,
+                #60a5fa 12px,
+                #60a5fa 24px
+            );
+            background-size: 48px 100%;
+            animation: bitFlow 0.6s linear infinite;
+        }
+
+        /* Khối Header đóng gói (Encapsulation Block) */
+        .pdu-block {
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.75) translateY(8px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Gói tin bay trên màn hình */
+        #floating-packet {
+            transition: all 0.55s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none;
+        }
+
+        /* Thanh cuộn tinh tế */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+    <!-- HEADER CHÍNH -->
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <!-- Logo & Tiêu đề -->
+            <div class="flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-layer-group text-xl"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">
+                            Mô Hình OSI 7 Tầng
+                        </h1>
+                        <span class="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                            ISO/IEC 7498-1
+                        </span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-500 font-medium">
+                        Mô phỏng trực quan quá trình đóng gói dữ liệu (Encapsulation) & Giải thích chi tiết từng tầng
+                    </p>
+                </div>
+            </div>
+
+            <!-- Chú thích Nhóm Tầng & Nút Mẹo Nhớ Nhanh -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <div class="hidden xl:flex items-center gap-3 bg-slate-100/80 px-3.5 py-1.5 rounded-xl border border-slate-200/70 text-xs font-medium text-slate-600">
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                        Tầng Host (L7 - L4): Xử lý dữ liệu đầu cuối
+                    </span>
+                    <span class="text-slate-300">|</span>
+                    <span class="flex items-center gap-1.5">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        Tầng Media (L3 - L1): Định tuyến & Truyền dẫn
+                    </span>
+                </div>
+
+                <button onclick="toggleMnemonicModal()" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm transition active:scale-95">
+                    <i class="fa-regular fa-lightbulb text-amber-500"></i>
+                    <span>Mẹo nhớ nhanh & So sánh TCP/IP</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- BẢNG ĐIỀU KHIỂN MÔ PHỎNG (SIMULATION CONTROL BAR) -->
+        <section class="bg-white rounded-2xl border border-slate-200/90 shadow-soft p-4 sm:p-5">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <!-- Chọn Kịch bản dữ liệu gửi đi -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2 text-sm font-bold text-slate-800">
+                        <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <i class="fa-solid fa-paper-plane text-xs"></i>
+                        </span>
+                        <span>Kịch bản truyền tin:</span>
+                    </div>
+                    <select id="scenario-select" onchange="changeScenario()" class="bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm font-medium rounded-xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer">
+                        <option value="web">🌐 Duyệt Web an toàn (HTTPS Request: GET /index.html)</option>
+                        <option value="email">✉️ Gửi Email doanh nghiệp (SMTP: Báo cáo tài chính)</option>
+                        <option value="stream">🎬 Xem Video trực tuyến (UDP Stream: Khung hình 4K)</option>
+                    </select>
+                </div>
+
+                <!-- Các nút điều khiển chuyển động -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                    <!-- Nút Chạy / Tạm dừng -->
+                    <button id="btn-play" onclick="togglePlaySimulation()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition active:scale-95">
+                        <i id="play-icon" class="fa-solid fa-play"></i>
+                        <span id="play-text">Mô phỏng Truyền dữ liệu</span>
+                    </button>
+
+                    <!-- Lùi 1 bước -->
+                    <button onclick="stepBackward()" title="Bước trước đó" class="inline-flex items-center justify-center w-9 h-9 rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 font-semibold transition active:scale-95">
+                        <i class="fa-solid fa-backward-step text-xs"></i>
+                    </button>
+
+                    <!-- Tiến 1 bước -->
+                    <button onclick="stepForward()" title="Bước kế tiếp" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 transition active:scale-95">
+                        <span>Từng bước</span>
+                        <i class="fa-solid fa-forward-step text-xs"></i>
+                    </button>
+
+                    <!-- Làm mới -->
+                    <button onclick="resetSimulation()" title="Đặt lại từ đầu" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 border border-slate-200/80 transition active:scale-95">
+                        <i class="fa-solid fa-rotate-left text-xs"></i>
+                        <span class="hidden sm:inline">Đặt lại</span>
+                    </button>
+
+                    <!-- Tốc độ chạy -->
+                    <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1.5 rounded-xl border border-slate-200/60 ml-auto sm:ml-1">
+                        <i class="fa-solid fa-gauge-high text-slate-400 text-xs"></i>
+                        <select id="speed-select" onchange="updateSpeed()" class="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none cursor-pointer">
+                            <option value="2400">Chậm (Dễ đọc)</option>
+                            <option value="1600" selected>Bình thường (1x)</option>
+                            <option value="900">Nhanh (2x)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thanh trạng thái Mô phỏng + Trực quan cấu trúc gói tin PDU (Encapsulation Visualizer) -->
+            <div class="pt-4 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                <!-- Tiến trình & Giải thích bước hiện tại -->
+                <div class="lg:col-span-5 flex flex-col justify-between space-y-2 bg-slate-50/90 p-3.5 rounded-xl border border-slate-200/70">
+                    <div class="flex items-center justify-between">
+                        <span id="sim-phase-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-100 text-blue-700">
+                            <i class="fa-solid fa-circle-info"></i> Sẵn sàng mô phỏng
+                        </span>
+                        <span id="sim-step-counter" class="text-xs font-mono font-bold text-slate-500">
+                            Bước 0 / 15
+                        </span>
+                    </div>
+                    <p id="sim-step-desc" class="text-xs sm:text-sm text-slate-700 font-medium leading-relaxed min-h-[2.5rem]">
+                        Nhấn <strong>"Mô phỏng Truyền dữ liệu"</strong> để quan sát gói tin đi từ Tầng 7 xuống Tầng 1 (Đóng gói), truyền qua cáp mạng và đi từ Tầng 1 lên Tầng 7 (Giải đóng gói), hoặc <strong>nhấp trực tiếp vào từng tầng</strong> bên dưới.
+                    </p>
+                    <!-- Progress bar -->
+                    <div class="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div id="sim-progress-bar" class="h-full bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500 transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Mô phỏng Cấu trúc Khung dữ liệu PDU (Encapsulation Box) -->
+                <div class="lg:col-span-7 bg-slate-50/90 p-3.5 rounded-xl border border-slate-200/70 flex flex-col justify-center">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i class="fa-solid fa-boxes-packing text-blue-500"></i>
+                            Cấu trúc Đóng gói Gói tin hiện tại (PDU Structure)
+                        </span>
+                        <span id="current-pdu-badge" class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-700">
+                            PDU: Data
+                        </span>
+                    </div>
+                    <!-- Nơi hiển thị các Header được gắn vào/bóc ra -->
+                    <div id="pdu-visualizer" class="min-h-[48px] flex flex-wrap items-center justify-center gap-1.5 py-1.5 px-2 bg-white rounded-lg border border-dashed border-slate-300 overflow-x-auto">
+                        <!-- Sẽ được render động bằng JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- KHU VỰC CHÍNH: SƠ ĐỒ 7 TẦNG (TRÁI) & BẢNG CHI TIẾT TẦNG (PHẢI) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- CỘT TRÁI (7 CỘT): MÔ HÌNH TƯƠNG TÁC HAI NHÁNH GỬI - NHẬN (HOẶC CHẾ ĐỘ XEM CHI TIẾT) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200/90 shadow-soft p-4 sm:p-6 relative">
+                
+                <!-- Tiêu đề Sơ đồ & Chú thích hướng đi -->
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-5 pb-3 border-b border-slate-100">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-diagram-project text-blue-600"></i>
+                            <span>Sơ đồ Kiến trúc 7 Tầng OSI</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Nhấp vào <strong>bất kỳ tầng nào</strong> để xem giải thích chuyên sâu ở bảng bên phải
+                        </p>
+                    </div>
+                    <!-- Tab chuyển đổi góc nhìn trên sơ đồ -->
+                    <div class="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200/60">
+                        <button id="view-single-btn" onclick="switchDiagramMode('single')" class="px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-blue-600 shadow-sm">
+                            Chi tiết 7 Tầng
+                        </button>
+                        <button id="view-dual-btn" onclick="switchDiagramMode('dual')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+                            Máy Gửi ⇄ Máy Nhận
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CHẾ ĐỘ 1: SƠ ĐỒ 7 TẦNG LỚN RÕ RÀNG + HIỆU ỨNG DÒNG CHẢY GÓI TIN -->
+                <div id="single-stack-container" class="space-y-2.5 relative">
+                    <!-- Thanh trạng thái Máy Gửi / Máy Nhận ở đầu -->
+                    <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 border border-slate-200/80 text-xs font-semibold text-slate-600 mb-3">
+                        <div id="direction-indicator-left" class="flex items-center gap-2 text-blue-600">
+                            <i class="fa-solid fa-arrow-down-long animate-bounce"></i>
+                            <span>Chiều Gửi (Đóng gói: Tầng 7 → Tầng 1)</span>
+                        </div>
+                        <div class="h-4 w-[1px] bg-slate-200"></div>
+                        <div id="direction-indicator-right" class="flex items-center gap-2 text-emerald-600">
+                            <i class="fa-solid fa-arrow-up-long"></i>
+                            <span>Chiều Nhận (Giải đóng gói: Tầng 1 → Tầng 7)</span>
+                        </div>
+                    </div>
+
+                    <!-- Danh sách 7 Tầng (Render bằng JS từ Tầng 7 -> Tầng 1) -->
+                    <div id="osi-layers-list" class="space-y-2.5"></div>
+
+                    <!-- Môi trường truyền dẫn vật lý (Physical Medium) dưới Tầng 1 -->
+                    <div class="mt-4 pt-2">
+                        <div id="physical-cable-box" class="rounded-xl border-2 border-slate-200 bg-slate-50 p-3 transition-all duration-300">
+                            <div class="flex items-center justify-between text-xs font-bold text-slate-600 mb-2">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-laptop-code text-blue-600"></i>
+                                    Máy Gửi (Sender)
+                                </span>
+                                <span id="cable-status-text" class="font-mono text-[11px] px-2.5 py-0.5 rounded-full bg-slate-200/80 text-slate-700">
+                                    Môi trường truyền dẫn: Cáp quang / Cáp đồng / Sóng vô tuyến
+                                </span>
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-server text-emerald-600"></i>
+                                    Máy Nhận (Receiver)
+                                </span>
+                            </div>
+                            <!-- Đường ống truyền bit nhị phân -->
+                            <div class="relative h-6 rounded-lg bg-slate-200 overflow-hidden flex items-center justify-center border border-slate-300/80">
+                                <div id="cable-bit-animation" class="absolute inset-0 opacity-0 transition-opacity duration-300 cable-active"></div>
+                                <span id="cable-bit-stream" class="relative z-10 font-mono text-xs font-bold tracking-widest text-slate-600">
+                                    01001111 01010011 01001001 00100000 01001101 01001111 01000100 01000101 01001100
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHẾ ĐỘ 2: SƠ ĐỒ SONG SONG 2 CỘT (MÁY GỬI ⇄ MÁY NHẬN) -->
+                <div id="dual-stack-container" class="hidden">
+                    <div class="grid grid-cols-11 gap-2 items-center text-center mb-3">
+                        <div class="col-span-5 bg-blue-50/80 border border-blue-200/80 rounded-xl p-2">
+                            <div class="text-xs font-extrabold text-blue-800 flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-computer"></i> MÁY GỬI (SENDER)
+                            </div>
+                            <div class="text-[11px] text-blue-600 font-medium">Quá trình Đóng gói (Encapsulation ↓)</div>
+                        </div>
+                        <div class="col-span-1 text-slate-400 font-mono text-xs font-bold">L7-L1</div>
+                        <div class="col-span-5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl p-2">
+                            <div class="text-xs font-extrabold text-emerald-800 flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-server"></i> MÁY NHẬN (RECEIVER)
+                            </div>
+                            <div class="text-[11px] text-emerald-600 font-medium">Giải đóng gói (Decapsulation ↑)</div>
+                        </div>
+                    </div>
+
+                    <!-- Các hàng 7 tầng song song -->
+                    <div id="dual-layers-list" class="space-y-2"></div>
+
+                    <!-- Đường truyền vật lý nối 2 nhánh -->
+                    <div class="mt-3 p-3 rounded-xl bg-slate-900 text-white flex items-center justify-between gap-3 shadow-inner">
+                        <span class="text-xs font-mono text-blue-300 flex items-center gap-1.5 shrink-0">
+                            <i class="fa-solid fa-arrow-down"></i> Tx (Phát)
+                        </span>
+                        <div class="flex-1 overflow-hidden text-center">
+                            <div id="dual-cable-bits" class="font-mono text-xs tracking-widest text-amber-300 truncate">
+                                ─── 10110010 01101101 11001010 00110101 ───►
+                            </div>
+                        </div>
+                        <span class="text-xs font-mono text-emerald-300 flex items-center gap-1.5 shrink-0">
+                            Rx (Thu) <i class="fa-solid fa-arrow-up"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI (5 CỘT): BẢNG THÔNG TIN & GIẢI THÍCH CHI TIẾT TẦNG ĐƯỢC CHỌN -->
+            <div class="lg:col-span-5 lg:sticky lg:top-20 space-y-5">
+                <div id="layer-detail-panel" class="bg-white rounded-2xl border border-slate-200/90 shadow-soft overflow-hidden transition-all duration-300">
+                    
+                    <!-- Banner đầu của Tầng đang chọn -->
+                    <div id="detail-header-bg" class="p-5 sm:p-6 text-white bg-gradient-to-r from-rose-500 to-pink-600 relative overflow-hidden">
+                        <div class="absolute -right-6 -bottom-6 opacity-15 text-8xl pointer-events-none">
+                            <i id="detail-bg-icon" class="fa-solid fa-globe"></i>
+                        </div>
+                        
+                        <div class="flex items-center justify-between gap-2 mb-3 relative z-10">
+                            <span id="detail-layer-number" class="px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-white/20 backdrop-blur-sm border border-white/30">
+                                TẦNG 7 • HOST LAYER
+                            </span>
+                            <span id="detail-pdu-pill" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-900/30 backdrop-blur-sm border border-white/20">
+                                Đơn vị PDU: Data (Dữ liệu)
+                            </span>
+                        </div>
+
+                        <div class="relative z-10">
+                            <h2 id="detail-title-vi" class="text-2xl font-extrabold tracking-tight">
+                                Tầng Ứng Dụng (Application Layer)
+                            </h2>
+                            <p id="detail-subtitle" class="text-white/90 text-xs sm:text-sm font-medium mt-1">
+                                Giao diện trực tiếp giữa người dùng cuối và các dịch vụ mạng
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Nội dung chi tiết của Tầng -->
+                    <div class="p-5 sm:p-6 space-y-5">
+                        
+                        <!-- 1. Chức năng chính -->
+                        <div>
+                            <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                                <i class="fa-solid fa-bullseye text-blue-600"></i>
+                                Chức năng & Nhiệm vụ chính
+                            </h3>
+                            <p id="detail-description" class="text-sm text-slate-700 leading-relaxed font-normal bg-slate-50 p-3.5 rounded-xl border border-slate-200/60">
+                                <!-- Nội dung render từ JS -->
+                            </p>
+                            <!-- Các nhiệm vụ cụ thể dạng bullet -->
+                            <ul id="detail-tasks" class="mt-2.5 space-y-1.5 text-xs sm:text-sm text-slate-600">
+                                <!-- Render từ JS -->
+                            </ul>
+                        </div>
+
+                        <!-- 2. Hoạt động Đóng gói / Giải đóng gói tại tầng này -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200/70">
+                                <div class="text-xs font-bold text-blue-800 flex items-center gap-1.5 mb-1">
+                                    <i class="fa-solid fa-arrow-down-short-wide"></i>
+                                    Khi Gửi (Đóng gói)
+                                </div>
+                                <p id="detail-encap" class="text-xs text-blue-900/80 leading-relaxed">
+                                    <!-- Render từ JS -->
+                                </p>
+                            </div>
+                            <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/70">
+                                <div class="text-xs font-bold text-emerald-800 flex items-center gap-1.5 mb-1">
+                                    <i class="fa-solid fa-arrow-up-short-wide"></i>
+                                    Khi Nhận (Giải đóng gói)
+                                </div>
+                                <p id="detail-decap" class="text-xs text-emerald-900/80 leading-relaxed">
+                                    <!-- Render từ JS -->
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 3. Giao thức tiêu biểu & Thiết bị phần cứng -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                            <!-- Giao thức -->
+                            <div>
+                                <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-code-merge text-indigo-500"></i>
+                                    Giao thức tiêu biểu
+                                </h4>
+                                <div id="detail-protocols" class="flex flex-wrap gap-1.5">
+                                    <!-- Badges giao thức -->
+                                </div>
+                            </div>
+
+                            <!-- Thiết bị / Thành phần hoạt động -->
+                            <div>
+                                <h4 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-microchip text-teal-600"></i>
+                                    Thiết bị / Công nghệ
+                                </h4>
+                                <div id="detail-devices" class="flex flex-wrap gap-1.5">
+                                    <!-- Badges thiết bị -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Ví dụ liên hệ thực tế (Dễ hiểu) -->
+                        <div class="p-4 rounded-xl bg-amber-50/80 border border-amber-200/80">
+                            <div class="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-amber-800 mb-1.5">
+                                <i class="fa-solid fa-lightbulb text-amber-500 text-sm"></i>
+                                <span>Ví dụ thực tế dễ hiểu (Analogy)</span>
+                            </div>
+                            <p id="detail-analogy" class="text-xs sm:text-sm text-amber-950/90 leading-relaxed">
+                                <!-- Nội dung ví dụ thực tế -->
+                            </p>
+                        </div>
+
+                        <!-- Điều hướng nhanh giữa các tầng -->
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                            <button id="btn-prev-layer" onclick="navigateLayer(1)" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-blue-600 transition disabled:opacity-40 disabled:pointer-events-none">
+                                <i class="fa-solid fa-chevron-up"></i>
+                                <span>Tầng phía trên</span>
+                            </button>
+                            <span class="text-[11px] text-slate-400 font-medium">Sử dụng phím ↑ ↓ để chuyển tầng</span>
+                            <button id="btn-next-layer" onclick="navigateLayer(-1)" class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-blue-600 transition disabled:opacity-40 disabled:pointer-events-none">
+                                <span>Tầng phía dưới</span>
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BẢNG TỔNG HỢP SO SÁNH NHANH 7 TẦNG OSI -->
+        <section class="bg-white rounded-2xl border border-slate-200/90 shadow-soft overflow-hidden">
+            <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-table-list text-blue-600"></i>
+                        <span>Bảng Tóm Tắt Toàn Diện 7 Tầng Mô Hình OSI</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Nhấp vào một hàng bất kỳ trong bảng để xem phân tích chi tiết tầng đó</p>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50/90 text-slate-500 text-[11px] font-extrabold uppercase tracking-wider border-b border-slate-200">
+                            <th class="py-3 px-4">Tầng</th>
+                            <th class="py-3 px-4">Tên Tiếng Việt & Quốc Tế</th>
+                            <th class="py-3 px-4">Đơn vị dữ liệu (PDU)</th>
+                            <th class="py-3 px-4">Vai trò cốt lõi</th>
+                            <th class="py-3 px-4">Giao thức & Chuẩn</th>
+                            <th class="py-3 px-4">Thiết bị chính</th>
+                            <th class="py-3 px-4">Tương ứng TCP/IP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="summary-table-body" class="divide-y divide-slate-200/70 text-xs sm:text-sm">
+                        <!-- Render động bằng JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL MẸO NHỚ NHANH & SO SÁNH TCP/IP -->
+    <div id="mnemonic-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-[popIn_0.25s_ease-out]">
+            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-solid fa-graduation-cap text-lg"></i>
+                    <h3 class="font-bold text-base sm:text-lg">Mẹo Ghi Nhớ Nhanh 7 Tầng OSI & Đối chiếu TCP/IP</h3>
+                </div>
+                <button onclick="toggleMnemonicModal()" class="w-8 h-8 rounded-lg bg-white/15 hover:bg-white/25 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 rounded-xl bg-blue-50 border border-blue-200">
+                        <div class="text-xs font-extrabold uppercase text-blue-700 mb-2">
+                            Từ Tầng 1 → Tầng 7 (Dưới lên)
+                        </div>
+                        <p class="text-sm font-bold text-slate-900 mb-2">
+                            "Please Do Not Throw Sausage Pizza Away"
+                        </p>
+                        <ul class="text-xs space-y-1 text-slate-700 font-medium">
+                            <li><strong>P</strong>lease → 1. <strong>P</strong>hysical (Vật lý)</li>
+                            <li><strong>D</strong>o → 2. <strong>D</strong>ata Link (Liên kết dữ liệu)</li>
+                            <li><strong>N</strong>ot → 3. <strong>N</strong>etwork (Mạng)</li>
+                            <li><strong>T</strong>hrow → 4. <strong>T</strong>ransport (Giao vận)</li>
+                            <li><strong>S</strong>ausage → 5. <strong>S</strong>ession (Phiên)</li>
+                            <li><strong>P</strong>izza → 6. <strong>P</strong>resentation (Trình diễn)</li>
+                            <li><strong>A</strong>way → 7. <strong>A</strong>pplication (Ứng dụng)</li>
+                        </ul>
+                    </div>
+
+                    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200">
+                        <div class="text-xs font-extrabold uppercase text-emerald-700 mb-2">
+                            Từ Tầng 7 → Tầng 1 (Trên xuống)
+                        </div>
+                        <p class="text-sm font-bold text-slate-900 mb-2">
+                            "All People Seem To Need Data Processing"
+                        </p>
+                        <ul class="text-xs space-y-1 text-slate-700 font-medium">
+                            <li><strong>A</strong>ll → 7. <strong>A</strong>pplication (Ứng dụng)</li>
+                            <li><strong>P</strong>eople → 6. <strong>P</strong>resentation (Trình diễn)</li>
+                            <li><strong>S</strong>eem → 5. <strong>S</strong>ession (Phiên)</li>
+                            <li><strong>T</strong>o → 4. <strong>T</strong>ransport (Giao vận)</li>
+                            <li><strong>N</strong>eed → 3. <strong>N</strong>etwork (Mạng)</li>
+                            <li><strong>D</strong>ata → 2. <strong>D</strong>ata Link (Liên kết dữ liệu)</li>
+                            <li><strong>P</strong>rocessing → 1. <strong>P</strong>hysical (Vật lý)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                    <h4 class="text-xs font-extrabold uppercase text-slate-600">Cách nhớ Đơn vị dữ liệu (PDU) từ Tầng 7 xuống Tầng 1:</h4>
+                    <div class="flex flex-wrap items-center gap-2 text-xs font-mono font-bold">
+                        <span class="px-2.5 py-1 rounded bg-rose-100 text-rose-800">L7-L5: Data</span>
+                        <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        <span class="px-2.5 py-1 rounded bg-emerald-100 text-emerald-800">L4: Segment / Datagram</span>
+                        <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        <span class="px-2.5 py-1 rounded bg-cyan-100 text-cyan-800">L3: Packet</span>
+                        <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        <span class="px-2.5 py-1 rounded bg-blue-100 text-blue-800">L2: Frame</span>
+                        <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                        <span class="px-2.5 py-1 rounded bg-amber-100 text-amber-800">L1: Bit (0/1)</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button onclick="toggleMnemonicModal()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition">
+                        Đã hiểu, đóng cửa sổ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="mt-auto border-t border-slate-200/80 bg-white py-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+            <div>
+                <strong>Mô phỏng Mô hình OSI 7 Tầng</strong> • Thiết kế trực quan phục vụ học tập & giảng dạy Mạng máy tính
+            </div>
+            <div class="flex items-center gap-4">
+                <span><i class="fa-solid fa-keyboard mr-1"></i>Phím mũi tên ↑/↓: Chọn tầng</span>
+                <span><i class="fa-solid fa-play mr-1"></i>Space: Tạm dừng/Tiếp tục mô phỏng</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT XỬ LÝ DỮ LIỆU & CHUYỂN ĐỘNG -->
+    <script>
+        // =========================================================================
+        // 1. CƠ SỞ DỮ LIỆU CHI TIẾT 7 TẦNG MÔ HÌNH OSI (TIẾNG VIỆT CHUYÊN SÂU)
+        // =========================================================================
+        const osiLayers = [
+            {
+                num: 7,
+                nameEn: "Application Layer",
+                nameVi: "Tầng Ứng Dụng",
+                group: "Host Layer (Tầng Chủ)",
+                pdu: "Data (Dữ liệu)",
+                tcpipEquivalent: "Application (Ứng dụng)",
+                icon: "fa-globe",
+                gradient: "from-rose-500 to-pink-600",
+                lightBg: "bg-rose-50/70",
+                borderColor: "border-rose-200",
+                activeBorder: "border-rose-500 ring-2 ring-rose-500/20",
+                badgeBg: "bg-rose-100 text-rose-700",
+                accentText: "text-rose-600",
+                shortDesc: "Giao diện tương tác trực tiếp với người dùng và cung cấp dịch vụ mạng cho ứng dụng.",
+                fullDesc: "Tầng Ứng dụng là tầng gần gũi nhất với người dùng cuối. Nó không phải là bản thân phần mềm (như Chrome hay Outlook) mà cung cấp các giao thức để phần mềm đó có thể gửi và nhận dữ liệu qua mạng.",
+                tasks: [
+                    "Cung cấp các giao thức truyền tải tệp tin, duyệt web, gửi thư điện tử và truy cập từ xa.",
+                    "Xác định danh tính và sự sẵn sàng của đối tác truyền thông.",
+                    "Đồng bộ hóa giao tiếp giữa ứng dụng phía máy khách (Client) và máy chủ (Server)."
+                ],
+                encapAction: "Khởi tạo luồng dữ liệu gốc từ người dùng (ví dụ: bản tin HTTP GET yêu cầu mở trang web) và chuyển xuống Tầng 6.",
+                decapAction: "Nhận dữ liệu hoàn chỉnh đã được giải mã từ Tầng 6 và hiển thị nội dung lên giao diện phần mềm cho người dùng.",
+                protocols: ["HTTP / HTTPS", "DNS", "FTP / SFTP", "SMTP / POP3 / IMAP", "SSH", "Telnet", "DHCP", "SNMP"],
+                devices: ["Trình duyệt Web", "Ứng dụng Email", "Tường lửa L7 (WAF)", "API Gateway", "Proxy Server"],
+                analogy: "Giống như khi bạn viết một bức thư tay bằng tiếng Việt và quyết định gửi cho bạn bè. Bạn là người tạo ra nội dung bức thư trên giấy."
+            },
+            {
+                num: 6,
+                nameEn: "Presentation Layer",
+                nameVi: "Tầng Trình Diễn",
+                group: "Host Layer (Tầng Chủ)",
+                pdu: "Data (Dữ liệu đã định dạng)",
+                tcpipEquivalent: "Application (Ứng dụng)",
+                icon: "fa-file-shield",
+                gradient: "from-orange-500 to-amber-500",
+                lightBg: "bg-orange-50/70",
+                borderColor: "border-orange-200",
+                activeBorder: "border-orange-500 ring-2 ring-orange-500/20",
+                badgeBg: "bg-orange-100 text-orange-700",
+                accentText: "text-orange-600",
+                shortDesc: "Chuyển đổi định dạng dữ liệu, nén dữ liệu và mã hóa bảo mật (Encryption).",
+                fullDesc: "Tầng Trình diễn đóng vai trò như một 'thông dịch viên' cho mạng. Nó đảm bảo dữ liệu gửi từ Tầng Ứng dụng của hệ thống này có thể được đọc hiểu bởi Tầng Ứng dụng của một hệ thống khác dù hai máy dùng bảng mã khác nhau.",
+                tasks: [
+                    "Chuyển đổi định dạng dữ liệu (Data Translation): ASCII, Unicode, UTF-8, JSON, XML.",
+                    "Mã hóa & Giải mã dữ liệu (Encryption/Decryption) bằng SSL/TLS để bảo mật thông tin.",
+                    "Nén dữ liệu (Compression) giúp giảm kích thước gói tin và tăng tốc độ truyền tải."
+                ],
+                encapAction: "Định dạng dữ liệu chuẩn (UTF-8/JSON), nén dung lượng và mã hóa bảo mật (TLS/SSL) trước khi đưa xuống Tầng 5.",
+                decapAction: "Giải mã dữ liệu bảo mật (Decrypt), giải nén tệp tin và dịch sang định dạng mà ứng dụng ở Tầng 7 đọc được.",
+                protocols: ["SSL / TLS", "JPEG / PNG / GIF", "MPEG / MP4", "ASCII / UTF-8", "JSON / XML", "Gzip"],
+                devices: ["Bộ mã hóa SSL/TLS", "Codec đa phương tiện", "Gateway chuyển đổi định dạng"],
+                analogy: "Giống như một thông dịch viên dịch bức thư của bạn sang tiếng Anh (để người nhận nước ngoài hiểu được), sau đó bỏ vào phong bì bảo mật có khóa mật mã."
+            },
+            {
+                num: 5,
+                nameEn: "Session Layer",
+                nameVi: "Tầng Phiên",
+                group: "Host Layer (Tầng Chủ)",
+                pdu: "Data (Dữ liệu phiên)",
+                tcpipEquivalent: "Application (Ứng dụng)",
+                icon: "fa-handshake",
+                gradient: "from-amber-500 to-yellow-500",
+                lightBg: "bg-amber-50/70",
+                borderColor: "border-amber-200",
+                activeBorder: "border-amber-500 ring-2 ring-amber-500/20",
+                badgeBg: "bg-amber-100 text-amber-800",
+                accentText: "text-amber-600",
+                shortDesc: "Thiết lập, duy trì, đồng bộ hóa và kết thúc các phiên giao tiếp giữa hai máy.",
+                fullDesc: "Tầng Phiên quản lý các 'cuộc hội thoại' (Sessions) giữa các ứng dụng trên hai thiết bị. Nó tạo các điểm kiểm tra (Checkpoints) để nếu mạng bị ngắt quãng giữa chừng, quá trình tải chỉ cần tiếp tục từ điểm gần nhất thay vì tải lại từ đầu.",
+                tasks: [
+                    "Thiết lập, duy trì và đóng phiên làm việc (Session Management) giữa máy khách và máy chủ.",
+                    "Kiểm soát hội thoại (Dialog Control): Bán song công (Half-duplex) hoặc Song công toàn phần (Full-duplex).",
+                    "Đồng bộ hóa phiên bằng các điểm đánh dấu (Checkpoints) giúp phục hồi lỗi nhanh chóng."
+                ],
+                encapAction: "Gắn thông tin định danh phiên làm việc (Session ID) và điểm đồng bộ (Checkpoint) vào dữ liệu.",
+                decapAction: "Kiểm tra trạng thái phiên hợp lệ, đồng bộ hóa thứ tự luồng hội thoại và chuyển dữ liệu lên Tầng 6.",
+                protocols: ["NetBIOS", "RPC (Remote Procedure Call)", "PPTP", "SAP", "SOCKS", "NFS"],
+                devices: ["ổng quản lý phiên (Session Manager)", "Hệ thống xác thực phiên", "Tường lửa trạng thái"],
+                analogy: "Giống như thư ký gọi điện trước cho người nhận để xác nhận: 'Chúng tôi bắt đầu gửi hồ sơ nhé, nếu rớt mạng ở trang 5 thì lát nữa gửi tiếp từ trang 6'."
+            },
+            {
+                num: 4,
+                nameEn: "Transport Layer",
+                nameVi: "Tầng Giao Vận",
+                group: "Host Layer (Trái tim của OSI)",
+                pdu: "Segment (TCP) / Datagram (UDP)",
+                tcpipEquivalent: "Transport (Giao vận)",
+                icon: "fa-truck-fast",
+                gradient: "from-emerald-500 to-teal-600",
+                lightBg: "bg-emerald-50/70",
+                borderColor: "border-emerald-200",
+                activeBorder: "border-emerald-500 ring-2 ring-emerald-500/20",
+                badgeBg: "bg-emerald-100 text-emerald-800",
+                accentText: "text-emerald-600",
+                shortDesc: "Phân mảnh dữ liệu, quản lý cổng dịch vụ (Port), kiểm soát lỗi và lưu lượng đầu-cuối.",
+                fullDesc: "Tầng Giao vận chịu trách nhiệm truyền tải dữ liệu giữa quy trình ứng dụng này sang quy trình ứng dụng khác (End-to-End). Nó chia nhỏ dữ liệu lớn thành các đoạn (Segments) và đánh số thứ tự để bên nhận lắp ghép lại chính xác.",
+                tasks: [
+                    "Phân đoạn dữ liệu (Segmentation) khi gửi và Tái hợp (Reassembly) khi nhận.",
+                    "Định danh ứng dụng bằng Địa chỉ Cổng (Port Numbers: ví dụ cổng 80 cho HTTP, 443 cho HTTPS).",
+                    "Đảm bảo độ tin cậy với TCP (Bắt tay 3 bước, truyền lại gói lỗi) hoặc ưu tiên tốc độ thời gian thực với UDP.",
+                    "Điều khiển luồng (Flow Control) tránh làm tràn bộ nhớ đệm của máy nhận."
+                ],
+                encapAction: "Chia dữ liệu thành các đoạn nhỏ và gắn L4 Header (chứa Source Port, Destination Port, Sequence Number) tạo thành Segment.",
+                decapAction: "Đọc số cổng (Port) để biết dữ liệu thuộc ứng dụng nào, sắp xếp lại đúng thứ tự các Segment và tháo bỏ L4 Header.",
+                protocols: ["TCP (Tin cậy)", "UDP (Tốc độ cao)", "SCTP", "QUIC", "DCCP"],
+                devices: ["Load Balancer (L4)", "Tường lửa (Firewall L4)", "Gateway truyền tải"],
+                analogy: "Giống như phòng văn thư chia một bộ tài liệu dày 1.000 trang thành 10 tập nhỏ, đánh số thứ tự 'Tập 1/10 đến 10/10' và ghi rõ 'Gửi Phòng Kế Toán (Port 443)'."
+            },
+            {
+                num: 3,
+                nameEn: "Network Layer",
+                nameVi: "Tầng Mạng",
+                group: "Media Layer (Tầng Môi trường)",
+                pdu: "Packet (Gói tin)",
+                tcpipEquivalent: "Internet (Liên mạng)",
+                icon: "fa-route",
+                gradient: "from-cyan-500 to-blue-600",
+                lightBg: "bg-cyan-50/70",
+                borderColor: "border-cyan-200",
+                activeBorder: "border-cyan-500 ring-2 ring-cyan-500/20",
+                badgeBg: "bg-cyan-100 text-cyan-800",
+                accentText: "text-cyan-600",
+                shortDesc: "Định địa chỉ logic (IP Address) và tìm đường đi tối ưu nhất (Routing) qua các mạng.",
+                fullDesc: "Tầng Mạng chịu trách nhiệm đưa gói tin đi từ mạng gốc đến mạng đích xuyên qua nhiều mạng trung gian khác nhau (Inter-network). Thiết bị quan trọng nhất ở tầng này là Router (Bộ định tuyến).",
+                tasks: [
+                    "Đánh địa chỉ logic toàn cầu cho thiết bị bằng Địa chỉ IP (IPv4 / IPv6).",
+                    "Định tuyến (Routing): Lựa chọn đường đi ngắn nhất và hiệu quả nhất qua các Router trên Internet.",
+                    "Kiểm soát tắc nghẽn mạng và phân mảnh gói tin nếu kích thước vượt quá ngưỡng MTU."
+                ],
+                encapAction: "Đóng gói Segment vào trong Packet bằng cách gắn thêm L3 Header (chứa IP Nguồn và IP Đích).",
+                decapAction: "Kiểm tra địa chỉ IP Đích. Nếu đúng là IP của máy mình, tháo bỏ L3 Header và đẩy Segment lên Tầng 4.",
+                protocols: ["IPv4 / IPv6", "ICMP (Ping)", "IPsec", "OSPF", "BGP", "RIP", "NAT"],
+                devices: ["Router (Bộ định tuyến)", "Layer 3 Switch", "Tường lửa mạng"],
+                analogy: "Giống như trung tâm phân loại bưu điện quốc gia: ghi địa chỉ Thành phố/Quốc gia (Địa chỉ IP) của người gửi và người nhận, sau đó chọn tuyến đường bay ngắn nhất."
+            },
+            {
+                num: 2,
+                nameEn: "Data Link Layer",
+                nameVi: "Tầng Liên Kết Dữ Liệu",
+                group: "Media Layer (Tầng Môi trường)",
+                pdu: "Frame (Khung dữ liệu)",
+                tcpipEquivalent: "Network Access (Truy cập mạng)",
+                icon: "fa-network-wired",
+                gradient: "from-blue-600 to-indigo-600",
+                lightBg: "bg-blue-50/70",
+                borderColor: "border-blue-200",
+                activeBorder: "border-blue-600 ring-2 ring-blue-600/20",
+                badgeBg: "bg-blue-100 text-blue-800",
+                accentText: "text-blue-600",
+                shortDesc: "Truyền dữ liệu giữa hai nút mạng kề nhau (Node-to-Node) qua địa chỉ vật lý MAC.",
+                fullDesc: "Tầng Liên kết dữ liệu đảm bảo việc truyền dữ liệu tin cậy trên một đường truyền vật lý cục bộ (cùng mạng LAN). Nó chia làm 2 tầng con: LLC (Logical Link Control) và MAC (Media Access Control).",
+                tasks: [
+                    "Định danh phần cứng bằng Địa chỉ vật lý MAC (48-bit gắn cố định trên card mạng NIC).",
+                    "Đóng khung dữ liệu (Framing) với phần đầu (Header) và phần đuôi kiểm tra lỗi FCS/CRC (Trailer).",
+                    "Kiểm soát truy cập đường truyền (CSMA/CD, CSMA/CA) tránh xung đột tín hiệu trên cáp."
+                ],
+                encapAction: "Bọc Packet bằng L2 Header (MAC Nguồn, MAC Đích) ở đầu và L2 Trailer (mã kiểm tra lỗi FCS) ở cuối để tạo thành Frame.",
+                decapAction: "Kiểm tra mã FCS ở đuôi Frame xem gói tin có bị lỗi trên cáp không, đối chiếu MAC Đích rồi gỡ bỏ L2 Header + Trailer.",
+                protocols: ["Ethernet (IEEE 802.3)", "Wi-Fi (IEEE 802.11)", "ARP", "VLAN (802.1Q)", "PPP", "HDLC"],
+                devices: ["Switch (Bộ chuyển mạch L2)", "Bridge (Cầu nối)", "Card mạng (NIC)", "Access Point"],
+                analogy: "Giống như người bưu tá khu vực chở bưu kiện từ bưu cục đến tận số nhà cụ thể trong cùng một con phố (Địa chỉ MAC trong mạng nội bộ) và kiểm tra niêm phong kiện hàng."
+            },
+            {
+                num: 1,
+                nameEn: "Physical Layer",
+                nameVi: "Tầng Vật Lý",
+                group: "Media Layer (Tầng Môi trường)",
+                pdu: "Bit (Dòng bit 0 và 1)",
+                tcpipEquivalent: "Network Access (Truy cập mạng)",
+                icon: "fa-bolt",
+                gradient: "from-violet-600 to-purple-600",
+                lightBg: "bg-purple-50/70",
+                borderColor: "border-purple-200",
+                activeBorder: "border-purple-600 ring-2 ring-purple-600/20",
+                badgeBg: "bg-purple-100 text-purple-800",
+                accentText: "text-purple-600",
+                shortDesc: "Chuyển đổi Frame thành tín hiệu điện, ánh sáng hoặc sóng vô tuyến trên đường truyền.",
+                fullDesc: "Tầng Vật lý là nền tảng phần cứng dưới cùng của mô hình OSI. Nó quy định các đặc tả về điện áp, tốc độ truyền bit, khoảng cách cáp, đầu cắm kết nối và sơ đồ chân tín hiệu.",
+                tasks: [
+                    "Biên dịch các chuỗi bit nhị phân (0 và 1) thành xung điện (cáp đồng), xung ánh sáng (cáp quang) hoặc sóng điện từ (Wi-Fi).",
+                    "Quy định tốc độ truyền dẫn (Data Rate - Mbps/Gbps) và chế độ truyền (Simplex, Half-Duplex, Full-Duplex).",
+                    "Định nghĩa chuẩn đầu nối vật lý (RJ45, cổng quang SFP) và sơ đồ đấu nối mạng."
+                ],
+                encapAction: "Chuyển đổi toàn bộ Frame thành chuỗi các bit nhị phân (010110...) và phát tín hiệu vật lý ra môi trường truyền dẫn.",
+                decapAction: "Thu nhận tín hiệu điện/ánh sáng/sóng vô tuyến từ đường truyền, giải điều chế lại thành chuỗi bit 0/1 để gom thành Frame đưa lên Tầng 2.",
+                protocols: ["Ethernet vật lý (1000BASE-T)", "Cáp quang (SONET/SDH)", "Bluetooth", "USB", "DSL", "RS-232"],
+                devices: ["Cáp mạng (Cat6, Cáp quang)", "Hub", "Repeater (Bộ khuếch đại)", "Modem", "Đầu nối RJ45"],
+                analogy: "Giống như mặt đường nhựa, đường ray tàu hỏa và chiếc xe tải thực sự lăn bánh chở kiện hàng vật lý từ thành phố này sang thành phố khác."
+            }
+        ];
+
+        // =========================================================================
+        // 2. KỊCH BẢN MÔ PHỎNG & CÁC BƯỚC TRUYỀN DỮ LIỆU (15 BƯỚC TỪ GỬI -> NHẬN)
+        // =========================================================================
+        const scenarios = {
+            web: {
+                name: "HTTPS GET /index.html",
+                payload: "GET /index.html",
+                l6Info: "TLS 1.3 + UTF-8",
+                l5Info: "Session #98A",
+                l4Info: "TCP Port: 443",
+                l3Info: "IP: 192.168.1.10 → 93.184.216.34",
+                l2Info: "MAC: 00:1A:2B → FF:4C:8E"
+            },
+            email: {
+                name: "SMTP Gửi Báo cáo",
+                payload: "MAIL: BaoCao.pdf",
+                l6Info: "MIME Base64 + TLS",
+                l5Info: "SMTP Session #42",
+                l4Info: "TCP Port: 587",
+                l3Info: "IP: 10.0.0.5 → 142.250.1.27",
+                l2Info: "MAC: A1:B2:C3 → D4:E5:F6"
+            },
+            stream: {
+                name: "UDP Video 4K Stream",
+                payload: "FrameVideo_4K#88",
+                l6Info: "H.265 / HEVC",
+                l5Info: "RTSP Session #19",
+                l4Info: "UDP Port: 5004",
+                l3Info: "IP: 172.16.0.9 → 203.0.113.5",
+                l2Info: "MAC: 55:66:77 → 88:99:AA"
+            }
+        };
+
+        // Tạo danh sách 15 bước mô phỏng (7 bước đóng gói + 1 bước truyền qua cáp + 7 bước giải đóng gói)
+        const simulationSteps = [
+            { step: 1, side: "sender", layer: 7, phase: "Đóng gói (Encapsulation)", pdu: "Data", desc: "Tầng 7 (Ứng dụng): Người dùng khởi tạo dữ liệu gốc trong ứng dụng và chuẩn bị gửi đi." },
+            { step: 2, side: "sender", layer: 6, phase: "Đóng gói (Encapsulation)", pdu: "Data", desc: "Tầng 6 (Trình diễn): Dữ liệu được chuẩn hóa định dạng, nén và mã hóa bảo mật (SSL/TLS)." },
+            { step: 3, side: "sender", layer: 5, phase: "Đóng gói (Encapsulation)", pdu: "Data", desc: "Tầng 5 (Phiên): Thiết lập phiên giao tiếp và gắn thẻ định danh phiên (Session ID)." },
+            { step: 4, side: "sender", layer: 4, phase: "Đóng gói (Encapsulation)", pdu: "Segment", desc: "Tầng 4 (Giao vận): Chia nhỏ dữ liệu và gắn L4 Header (Source/Dest Port, Sequence Number) tạo thành Segment." },
+            { step: 5, side: "sender", layer: 3, phase: "Đóng gói (Encapsulation)", pdu: "Packet", desc: "Tầng 3 (Mạng): Đóng gói Segment bằng cách gắn thêm L3 Header (IP Nguồn & IP Đích) tạo thành Packet." },
+            { step: 6, side: "sender", layer: 2, phase: "Đóng gói (Encapsulation)", pdu: "Frame", desc: "Tầng 2 (Liên kết dữ liệu): Gắn L2 Header (MAC Nguồn/Đích) vào đầu và L2 Trailer (FCS kiểm lỗi) vào đuôi tạo thành Frame." },
+            { step: 7, side: "sender", layer: 1, phase: "Đóng gói (Encapsulation)", pdu: "Bits (0/1)", desc: "Tầng 1 (Vật lý): Biến đổi toàn bộ Frame thành chuỗi bit nhị phân 0 và 1 để chuẩn bị phát lên đường truyền." },
+            { step: 8, side: "cable", layer: 1, phase: "Truyền dẫn vật lý", pdu: "Xung điện / Ánh sáng", desc: "Môi trường truyền dẫn: Các bit 0/1 di chuyển dưới dạng xung điện, ánh sáng cáp quang hoặc sóng vô tuyến từ Máy Gửi sang Máy Nhận." },
+            { step: 9, side: "receiver", layer: 1, phase: "Giải đóng gói (Decapsulation)", pdu: "Bits (0/1)", desc: "Tầng 1 (Máy Nhận): Thu nhận tín hiệu vật lý từ dây cáp và tái tạo lại chuỗi bit nhị phân để chuyển lên Tầng 2." },
+            { step: 10, side: "receiver", layer: 2, phase: "Giải đóng gói (Decapsulation)", pdu: "Frame → Packet", desc: "Tầng 2 (Máy Nhận): Kiểm tra lỗi bằng mã FCS ở đuôi, xác nhận đúng địa chỉ MAC Đích rồi gỡ bỏ L2 Header & Trailer." },
+            { step: 11, side: "receiver", layer: 3, phase: "Giải đóng gói (Decapsulation)", pdu: "Packet → Segment", desc: "Tầng 3 (Máy Nhận): Kiểm tra địa chỉ IP Đích chính xác là của máy nhận, sau đó gỡ bỏ L3 Header (IP)." },
+            { step: 12, side: "receiver", layer: 4, phase: "Giải đóng gói (Decapsulation)", pdu: "Segment → Data", desc: "Tầng 4 (Máy Nhận): Đọc số cổng (Port) để xác định phần mềm nhận, lắp ghép các Segment đúng thứ tự và gỡ bỏ L4 Header." },
+            { step: 13, side: "receiver", layer: 5, phase: "Giải đóng gói (Decapsulation)", pdu: "Data", desc: "Tầng 5 (Máy Nhận): Xác thực trạng thái phiên (Session ID) hoàn tất và đóng/duy trì phiên làm việc." },
+            { step: 14, side: "receiver", layer: 6, phase: "Giải đóng gói (Decapsulation)", pdu: "Data", desc: "Tầng 6 (Máy Nhận): Giải mã dữ liệu bảo mật (Decrypt TLS), giải nén và chuyển về bảng mã chuẩn." },
+            { step: 15, side: "receiver", layer: 7, phase: "Hoàn tất truyền nhận!", pdu: "Data (Nguyên vẹn)", desc: "Tầng 7 (Máy Nhận): Dữ liệu nguyên vẹn được bàn giao cho ứng dụng đích xử lý và hiển thị cho người nhận!" }
+        ];
+
+        // Trạng thái ứng dụng
+        let selectedLayerNum = 7;
+        let currentScenarioKey = 'web';
+        let diagramMode = 'single'; // 'single' hoặc 'dual'
+        let simCurrentStepIndex = -1; // -1 là chưa chạy, 0..14 là các bước trong simulationSteps
+        let simInterval = null;
+        let simSpeed = 1600;
+        let isPlaying = false;
+
+        // =========================================================================
+        // 3. KHỞI TẠO GIAO DIỆN KHI TẢI TRANG
+        // =========================================================================
+        window.onload = function () {
+            renderSingleStack();
+            renderDualStack();
+            renderSummaryTable();
+            selectLayer(7);
+            renderPDUVisualizer(7, 'sender');
+            setupKeyboardShortcuts();
+        };
+
+        // =========================================================================
+        // 4. RENDER SƠ ĐỒ 7 TẦNG (CHẾ ĐỘ ĐƠN & CHẾ ĐỘ SONG SONG)
+        // =========================================================================
+        function renderSingleStack() {
+            const container = document.getElementById('osi-layers-list');
+            container.innerHTML = '';
+
+            osiLayers.forEach(layer => {
+                const isSelected = layer.num === selectedLayerNum;
+                const activeSimStep = simCurrentStepIndex >= 0 ? simulationSteps[simCurrentStepIndex] : null;
+                const isSimHere = activeSimStep && activeSimStep.layer === layer.num && activeSimStep.side !== 'cable';
+
+                // Nhãn trạng thái khi mô phỏng đang đi qua tầng này
+                let simBadgeHTML = '';
+                if (isSimHere) {
+                    const isSender = activeSimStep.side === 'sender';
+                    simBadgeHTML = `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold ${isSender ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'} shadow-sm animate-pulse">
+                            <i class="fa-solid ${isSender ? 'fa-box-archive' : 'fa-box-open'}"></i>
+                            ${isSender ? 'Đang Đóng gói ↓' : 'Đang Giải đóng gói ↑'}
+                        </span>
+                    `;
+                }
+
+                const card = document.createElement('div');
+                card.id = `single-layer-${layer.num}`;
+                card.onclick = () => selectLayer(layer.num);
+                card.className = `layer-card cursor-pointer rounded-xl border p-3 sm:p-3.5 transition-all flex items-center justify-between gap-3 ${
+                    isSelected ? `${layer.lightBg} ${layer.activeBorder} selected-layer shadow-md` : 'bg-white hover:bg-slate-50/90 border-slate-200/90'
+                } ${isSimHere ? 'sim-active' : ''}`;
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-3.5 min-w-0">
+                        <!-- Số thứ tự tầng & Icon -->
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br ${layer.gradient} text-white flex flex-col items-center justify-center shrink-0 shadow-sm">
+                            <span class="text-[10px] font-bold uppercase opacity-80 leading-none">Tầng</span>
+                            <span class="text-base font-extrabold leading-tight">${layer.num}</span>
+                        </div>
+
+                        <!-- Tên tầng & Mô tả ngắn -->
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <h3 class="text-sm sm:text-base font-bold text-slate-900 truncate">
+                                    ${layer.nameVi}
+                                </h3>
+                                <span class="text-xs font-semibold text-slate-400">
+                                    (${layer.nameEn.replace(' Layer', '')})
+                                </span>
+                                ${simBadgeHTML}
+                            </div>
+                            <p class="text-xs text-slate-500 line-clamp-1 mt-0.5">
+                                ${layer.shortDesc}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Thông tin PDU & Giao thức nhanh bên phải -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <div class="hidden sm:flex flex-col items-end">
+                            <span class="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-md ${layer.badgeBg}">
+                                PDU: ${layer.pdu.split(' ')[0]}
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-medium mt-1">
+                                ${layer.protocols.slice(0, 3).join(' • ')}
+                            </span>
+                        </div>
+                        <div class="w-7 h-7 rounded-lg flex items-center justify-center ${isSelected ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}">
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderDualStack() {
+            const container = document.getElementById('dual-layers-list');
+            container.innerHTML = '';
+
+            const activeSimStep = simCurrentStepIndex >= 0 ? simulationSteps[simCurrentStepIndex] : null;
+
+            osiLayers.forEach(layer => {
+                const isSelected = layer.num === selectedLayerNum;
+                const isSenderActive = activeSimStep && activeSimStep.side === 'sender' && activeSimStep.layer === layer.num;
+                const isReceiverActive = activeSimStep && activeSimStep.side === 'receiver' && activeSimStep.layer === layer.num;
+
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-11 gap-2 items-center';
+
+                row.innerHTML = `
+                    <!-- Nhánh Máy Gửi -->
+                    <div onclick="selectLayer(${layer.num})" class="col-span-5 cursor-pointer rounded-xl border p-2.5 transition-all flex items-center justify-between ${
+                        isSenderActive ? 'bg-blue-50 border-blue-600 ring-2 ring-blue-500/30 shadow-md scale-[1.02]' : (isSelected ? `${layer.lightBg} ${layer.borderColor}` : 'bg-white hover:bg-slate-50 border-slate-200')
+                    }">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="w-7 h-7 rounded-lg bg-gradient-to-br ${layer.gradient} text-white text-xs font-extrabold flex items-center justify-center shrink-0">
+                                ${layer.num}
+                            </span>
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-slate-800 truncate">${layer.nameVi}</div>
+                                <div class="text-[10px] text-slate-500 font-mono">${layer.pdu.split(' ')[0]}</div>
+                            </div>
+                        </div>
+                        ${isSenderActive ? '<span class="px-2 py-0.5 rounded bg-blue-600 text-white text-[10px] font-bold animate-bounce">Đóng gói ↓</span>' : ''}
+                    </div>
+
+                    <!-- Cột Giữa: Giao thức đồng mức (Peer-to-Peer) -->
+                    <div class="col-span-1 flex flex-col items-center justify-center text-slate-300">
+                        <span class="text-[10px] font-mono text-slate-400">L${layer.num}</span>
+                        <div class="w-full border-t border-dashed border-slate-300"></div>
+                    </div>
+
+                    <!-- Nhánh Máy Nhận -->
+                    <div onclick="selectLayer(${layer.num})" class="col-span-5 cursor-pointer rounded-xl border p-2.5 transition-all flex items-center justify-between ${
+                        isReceiverActive ? 'bg-emerald-50 border-emerald-600 ring-2 ring-emerald-500/30 shadow-md scale-[1.02]' : (isSelected ? `${layer.lightBg} ${layer.borderColor}` : 'bg-white hover:bg-slate-50 border-slate-200')
+                    }">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="w-7 h-7 rounded-lg bg-gradient-to-br ${layer.gradient} text-white text-xs font-extrabold flex items-center justify-center shrink-0">
+                                ${layer.num}
+                            </span>
+                            <div class="truncate">
+                                <div class="text-xs font-bold text-slate-800 truncate">${layer.nameVi}</div>
+                                <div class="text-[10px] text-slate-500 font-mono">${layer.protocols[0]}</div>
+                            </div>
+                        </div>
+                        ${isReceiverActive ? '<span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] font-bold animate-bounce">Giải mã ↑</span>' : ''}
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Chuyển đổi giữa chế độ 1 cột chi tiết và 2 cột song song
+        function switchDiagramMode(mode) {
+            diagramMode = mode;
+            const singleContainer = document.getElementById('single-stack-container');
+            const dualContainer = document.getElementById('dual-stack-container');
+            const singleBtn = document.getElementById('view-single-btn');
+            const dualBtn = document.getElementById('view-dual-btn');
+
+            if (mode === 'single') {
+                singleContainer.classList.remove('hidden');
+                dualContainer.classList.add('hidden');
+                singleBtn.className = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-blue-600 shadow-sm';
+                dualBtn.className = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+            } else {
+                singleContainer.classList.add('hidden');
+                dualContainer.classList.remove('hidden');
+                dualBtn.className = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-blue-600 shadow-sm';
+                singleBtn.className = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+            }
+        }
+
+        // =========================================================================
+        // 5. HIỂN THỊ BẢNG CHI TIẾT KHI NGƯỜI DÙNG CHỌN MỘT TẦNG
+        // =========================================================================
+        function selectLayer(layerNum) {
+            selectedLayerNum = layerNum;
+            const layer = osiLayers.find(l => l.num === layerNum);
+            if (!layer) return;
+
+            // Cập nhật Header màu sắc của Panel chi tiết
+            const headerBg = document.getElementById('detail-header-bg');
+            headerBg.className = `p-5 sm:p-6 text-white bg-gradient-to-r ${layer.gradient} relative overflow-hidden transition-all duration-300`;
+
+            document.getElementById('detail-bg-icon').className = `fa-solid ${layer.icon}`;
+            document.getElementById('detail-layer-number').textContent = `TẦNG ${layer.num} • ${layer.group.toUpperCase()}`;
+            document.getElementById('detail-pdu-pill').textContent = `Đơn vị PDU: ${layer.pdu}`;
+            document.getElementById('detail-title-vi').textContent = `${layer.nameVi} (${layer.nameEn})`;
+            document.getElementById('detail-subtitle').textContent = layer.shortDesc;
+
+            // Cập nhật Mô tả & Nhiệm vụ
+            document.getElementById('detail-description').textContent = layer.fullDesc;
+
+            const tasksList = document.getElementById('detail-tasks');
+            tasksList.innerHTML = layer.tasks.map(task => `
+                <li class="flex items-start gap-2">
+                    <i class="fa-solid fa-circle-check ${layer.accentText} mt-1 text-xs shrink-0"></i>
+                    <span>${task}</span>
+                </li>
+            `).join('');
+
+            // Cập nhật Đóng gói & Giải đóng gói
+            document.getElementById('detail-encap').textContent = layer.encapAction;
+            document.getElementById('detail-decap').textContent = layer.decapAction;
+
+            // Cập nhật Giao thức & Thiết bị
+            document.getElementById('detail-protocols').innerHTML = layer.protocols.map(p => `
+                <span class="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-slate-100 text-slate-800 border border-slate-200/80">
+                    ${p}
+                </span>
+            `).join('');
+
+            document.getElementById('detail-devices').innerHTML = layer.devices.map(d => `
+                <span class="px-2.5 py-1 rounded-lg text-xs font-medium ${layer.badgeBg}">
+                    ${d}
+                </span>
+            `).join('');
+
+            // Cập nhật Ví dụ thực tế
+            document.getElementById('detail-analogy').textContent = layer.analogy;
+
+            // Cập nhật trạng thái nút điều hướng Tầng trên / Tầng dưới
+            document.getElementById('btn-prev-layer').disabled = (layerNum === 7);
+            document.getElementById('btn-next-layer').disabled = (layerNum === 1);
+
+            // Nếu không trong quá trình chạy tự động, cập nhật luôn hộp PDU theo tầng đang xem
+            if (simCurrentStepIndex === -1) {
+                renderPDUVisualizer(layerNum, 'sender');
+            }
+
+            // Render lại danh sách để highlight tầng đang chọn
+            renderSingleStack();
+            renderDualStack();
+            highlightSummaryTableRow(layerNum);
+        }
+
+        function navigateLayer(delta) {
+            const target = selectedLayerNum + delta;
+            if (target >= 1 && target <= 7) {
+                selectLayer(target);
+            }
+        }
+
+        // =========================================================================
+        // 6. TRỰC QUAN HÓA CẤU TRÚC ĐÓNG GÓI GÓI TIN (PDU VISUALIZER)
+        // =========================================================================
+        function renderPDUVisualizer(layerNum, side) {
+            const container = document.getElementById('pdu-visualizer');
+            const pduBadge = document.getElementById('current-pdu-badge');
+            const scen = scenarios[currentScenarioKey];
+            const layerObj = osiLayers.find(l => l.num === layerNum);
+
+            if (side === 'cable' || layerNum === 1) {
+                pduBadge.textContent = "PDU: Chuỗi Bit (0 / 1)";
+                pduBadge.className = "text-xs font-mono font-bold px-2.5 py-0.5 rounded bg-purple-100 text-purple-800";
+                container.innerHTML = `
+                    <div class="pdu-block flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-600 text-white font-mono text-xs font-bold shadow-sm">
+                        <i class="fa-solid fa-wave-square"></i>
+                        <span>10110010 01101101 11001010 00110101 01010111 (${scen.name})</span>
+                    </div>
+                `;
+                return;
+            }
+
+            pduBadge.textContent = `PDU: ${layerObj.pdu}`;
+            pduBadge.className = `text-xs font-mono font-bold px-2.5 py-0.5 rounded ${layerObj.badgeBg}`;
+
+            let blocksHTML = '';
+
+            // Nếu ở Tầng 2: Có L2 Header ở đầu
+            if (layerNum <= 2) {
+                blocksHTML += `
+                    <div class="pdu-block px-2.5 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-mono font-bold shadow-xs flex items-center gap-1">
+                        <span>L2 Header</span>
+                        <span class="text-[10px] opacity-85 font-normal">(${scen.l2Info})</span>
+                    </div>
+                `;
+            }
+
+            // Nếu ở Tầng 3 hoặc 2: Có L3 Header (IP)
+            if (layerNum <= 3) {
+                blocksHTML += `
+                    <div class="pdu-block px-2.5 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-mono font-bold shadow-xs flex items-center gap-1">
+                        <span>L3 Header</span>
+                        <span class="text-[10px] opacity-85 font-normal">(${scen.l3Info})</span>
+                    </div>
+                `;
+            }
+
+            // Nếu ở Tầng 4, 3 hoặc 2: Có L4 Header (TCP/UDP Port)
+            if (layerNum <= 4) {
+                blocksHTML += `
+                    <div class="pdu-block px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-mono font-bold shadow-xs flex items-center gap-1">
+                        <span>L4 Header</span>
+                        <span class="text-[10px] opacity-85 font-normal">(${scen.l4Info})</span>
+                    </div>
+                `;
+            }
+
+            // Phần Dữ liệu của Tầng 5-7 (Data Payload)
+            let dataSubText = scen.payload;
+            if (layerNum <= 6) dataSubText = `${scen.l6Info} | ${scen.payload}`;
+            if (layerNum <= 5) dataSubText = `${scen.l5Info} | ${dataSubText}`;
+
+            blocksHTML += `
+                <div class="pdu-block px-3 py-1.5 rounded-lg bg-rose-500 text-white text-xs font-mono font-bold shadow-xs flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>DATA (${dataSubText})</span>
+                </div>
+            `;
+
+            // Nếu ở Tầng 2: Có thêm L2 Trailer (FCS/CRC) ở đuôi
+            if (layerNum <= 2) {
+                blocksHTML += `
+                    <div class="pdu-block px-2.5 py-1.5 rounded-lg bg-indigo-700 text-white text-xs font-mono font-bold shadow-xs">
+                        L2 Trailer (FCS/CRC)
+                    </div>
+                `;
+            }
+
+            container.innerHTML = blocksHTML;
+        }
+
+        // =========================================================================
+        // 7. ĐIỀU KHIỂN MÔ PHỎNG CHUYỂN ĐỘNG (PLAY / PAUSE / STEP / RESET)
+        // =========================================================================
+        function togglePlaySimulation() {
+            if (isPlaying) {
+                pauseSimulation();
+            } else {
+                startSimulation();
+            }
+        }
+
+        function startSimulation() {
+            isPlaying = true;
+            updatePlayButtonUI();
+
+            // Nếu đã ở bước cuối cùng hoặc chưa bắt đầu thì chạy từ bước đầu tiên
+            if (simCurrentStepIndex >= simulationSteps.length - 1 || simCurrentStepIndex < 0) {
+                simCurrentStepIndex = 0;
+                applySimulationStep(simCurrentStepIndex);
+            }
+
+            simInterval = setInterval(() => {
+                if (simCurrentStepIndex < simulationSteps.length - 1) {
+                    simCurrentStepIndex++;
+                    applySimulationStep(simCurrentStepIndex);
+                } else {
+                    pauseSimulation();
+                }
+            }, simSpeed);
+        }
+
+        function pauseSimulation() {
+            isPlaying = false;
+            if (simInterval) {
+                clearInterval(simInterval);
+                simInterval = null;
+            }
+            updatePlayButtonUI();
+        }
+
+        function stepForward() {
+            pauseSimulation();
+            if (simCurrentStepIndex < simulationSteps.length - 1) {
+                simCurrentStepIndex++;
+            } else {
+                simCurrentStepIndex = 0;
+            }
+            applySimulationStep(simCurrentStepIndex);
+        }
+
+        function stepBackward() {
+            pauseSimulation();
+            if (simCurrentStepIndex > 0) {
+                simCurrentStepIndex--;
+                applySimulationStep(simCurrentStepIndex);
+            } else if (simCurrentStepIndex === 0) {
+                resetSimulation();
+            }
+        }
+
+        function resetSimulation() {
+            pauseSimulation();
+            simCurrentStepIndex = -1;
+
+            document.getElementById('sim-phase-badge').className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-100 text-blue-700";
+            document.getElementById('sim-phase-badge').innerHTML = `<i class="fa-solid fa-circle-info"></i> Sẵn sàng mô phỏng`;
+            document.getElementById('sim-step-counter').textContent = `Bước 0 / ${simulationSteps.length}`;
+            document.getElementById('sim-step-desc').innerHTML = `Nhấn <strong>"Mô phỏng Truyền dữ liệu"</strong> để quan sát gói tin đi từ Tầng 7 xuống Tầng 1 (Đóng gói), truyền qua cáp mạng và đi từ Tầng 1 lên Tầng 7 (Giải đóng gói).`;
+            document.getElementById('sim-progress-bar').style.width = '0%';
+
+            // Tắt hiệu ứng cáp vật lý
+            document.getElementById('cable-bit-animation').classList.add('opacity-0');
+            document.getElementById('physical-cable-box').className = "rounded-xl border-2 border-slate-200 bg-slate-50 p-3 transition-all duration-300";
+
+            selectLayer(7);
+            renderPDUVisualizer(7, 'sender');
+        }
+
+        function applySimulationStep(index) {
+            const stepData = simulationSteps[index];
+            if (!stepData) return;
+
+            // Cập nhật tầng đang chọn để bảng bên phải tự động hiển thị thuyết minh của tầng đó
+            selectLayer(stepData.layer);
+
+            // Cập nhật hộp PDU
+            renderPDUVisualizer(stepData.layer, stepData.side);
+
+            // Cập nhật thanh trạng thái tiến trình
+            const progressPercent = Math.round(((index + 1) / simulationSteps.length) * 100);
+            document.getElementById('sim-progress-bar').style.width = `${progressPercent}%`;
+            document.getElementById('sim-step-counter').textContent = `Bước ${stepData.step} / ${simulationSteps.length}`;
+            document.getElementById('sim-step-desc').textContent = stepData.desc;
+
+            // Đổi màu Badge Pha (Gửi / Cáp / Nhận)
+            const phaseBadge = document.getElementById('sim-phase-badge');
+            const cableAnim = document.getElementById('cable-bit-animation');
+            const cableBox = document.getElementById('physical-cable-box');
+
+            if (stepData.side === 'sender') {
+                phaseBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-600 text-white";
+                phaseBadge.innerHTML = `<i class="fa-solid fa-arrow-down"></i> Máy Gửi: ${stepData.phase}`;
+                cableAnim.classList.add('opacity-0');
+                cableBox.className = "rounded-xl border-2 border-slate-200 bg-slate-50 p-3 transition-all duration-300";
+            } else if (stepData.side === 'cable') {
+                phaseBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-purple-600 text-white animate-pulse";
+                phaseBadge.innerHTML = `<i class="fa-solid fa-bolt"></i> Đang truyền Bit qua Cáp vật lý`;
+                cableAnim.classList.remove('opacity-0');
+                cableBox.className = "rounded-xl border-2 border-blue-500 bg-blue-50/40 p-3 shadow-glow-blue transition-all duration-300";
+            } else {
+                phaseBadge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-emerald-600 text-white";
+                phaseBadge.innerHTML = `<i class="fa-solid fa-arrow-up"></i> Máy Nhận: ${stepData.phase}`;
+                cableAnim.classList.add('opacity-0');
+                cableBox.className = "rounded-xl border-2 border-slate-200 bg-slate-50 p-3 transition-all duration-300";
+            }
+
+            renderSingleStack();
+            renderDualStack();
+        }
+
+        function updatePlayButtonUI() {
+            const btn = document.getElementById('btn-play');
+            const icon = document.getElementById('play-icon');
+            const text = document.getElementById('play-text');
+
+            if (isPlaying) {
+                btn.className = "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-sm transition active:scale-95";
+                icon.className = "fa-solid fa-pause";
+                text.textContent = "Tạm dừng";
+            } else {
+                btn.className = "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm shadow-blue-500/20 transition active:scale-95";
+                icon.className = "fa-solid fa-play";
+                text.textContent = simCurrentStepIndex >= 0 && simCurrentStepIndex < simulationSteps.length - 1
+                    ? "Tiếp tục mô phỏng"
+                    : "Mô phỏng Truyền dữ liệu";
+            }
+        }
+
+        function updateSpeed() {
+            simSpeed = parseInt(document.getElementById('speed-select').value, 10);
+            if (isPlaying) {
+                pauseSimulation();
+                startSimulation();
+            }
+        }
+
+        function changeScenario() {
+            currentScenarioKey = document.getElementById('scenario-select').value;
+            const activeSimStep = simCurrentStepIndex >= 0 ? simulationSteps[simCurrentStepIndex] : null;
+            if (activeSimStep) {
+                renderPDUVisualizer(activeSimStep.layer, activeSimStep.side);
+            } else {
+                renderPDUVisualizer(selectedLayerNum, 'sender');
+            }
+        }
+
+        // =========================================================================
+        // 8. RENDER BẢNG TÓM TẮT TOÀN DIỆN 7 TẦNG
+        // =========================================================================
+        function renderSummaryTable() {
+            const tbody = document.getElementById('summary-table-body');
+            tbody.innerHTML = osiLayers.map(layer => `
+                <tr id="table-row-${layer.num}" onclick="selectLayer(${layer.num})" class="cursor-pointer transition hover:bg-slate-50">
+                    <td class="py-3 px-4 font-extrabold">
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br ${layer.gradient} text-white text-xs">
+                            ${layer.num}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <div class="font-bold text-slate-900">${layer.nameVi}</div>
+                        <div class="text-xs text-slate-400">${layer.nameEn}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2.5 py-0.5 rounded-md font-mono text-xs font-bold ${layer.badgeBg}">
+                            ${layer.pdu}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-600 max-w-xs">
+                        ${layer.shortDesc}
+                    </td>
+                    <td class="py-3 px-4 font-mono text-xs text-slate-700">
+                        ${layer.protocols.slice(0, 4).join(', ')}
+                    </td>
+                    <td class="py-3 px-4 text-xs text-slate-700 font-medium">
+                        ${layer.devices.slice(0, 2).join(', ')}
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-700">
+                            ${layer.tcpipEquivalent}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function highlightSummaryTableRow(layerNum) {
+            osiLayers.forEach(l => {
+                const row = document.getElementById(`table-row-${l.num}`);
+                if (!row) return;
+                if (l.num === layerNum) {
+                    row.className = `cursor-pointer transition ${l.lightBg} font-medium`;
+                } else {
+                    row.className = "cursor-pointer transition hover:bg-slate-50";
+                }
+            });
+        }
+
+        // =========================================================================
+        // 9. TIỆN ÍCH MODAL & PHÍM TẮT BÀN PHÍM
+        // =========================================================================
+        function toggleMnemonicModal() {
+            const modal = document.getElementById('mnemonic-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            } else {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        function setupKeyboardShortcuts() {
+            window.addEventListener('keydown', (e) => {
+                if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    navigateLayer(1);
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    navigateLayer(-1);
+                } else if (e.code === 'Space') {
+                    e.preventDefault();
+                    togglePlaySimulation();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
