@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartHome AI - Điều Khiển IoT Bằng Giọng Nói</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        darkBg: '#0b0f19',
+                        cardBg: 'rgba(17, 24, 39, 0.75)',
+                        accent: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0b0f19;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Effect */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.18);
+            transform: translateY(-2px);
+        }
+
+        /* Active Glow States for IoT Cards */
+        .glow-yellow {
+            box-shadow: 0 0 35px -5px rgba(250, 204, 21, 0.35), inset 0 0 20px rgba(250, 204, 21, 0.15);
+            border-color: rgba(250, 204, 21, 0.5) !important;
+        }
+        .glow-purple {
+            box-shadow: 0 0 35px -5px rgba(168, 85, 247, 0.4), inset 0 0 20px rgba(168, 85, 247, 0.15);
+            border-color: rgba(168, 85, 247, 0.5) !important;
+        }
+        .glow-cyan {
+            box-shadow: 0 0 35px -5px rgba(34, 211, 238, 0.35), inset 0 0 20px rgba(34, 211, 238, 0.15);
+            border-color: rgba(34, 211, 238, 0.5) !important;
+        }
+        .glow-blue {
+            box-shadow: 0 0 35px -5px rgba(59, 130, 246, 0.4), inset 0 0 20px rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.5) !important;
+        }
+        .glow-emerald {
+            box-shadow: 0 0 35px -5px rgba(16, 185, 129, 0.35), inset 0 0 20px rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.5) !important;
+        }
+        .glow-rose {
+            box-shadow: 0 0 35px -5px rgba(244, 63, 94, 0.35), inset 0 0 20px rgba(244, 63, 94, 0.15);
+            border-color: rgba(244, 63, 94, 0.5) !important;
+        }
+
+        /* Microphone Pulse Animation */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            70% { transform: scale(1.45); opacity: 0; }
+            100% { transform: scale(1.45); opacity: 0; }
+        }
+        @keyframes pulse-ring-2 {
+            0% { transform: scale(0.95); opacity: 0.6; }
+            85% { transform: scale(1.75); opacity: 0; }
+            100% { transform: scale(1.75); opacity: 0; }
+        }
+        .mic-active::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px;
+            background: rgba(239, 68, 68, 0.6);
+            animation: pulse-ring 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            z-index: -1;
+        }
+        .mic-active::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px;
+            background: rgba(239, 68, 68, 0.4);
+            animation: pulse-ring-2 1.8s cubic-bezier(0.215, 0.61, 0.355, 1) infinite 0.3s;
+            z-index: -2;
+        }
+
+        /* Sound Wave Bars */
+        .sound-wave {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 24px;
+        }
+        .sound-wave span {
+            display: block;
+            width: 3px;
+            height: 6px;
+            background: #ef4444;
+            border-radius: 3px;
+            transition: height 0.2s ease;
+        }
+        .sound-wave.listening span {
+            animation: wave 1s ease-in-out infinite;
+        }
+        .sound-wave.listening span:nth-child(1) { animation-delay: 0.0s; }
+        .sound-wave.listening span:nth-child(2) { animation-delay: 0.15s; }
+        .sound-wave.listening span:nth-child(3) { animation-delay: 0.3s; }
+        .sound-wave.listening span:nth-child(4) { animation-delay: 0.45s; }
+        .sound-wave.listening span:nth-child(5) { animation-delay: 0.2s; }
+
+        @keyframes wave {
+            0%, 100% { height: 6px; }
+            50% { height: 22px; }
+        }
+
+        /* Fan Spinning Speeds */
+        @keyframes spin-fan {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .fan-spin-1 { animation: spin-fan 1.2s linear infinite; }
+        .fan-spin-2 { animation: spin-fan 0.6s linear infinite; }
+        .fan-spin-3 { animation: spin-fan 0.25s linear infinite; }
+
+        /* Air Conditioner Wind Waves */
+        @keyframes wind-flow {
+            0% { opacity: 0; transform: translateY(-6px) scaleX(0.9); }
+            50% { opacity: 0.85; transform: translateY(4px) scaleX(1.02); }
+            100% { opacity: 0; transform: translateY(14px) scaleX(0.95); }
+        }
+        .ac-wind-1 { animation: wind-flow 2s ease-in-out infinite; }
+        .ac-wind-2 { animation: wind-flow 2s ease-in-out infinite 0.6s; }
+        .ac-wind-3 { animation: wind-flow 2s ease-in-out infinite 1.2s; }
+
+        /* Curtain Transitions */
+        .curtain-panel {
+            transition: width 0.85s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* TV Animated Gradient Screen */
+        @keyframes tv-screen-anim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .tv-screen-on {
+            background: linear-gradient(270deg, #3b82f6, #8b5cf6, #ec4899, #10b981);
+            background-size: 400% 400%;
+            animation: tv-screen-anim 8s ease infinite;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(71, 85, 105, 0.8);
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between selection:bg-blue-500 selection:text-white">
+
+    <!-- Top Header & Status Bar -->
+    <header class="sticky top-0 z-30 glass-card border-b border-slate-800/80 px-4 py-3 sm:px-6">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            <!-- Brand Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <i class="fa-solid fa-house-signal text-white text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-white via-blue-100 to-indigo-300 bg-clip-text text-transparent">
+                            SmartHome AI Voice
+                        </h1>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            Online
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400">Hệ thống mô phỏng điều khiển thiết bị IoT bằng giọng nói tiếng Việt</p>
+                </div>
+            </div>
+
+            <!-- Real-time Environment Telemetry -->
+            <div class="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+                <div class="flex items-center gap-2 bg-slate-800/70 border border-slate-700/60 px-3 py-1.5 rounded-xl" title="Nhiệt độ trong nhà">
+                    <i class="fa-solid fa-temperature-half text-amber-400"></i>
+                    <span class="text-slate-400 hidden sm:inline">Nhiệt độ:</span>
+                    <span id="room-temp-display" class="font-semibold text-white">28.5°C</span>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-800/70 border border-slate-700/60 px-3 py-1.5 rounded-xl" title="Độ ẩm không khí">
+                    <i class="fa-solid fa-droplet text-cyan-400"></i>
+                    <span class="text-slate-400 hidden sm:inline">Độ ẩm:</span>
+                    <span id="room-humid-display" class="font-semibold text-white">65%</span>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-800/70 border border-slate-700/60 px-3 py-1.5 rounded-xl" title="Công suất tiêu thụ hiện tại">
+                    <i class="fa-solid fa-bolt text-yellow-400"></i>
+                    <span class="text-slate-400 hidden sm:inline">Công suất:</span>
+                    <span id="power-consumption" class="font-semibold text-emerald-400">15 W</span>
+                </div>
+                <button id="tts-toggle-btn" onclick="toggleTTS()" class="flex items-center gap-1.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 px-3 py-1.5 rounded-xl transition cursor-pointer" title="Bật/Tắt giọng nói phản hồi của Trợ lý ảo">
+                    <i id="tts-icon" class="fa-solid fa-volume-high"></i>
+                    <span id="tts-label" class="hidden md:inline font-medium">Phản hồi âm thanh: BẬT</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl w-full mx-auto px-4 py-6 sm:px-6 flex-1 flex flex-col gap-6">
+
+        <!-- VOICE CONTROL CENTER -->
+        <section class="glass-card rounded-2xl p-5 sm:p-6 border border-slate-700/70 relative overflow-hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                
+                <!-- Left: Microphone Button & Status -->
+                <div class="lg:col-span-5 flex flex-col sm:flex-row items-center gap-5">
+                    <div class="relative flex items-center justify-center">
+                        <button id="mic-btn" onclick="toggleMicrophone()" 
+                            class="relative z-10 w-20 h-20 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white shadow-xl shadow-blue-600/30 flex flex-col items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer group border-2 border-white/15"
+                            title="Nhấn để Bật / Tắt Microphone">
+                            <i id="mic-icon" class="fa-solid fa-microphone-slash text-2xl mb-0.5 group-hover:scale-110 transition-transform"></i>
+                            <span id="mic-btn-text" class="text-[10px] font-bold uppercase tracking-wider">Bật Mic</span>
+                        </button>
+                    </div>
+
+                    <div class="flex-1 text-center sm:text-left">
+                        <div class="flex items-center justify-center sm:justify-start gap-2.5 mb-1">
+                            <span id="mic-status-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-700 text-slate-300">
+                                Đang tắt Mic
+                            </span>
+                            <div id="sound-wave" class="sound-wave">
+                                <span></span><span></span><span></span><span></span><span></span>
+                            </div>
+                        </div>
+                        <h2 id="mic-instruction" class="text-base sm:text-lg font-semibold text-white">
+                            Nhấn nút Micro để bắt đầu ra lệnh giọng nói
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">
+                            Hỗ trợ giữ kết nối liên tục. Hãy nói rõ ràng bằng tiếng Việt (VD: <span class="text-blue-400 italic">"Bật đèn phòng khách"</span>, <span class="text-blue-400 italic">"Bật quạt số 3"</span>).
+                        </p>
+                        <div class="mt-2 flex items-center justify-center sm:justify-start gap-2">
+                            <label class="inline-flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer select-none">
+                                <input type="checkbox" id="continuous-mic-checkbox" checked class="rounded bg-slate-800 border-slate-600 text-blue-500 focus:ring-blue-500">
+                                <span>Tự động nghe liên tục khi bật Mic</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Live Voice Transcript & Manual Command Input -->
+                <div class="lg:col-span-7 flex flex-col gap-3">
+                    <!-- Transcript Display Box -->
+                    <div class="bg-slate-900/90 border border-slate-700/80 rounded-xl p-3.5 min-h-[76px] flex flex-col justify-between relative">
+                        <div class="flex items-center justify-between text-[11px] text-slate-400 uppercase tracking-wider font-semibold">
+                            <span><i class="fa-solid fa-waveform-lines mr-1.5 text-blue-400"></i>Nội dung nhận diện giọng nói (Real-time)</span>
+                            <span id="last-match-badge" class="hidden px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px]">Đã thực thi</span>
+                        </div>
+                        <div id="voice-transcript" class="text-sm sm:text-base font-medium text-slate-200 my-1 italic">
+                            "Chưa có câu lệnh nào... Hãy bật Mic và nói hoặc bấm các nút câu lệnh mẫu bên dưới."
+                        </div>
+                        <div id="ai-response-text" class="text-xs text-blue-400 font-medium flex items-center gap-1.5">
+                            <i class="fa-solid fa-robot"></i>
+                            <span>Trợ lý AI sẵn sàng nhận lệnh của bạn.</span>
+                        </div>
+                    </div>
+
+                    <!-- Manual Input Fallback (in case user has no mic) -->
+                    <form onsubmit="handleManualCommandSubmit(event)" class="flex gap-2">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-keyboard absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                            <input type="text" id="manual-command-input" 
+                                placeholder="Nhập câu lệnh giọng nói giả lập (VD: bật đèn phòng khách, mở rèm, bật điều hòa 20 độ...)" 
+                                class="w-full pl-9 pr-4 py-2 bg-slate-800/90 border border-slate-700 rounded-xl text-sm text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition">
+                        </div>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-xl transition flex items-center gap-1.5 shrink-0 cursor-pointer">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>Gửi lệnh</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Quick Voice Command Simulation Chips -->
+            <div class="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-1.5">
+                <span class="text-xs text-slate-400 mr-1 font-medium"><i class="fa-solid fa-wand-magic-sparkles text-amber-400 mr-1"></i>Thử lệnh nhanh:</span>
+                <button onclick="simulateVoiceCommand('Bật tất cả thiết bị')" class="text-xs px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition cursor-pointer">
+                    "Bật tất cả thiết bị"
+                </button>
+                <button onclick="simulateVoiceCommand('Tắt tất cả thiết bị')" class="text-xs px-2.5 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition cursor-pointer">
+                    "Tắt tất cả thiết bị"
+                </button>
+                <button onclick="simulateVoiceCommand('Bật đèn phòng khách')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                    "Bật đèn phòng khách"
+                </button>
+                <button onclick="simulateVoiceCommand('Đèn phòng ngủ màu tím')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                    "Đèn phòng ngủ màu tím"
+                </button>
+                <button onclick="simulateVoiceCommand('Bật quạt tốc độ 3')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                    "Bật quạt tốc độ 3"
+                </button>
+                <button onclick="simulateVoiceCommand('Bật điều hòa 20 độ')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                    "Bật điều hòa 20 độ"
+                </button>
+                <button onclick="simulateVoiceCommand('Mở rèm cửa')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                    "Mở rèm cửa"
+                </button>
+                <button onclick="simulateVoiceCommand('Bật tivi')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">
+                    "Bật tivi"
+                </button>
+                <button onclick="simulateVoiceCommand('Chế độ đi ngủ')" class="text-xs px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/35 text-indigo-300 border border-indigo-500/30 transition cursor-pointer">
+                    "Chế độ đi ngủ"
+                </button>
+            </div>
+        </section>
+
+        <!-- IOT SMART HOME GRID & SIDEBAR -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left 8 Cols: 6 Interactive IoT Device Cards -->
+            <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+                <!-- 1. ĐÈN PHÒNG KHÁCH (Living Room Smart Light) -->
+                <div id="card-livingLight" class="glass-card rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Phòng Khách • 18W</span>
+                            <h3 class="text-base font-bold text-white mt-0.5">Đèn Phòng Khách</h3>
+                            <p id="status-livingLight" class="text-xs text-slate-400 mt-0.5">Trạng thái: Đang Tắt</p>
+                        </div>
+                        <!-- Toggle Button -->
+                        <button onclick="toggleDevice('livingLight')" id="btn-livingLight" 
+                            class="w-12 h-6 rounded-full bg-slate-700 p-1 transition-colors duration-300 flex items-center cursor-pointer">
+                            <div id="knob-livingLight" class="w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-300"></div>
+                        </button>
+                    </div>
+
+                    <!-- Animated Visual Simulation -->
+                    <div class="my-6 flex flex-col items-center justify-center relative h-28">
+                        <div id="glow-circle-livingLight" class="w-24 h-24 rounded-full bg-yellow-400/0 blur-xl absolute transition-all duration-500"></div>
+                        <i id="icon-livingLight" class="fa-solid fa-lightbulb text-5xl text-slate-600 transition-all duration-500 relative z-10"></i>
+                    </div>
+
+                    <!-- Brightness Control -->
+                    <div class="pt-3 border-t border-slate-700/60 flex items-center justify-between gap-3 text-xs">
+                        <span class="text-slate-400">Độ sáng: <strong id="val-bright-livingLight" class="text-white">100%</strong></span>
+                        <input type="range" min="20" max="100" value="100" oninput="changeLivingLightBrightness(this.value)"
+                            class="w-32 accent-yellow-400 cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- 2. ĐÈN PHÒNG NGỦ (Bedroom Smart RGB Light) -->
+                <div id="card-bedroomLight" class="glass-card rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Phòng Ngủ • 12W</span>
+                            <h3 class="text-base font-bold text-white mt-0.5">Đèn Ngủ Thông Minh</h3>
+                            <p id="status-bedroomLight" class="text-xs text-slate-400 mt-0.5">Trạng thái: Đang Tắt</p>
+                        </div>
+                        <button onclick="toggleDevice('bedroomLight')" id="btn-bedroomLight" 
+                            class="w-12 h-6 rounded-full bg-slate-700 p-1 transition-colors duration-300 flex items-center cursor-pointer">
+                            <div id="knob-bedroomLight" class="w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-300"></div>
+                        </button>
+                    </div>
+
+                    <!-- Visual Lamp Simulation -->
+                    <div class="my-6 flex flex-col items-center justify-center relative h-28">
+                        <div id="glow-circle-bedroomLight" class="w-24 h-24 rounded-full bg-purple-500/0 blur-xl absolute transition-all duration-500"></div>
+                        <svg id="icon-bedroomLight" class="w-14 h-14 text-slate-600 transition-all duration-500 relative z-10" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 2h8l3 9H5L8 2zm3 11h2v6h3v2H8v-2h3v-6z"/>
+                        </svg>
+                    </div>
+
+                    <!-- Color Picker Dots -->
+                    <div class="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                        <span class="text-slate-400">Màu ánh sáng:</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="setBedroomColor('yellow')" class="w-5 h-5 rounded-full bg-amber-300 border-2 border-white/40 hover:scale-110 transition cursor-pointer" title="Vàng ấm"></button>
+                            <button onclick="setBedroomColor('purple')" class="w-5 h-5 rounded-full bg-purple-500 border-2 border-white/40 hover:scale-110 transition cursor-pointer" title="Tím"></button>
+                            <button onclick="setBedroomColor('blue')" class="w-5 h-5 rounded-full bg-blue-500 border-2 border-white/40 hover:scale-110 transition cursor-pointer" title="Xanh dương"></button>
+                            <button onclick="setBedroomColor('rose')" class="w-5 h-5 rounded-full bg-rose-500 border-2 border-white/40 hover:scale-110 transition cursor-pointer" title="Đỏ hồng"></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. QUẠT THÔNG MINH (Smart Ceiling/Stand Fan) -->
+                <div id="card-fan" class="glass-card rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Phòng Khách • 55W</span>
+                            <h3 class="text-base font-bold text-white mt-0.5">Quạt Thông Minh</h3>
+                            <p id="status-fan" class="text-xs text-slate-400 mt-0.5">Trạng thái: Đang Tắt</p>
+                        </div>
+                        <button onclick="toggleDevice('fan')" id="btn-fan" 
+                            class="w-12 h-6 rounded-full bg-slate-700 p-1 transition-colors duration-300 flex items-center cursor-pointer">
+                            <div id="knob-fan" class="w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-300"></div>
+                        </button>
+                    </div>
+
+                    <!-- Spinning Fan Blades SVG -->
+                    <div class="my-6 flex items-center justify-center relative h-28">
+                        <div class="w-24 h-24 rounded-full border-2 border-dashed border-slate-700 flex items-center justify-center">
+                            <i id="icon-fan" class="fa-solid fa-fan text-5xl text-slate-600 transition-colors duration-300"></i>
+                        </div>
+                    </div>
+
+                    <!-- Fan Speed Control -->
+                    <div class="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                        <span class="text-slate-400">Tốc độ gió:</span>
+                        <div class="flex gap-1.5">
+                            <button onclick="setFanSpeed(1)" id="fan-spd-1" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition cursor-pointer font-semibold">Mức 1</button>
+                            <button onclick="setFanSpeed(2)" id="fan-spd-2" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition cursor-pointer font-semibold">Mức 2</button>
+                            <button onclick="setFanSpeed(3)" id="fan-spd-3" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition cursor-pointer font-semibold">Mức 3</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. ĐIỀU HÒA NHIỆT ĐỘ (Smart Air Conditioner) -->
+                <div id="card-ac" class="glass-card rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Toàn Nhà • 850W</span>
+                            <h3 class="text-base font-bold text-white mt-0.5">Điều Hòa Nhiệt Độ</h3>
+                            <p id="status-ac" class="text-xs text-slate-400 mt-0.5">Trạng thái: Đang Tắt</p>
+                        </div>
+                        <button onclick="toggleDevice('ac')" id="btn-ac" 
+                            class="w-12 h-6 rounded-full bg-slate-700 p-1 transition-colors duration-300 flex items-center cursor-pointer">
+                            <div id="knob-ac" class="w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-300"></div>
+                        </button>
+                    </div>
+
+                    <!-- AC Unit & Cooling Wind Animation -->
+                    <div class="my-6 flex flex-col items-center justify-center relative h-28">
+                        <div class="w-44 h-12 bg-slate-800 border border-slate-600 rounded-xl flex items-center justify-between px-4 relative z-10 shadow-inner">
+                            <div class="flex items-center gap-1.5">
+                                <i id="icon-ac-snow" class="fa-regular fa-snowflake text-slate-500 transition-colors"></i>
+                                <span class="text-[10px] text-slate-400 uppercase font-semibold">Inverter</span>
+                            </div>
+                            <span id="ac-temp-badge" class="text-lg font-mono font-bold text-slate-500">24°C</span>
+                        </div>
+                        <!-- Cooling Waves -->
+                        <div id="ac-waves" class="hidden flex-col items-center gap-1 mt-1 w-36">
+                            <div class="h-1 w-full bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full ac-wind-1"></div>
+                            <div class="h-1 w-4/5 bg-gradient-to-r from-transparent via-blue-400 to-transparent rounded-full ac-wind-2"></div>
+                            <div class="h-1 w-3/5 bg-gradient-to-r from-transparent via-cyan-300 to-transparent rounded-full ac-wind-3"></div>
+                        </div>
+                    </div>
+
+                    <!-- Temperature Adjuster -->
+                    <div class="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                        <span class="text-slate-400">Nhiệt độ cài đặt:</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="adjustACTemp(-1)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center cursor-pointer">
+                                <i class="fa-solid fa-minus"></i>
+                            </button>
+                            <span id="ac-temp-control-label" class="font-bold text-sm text-cyan-400 w-10 text-center">24°C</span>
+                            <button onclick="adjustACTemp(1)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white flex items-center justify-center cursor-pointer">
+                                <i class="fa-solid fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. RÈM CỬA THÔNG MINH (Smart Window Curtain) -->
+                <div id="card-curtain" class="glass-card rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ban Công • 25W</span>
+                            <h3 class="text-base font-bold text-white mt-0.5">Rèm Cửa Tự Động</h3>
+                            <p id="status-curtain" class="text-xs text-slate-400 mt-0.5">Trạng thái: Đang Đóng</p>
+                        </div>
+                        <button onclick="toggleDevice('curtain')" id="btn-curtain" 
+                            class="w-12 h-6 rounded-full bg-slate-700 p-1 transition-colors duration-300 flex items-center cursor-pointer">
+                            <div id="knob-curtain" class="w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-300"></div>
+                        </button>
+                    </div>
+
+                    <!-- Window & Curtain Visual Animation -->
+                    <div class="my-4 flex items-center justify-center">
+                        <div class="w-48 h-28 rounded-xl border-2 border-slate-600 relative overflow-hidden bg-gradient-to-b from-sky-400 via-sky-200 to-emerald-300 shadow-inner">
+                            <!-- Sun & Outdoor View when curtain opens -->
+                            <div class="absolute top-3 right-5 w-6 h-6 rounded-full bg-yellow-300 shadow-lg shadow-yellow-200"></div>
+                            <div class="absolute bottom-0 inset-x-0 h-6 bg-emerald-600/80"></div>
+                            
+                            <!-- Left Curtain Panel -->
+                            <div id="curtain-left" class="curtain-panel absolute top-0 left-0 h-full w-1/2 bg-slate-800 border-r border-slate-600 flex justify-around">
+                                <div class="w-1 h-full bg-slate-700/60"></div>
+                                <div class="w-1 h-full bg-slate-700/60"></div>
+                            </div>
+                            <!-- Right Curtain Panel -->
+                            <div id="curtain-right" class="curtain-panel absolute top-0 right-0 h-full w-1/2 bg-slate-800 border-l border-slate-600 flex justify-around">
+                                <div class="w-1 h-full bg-slate-700/60"></div>
+                                <div class="w-1 h-full bg-slate-700/60"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                        <span class="text-slate-400">Lệnh hỗ trợ:</span>
+                        <span class="text-emerald-400 font-medium">"Mở rèm cửa" / "Đóng rèm cửa"</span>
+                    </div>
+                </div>
+
+                <!-- 6. SMART TV 4K (Tivi Phòng Khách) -->
+                <div id="card-tv" class="glass-card rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Giải Trí • 120W</span>
+                            <h3 class="text-base font-bold text-white mt-0.5">Smart Tivi OLED</h3>
+                            <p id="status-tv" class="text-xs text-slate-400 mt-0.5">Trạng thái: Đang Tắt</p>
+                        </div>
+                        <button onclick="toggleDevice('tv')" id="btn-tv" 
+                            class="w-12 h-6 rounded-full bg-slate-700 p-1 transition-colors duration-300 flex items-center cursor-pointer">
+                            <div id="knob-tv" class="w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-300"></div>
+                        </button>
+                    </div>
+
+                    <!-- TV Visual Screen Simulation -->
+                    <div class="my-4 flex flex-col items-center justify-center">
+                        <div id="tv-screen" class="w-48 h-24 rounded-lg border-2 border-slate-600 bg-slate-950 flex flex-col items-center justify-center relative overflow-hidden transition-all duration-500">
+                            <div id="tv-content" class="hidden flex-col items-center text-white text-center px-2">
+                                <i class="fa-solid fa-play-circle text-2xl mb-1 animate-pulse"></i>
+                                <span id="tv-channel-label" class="text-[11px] font-bold tracking-wide uppercase drop-shadow">VTV1 HD • Thời Sự</span>
+                            </div>
+                            <span id="tv-off-dot" class="w-1.5 h-1.5 rounded-full bg-red-500 absolute bottom-1.5 right-2"></span>
+                        </div>
+                        <div class="w-16 h-1.5 bg-slate-600 rounded-b-lg mt-0.5"></div>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-700/60 flex items-center justify-between text-xs">
+                        <span class="text-slate-400">Kênh đang phát:</span>
+                        <div class="flex gap-1.5">
+                            <button onclick="changeTVChannel('VTV1 HD • Thời Sự')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer">VTV1</button>
+                            <button onclick="changeTVChannel('YouTube 4K • Nhạc Lofi')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer">YouTube</button>
+                            <button onclick="changeTVChannel('Netflix • Cinema')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer">Netflix</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right 4 Cols: Voice Command Guide & Activity Log -->
+            <div class="lg:col-span-4 flex flex-col gap-5">
+                
+                <!-- Voice Commands Dictionary Card -->
+                <div class="glass-card rounded-2xl p-5 border border-slate-700/70">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+                            <i class="fa-solid fa-book-open"></i> Danh Sách Câu Lệnh Giọng Nói
+                        </h3>
+                        <span class="text-[11px] text-slate-400">Tiếng Việt / EN</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">
+                        Bạn có thể nói tự nhiên chứa các cụm từ khóa dưới đây khi Micro đang bật:
+                    </p>
+                    <ul class="space-y-2 text-xs text-slate-300">
+                        <li class="flex items-start gap-2 bg-slate-800/50 p-2 rounded-lg">
+                            <i class="fa-regular fa-lightbulb text-yellow-400 mt-0.5"></i>
+                            <div>
+                                <strong class="text-white">Đèn chiếu sáng:</strong><br>
+                                "Bật / tắt đèn phòng khách", "Bật / tắt đèn phòng ngủ", "Đèn ngủ màu tím / xanh / vàng / đỏ", "Bật tất cả đèn"
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2 bg-slate-800/50 p-2 rounded-lg">
+                            <i class="fa-solid fa-fan text-cyan-400 mt-0.5"></i>
+                            <div>
+                                <strong class="text-white">Quạt thông minh:</strong><br>
+                                "Bật / tắt quạt", "Quạt tốc độ 1 / 2 / 3", "Tăng tốc độ quạt"
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2 bg-slate-800/50 p-2 rounded-lg">
+                            <i class="fa-regular fa-snowflake text-blue-400 mt-0.5"></i>
+                            <div>
+                                <strong class="text-white">Điều hòa nhiệt độ:</strong><br>
+                                "Bật / tắt điều hòa (máy lạnh)", "Điều hòa 20 độ" (từ 16 đến 30 độ)
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2 bg-slate-800/50 p-2 rounded-lg">
+                            <i class="fa-solid fa-person-Booth text-emerald-400 mt-0.5"></i>
+                            <div>
+                                <strong class="text-white">Rèm cửa & Tivi:</strong><br>
+                                "Mở / đóng rèm cửa", "Bật / tắt tivi", "Mở kênh YouTube / Netflix"
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-2 bg-slate-800/50 p-2 rounded-lg">
+                            <i class="fa-solid fa-layer-group text-purple-400 mt-0.5"></i>
+                            <div>
+                                <strong class="text-white">Ngữ cảnh thông minh:</strong><br>
+                                "Bật tất cả", "Tắt tất cả", "Chế độ đi ngủ", "Chế độ tiếp khách"
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Real-time Activity & Voice Log -->
+                <div class="glass-card rounded-2xl p-5 border border-slate-700/70 flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left"></i> Nhật Ký Điều Khiển IoT
+                        </h3>
+                        <button onclick="clearHistoryLog()" class="text-xs text-slate-400 hover:text-white transition cursor-pointer">
+                            Xóa lịch sử
+                        </button>
+                    </div>
+                    <div id="command-log-list" class="space-y-2.5 overflow-y-auto max-h-72 pr-1 text-xs flex-1">
+                        <!-- Log entries populated dynamically -->
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-4 px-6 text-center text-xs text-slate-500">
+        Mô phỏng hệ thống Nhà Thông Minh IoT điều khiển bằng giọng nói (Web Speech API) • Tương thích tốt nhất trên Google Chrome / Microsoft Edge.
+    </footer>
+
+    <!-- Application JavaScript -->
+    <script>
+        // ==========================================
+        // 1. TRẠNG THÁI CÁC THIẾT BỊ IOT (STATE)
+        // ==========================================
+        const iotState = {
+            livingLight: {
+                name: 'Đèn phòng khách',
+                on: false,
+                brightness: 100,
+                powerW: 18
+            },
+            bedroomLight: {
+                name: 'Đèn phòng ngủ',
+                on: false,
+                color: 'purple', // yellow, purple, blue, rose
+                powerW: 12
+            },
+            fan: {
+                name: 'Quạt thông minh',
+                on: false,
+                speed: 2, // 1, 2, 3
+                powerW: 55
+            },
+            ac: {
+                name: 'Điều hòa nhiệt độ',
+                on: false,
+                temp: 24,
+                powerW: 850
+            },
+            curtain: {
+                name: 'Rèm cửa tự động',
+                on: false, // true = Mở, false = Đóng
+                powerW: 25
+            },
+            tv: {
+                name: 'Smart Tivi',
+                on: false,
+                channel: 'VTV1 HD • Thời Sự',
+                powerW: 120
+            }
+        };
+
+        let isMicListening = false;
+        let recognition = null;
+        let ttsEnabled = true;
+
+        // Chống xử lý lặp khi Web Speech API trả lại cùng một kết quả.
+        let lastVoiceCommandKey = '';
+        let lastVoiceCommandAt = 0;
+        let recognitionRestartTimer = null;
+        let recognitionStarting = false;
+        let recognitionStopping = false;
+
+        function normalizeCommandKey(value) {
+            return String(value || '')
+                .toLocaleLowerCase('vi-VN')
+                .normalize('NFC')
+                .replace(/[.,!?;:]+/g, ' ')
+                .replace(/\\s+/g, ' ')
+                .trim();
+        }
+
+        // ==========================================
+        // 2. KHỞI TẠO WEB SPEECH API (NHẬN DIỆN GIỌNG NÓI)
+        // ==========================================
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                updateAIResponse('Trình duyệt của bạn không hỗ trợ Web Speech API. Hãy dùng Chrome/Edge hoặc ô nhập lệnh bên dưới.', 'warn');
+                return null;
+            }
+
+            const rec = new SpeechRecognition();
+            rec.lang = 'vi-VN';
+            rec.continuous = false; // Tự khởi động lại khi onend nếu người dùng vẫn bật Mic
+            rec.interimResults = true;
+
+            rec.onstart = () => {
+                recognitionStarting = false;
+                recognitionStopping = false;
+                isMicListening = true;
+                updateMicrophoneUI(true);
+            };
+
+            rec.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+
+                const transcriptEl = document.getElementById('voice-transcript');
+                if (interimTranscript) {
+                    transcriptEl.textContent = `"${interimTranscript}..."`;
+                    transcriptEl.className = 'text-sm sm:text-base font-medium text-amber-300 my-1 italic';
+                }
+
+                if (finalTranscript) {
+                    const cleanCmd = finalTranscript.trim();
+                    if (cleanCmd) {
+                        transcriptEl.textContent = `"${cleanCmd}"`;
+                        transcriptEl.className = 'text-sm sm:text-base font-semibold text-emerald-300 my-1';
+                        processVoiceCommand(cleanCmd, 'Giọng nói');
+                    }
+                }
+            };
+
+            rec.onerror = (event) => {
+                recognitionStarting = false;
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    isMicListening = false;
+                    recognitionStopping = true;
+                    updateMicrophoneUI(false);
+                    updateAIResponse('Bạn chưa cấp quyền Micro. Hãy cấp quyền trên trình duyệt hoặc dùng ô nhập lệnh.', 'error');
+                } else if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                    updateAIResponse(`Thông báo nhận diện: ${event.error}`, 'warn');
+                }
+            };
+
+            rec.onend = () => {
+                recognitionStarting = false;
+                recognitionStopping = false;
+                clearTimeout(recognitionRestartTimer);
+
+                const continuousCheck = document.getElementById('continuous-mic-checkbox');
+                if (isMicListening && continuousCheck && continuousCheck.checked) {
+                    // Chỉ có một bộ hẹn giờ khởi động lại, tránh start() chồng lệnh.
+                    recognitionRestartTimer = setTimeout(() => {
+                        if (!isMicListening || recognitionStarting) return;
+                        try {
+                            recognitionStarting = true;
+                            rec.start();
+                        } catch (err) {
+                            recognitionStarting = false;
+                            // Một số trình duyệt cần thêm thời gian giải phóng phiên trước.
+                            recognitionRestartTimer = setTimeout(() => {
+                                if (!isMicListening || recognitionStarting) return;
+                                try {
+                                    recognitionStarting = true;
+                                    rec.start();
+                                } catch (retryError) {
+                                    recognitionStarting = false;
+                                }
+                            }, 500);
+                        }
+                    }, 250);
+                } else {
+                    isMicListening = false;
+                    updateMicrophoneUI(false);
+                }
+            };
+
+            return rec;
+        }
+
+        // Bật / Tắt Microphone
+        function toggleMicrophone() {
+            if (!recognition) recognition = initSpeechRecognition();
+
+            if (!recognition) {
+                playFeedbackBeep(250, 0.15);
+                return;
+            }
+
+            if (isMicListening) {
+                isMicListening = false;
+                recognitionStopping = true;
+                clearTimeout(recognitionRestartTimer);
+                try { recognition.stop(); } catch (e) {
+                    recognitionStopping = false;
+                }
+                updateMicrophoneUI(false);
+                playFeedbackBeep(340, 0.12);
+                updateAIResponse('Đã tắt Microphone. Nhấn biểu tượng Micro khi bạn muốn ra lệnh.', 'info');
+                return;
+            }
+
+            if (recognitionStarting) return;
+            isMicListening = true;
+            recognitionStarting = true;
+            try {
+                recognition.start();
+                playFeedbackBeep(660, 0.12);
+                updateAIResponse('Đang lắng nghe giọng nói của bạn... Hãy nói câu lệnh điều khiển thiết bị.', 'info');
+            } catch (e) {
+                recognitionStarting = false;
+                isMicListening = false;
+                updateMicrophoneUI(false);
+                updateAIResponse('Micro đang bận hoặc chưa sẵn sàng. Vui lòng đợi một chút rồi thử lại.', 'warn');
+            }
+        }
+
+        function updateMicrophoneUI(listening) {
+            const micBtn = document.getElementById('mic-btn');
+            const micIcon = document.getElementById('mic-icon');
+            const micBtnText = document.getElementById('mic-btn-text');
+            const statusBadge = document.getElementById('mic-status-badge');
+            const soundWave = document.getElementById('sound-wave');
+            const instruction = document.getElementById('mic-instruction');
+
+            if (listening) {
+                micBtn.className = 'mic-active relative z-10 w-20 h-20 rounded-full bg-gradient-to-br from-rose-600 to-red-600 text-white shadow-xl shadow-rose-600/40 flex flex-col items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer group border-2 border-white/30';
+                micIcon.className = 'fa-solid fa-microphone-lines text-2xl mb-0.5 animate-pulse';
+                micBtnText.textContent = 'Đang Nghe';
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/30';
+                statusBadge.textContent = '● Đang thu âm trực tiếp';
+                soundWave.classList.add('listening');
+                instruction.textContent = 'Hãy nói câu lệnh (VD: "Bật đèn phòng khách", "Mở rèm cửa")...';
+            } else {
+                micBtn.className = 'relative z-10 w-20 h-20 rounded-full bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white shadow-xl shadow-blue-600/30 flex flex-col items-center justify-center transition-all duration-300 transform active:scale-95 cursor-pointer group border-2 border-white/15';
+                micIcon.className = 'fa-solid fa-microphone-slash text-2xl mb-0.5';
+                micBtnText.textContent = 'Bật Mic';
+                statusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-700 text-slate-300';
+                statusBadge.textContent = 'Đang tắt Mic';
+                soundWave.classList.remove('listening');
+                instruction.textContent = 'Nhấn nút Micro để bắt đầu ra lệnh giọng nói';
+            }
+        }
+
+        // ==========================================
+        // 3. BỘ XỬ LÝ NGÔN NGỮ TỰ NHIÊN TIẾNG VIỆT (NLP PARSER)
+        // ==========================================
+        function processVoiceCommand(rawCommand, source = 'Giọng nói') {
+            const cmd = rawCommand.toLocaleLowerCase('vi-VN').trim();
+            const now = Date.now();
+            const commandKey = normalizeCommandKey(rawCommand);
+            const isSpeechSource = source === 'Giọng nói';
+
+            // Web Speech API đôi khi phát lại cùng một final result sau khi tự kết nối lại.
+            // Bỏ qua bản lặp trong 2,5 giây; lệnh nhập tay/nút mẫu không bị ảnh hưởng.
+            if (isSpeechSource && commandKey &&
+                commandKey === lastVoiceCommandKey &&
+                now - lastVoiceCommandAt < 2500) {
+                return;
+            }
+            if (isSpeechSource) {
+                lastVoiceCommandKey = commandKey;
+                lastVoiceCommandAt = now;
+            }
+
+            let executedActions = [];
+
+            // Hiển thị lên khung transcript nếu gọi từ nút giả lập
+            const transcriptEl = document.getElementById('voice-transcript');
+            transcriptEl.textContent = `"${rawCommand}"`;
+            transcriptEl.className = 'text-sm sm:text-base font-semibold text-emerald-300 my-1';
+
+            // 1. Ngữ cảnh đặc biệt: Chế độ đi ngủ / Tiếp khách / Tất cả
+            if (cmd.includes('chế độ đi ngủ') || cmd.includes('đi ngủ')) {
+                iotState.livingLight.on = false;
+                iotState.bedroomLight.on = true;
+                iotState.bedroomLight.color = 'purple';
+                iotState.curtain.on = false;
+                iotState.tv.on = false;
+                iotState.ac.on = true;
+                iotState.ac.temp = 26;
+                executedActions.push('Đã kích hoạt Chế độ đi ngủ (Tắt đèn khách, đóng rèm, tắt TV, bật đèn ngủ & điều hòa 26°C)');
+            } 
+            else if (cmd.includes('chế độ tiếp khách') || cmd.includes('tiếp khách')) {
+                iotState.livingLight.on = true;
+                iotState.livingLight.brightness = 100;
+                iotState.fan.on = true;
+                iotState.fan.speed = 2;
+                iotState.ac.on = true;
+                iotState.ac.temp = 24;
+                iotState.curtain.on = true;
+                executedActions.push('Đã kích hoạt Chế độ tiếp khách (Bật đèn phòng khách, mở rèm, bật quạt và điều hòa 24°C)');
+            }
+            else if (cmd.includes('bật tất cả đèn') || cmd.includes('mở tất cả đèn') || cmd.includes('bật hết đèn')) {
+                iotState.livingLight.on = true;
+                iotState.bedroomLight.on = true;
+                executedActions.push('Đã bật tất cả đèn trong nhà');
+            }
+            else if (cmd.includes('tắt tất cả đèn') || cmd.includes('tắt hết đèn')) {
+                iotState.livingLight.on = false;
+                iotState.bedroomLight.on = false;
+                executedActions.push('Đã tắt tất cả đèn trong nhà');
+            }
+            else if (cmd.includes('bật tất cả') || cmd.includes('mở tất cả') || cmd.includes('bật hết') || cmd.includes('turn on all')) {
+                Object.keys(iotState).forEach(k => iotState[k].on = true);
+                executedActions.push('Đã bật toàn bộ 6 thiết bị trong nhà');
+            }
+            else if (cmd.includes('tắt tất cả') || cmd.includes('đóng tất cả') || cmd.includes('tắt hết') || cmd.includes('turn off all')) {
+                Object.keys(iotState).forEach(k => iotState[k].on = false);
+                executedActions.push('Đã tắt toàn bộ 6 thiết bị trong nhà');
+            }
+            else {
+                // Xác định hành động BẬT/MỞ hay TẮT/ĐÓNG
+                const isTurnOn = cmd.includes('bật') || cmd.includes('mở') || cmd.includes('khởi động') || cmd.includes('turn on') || cmd.includes('open');
+                const isTurnOff = cmd.includes('tắt') || cmd.includes('đóng') || cmd.includes('ngừng') || cmd.includes('turn off') || cmd.includes('close');
+
+                // --- ĐÈN PHÒNG KHÁCH ---
+                if (cmd.includes('đèn phòng khách') || cmd.includes('đèn khách') || cmd.includes('living room light')) {
+                    if (isTurnOff) {
+                        iotState.livingLight.on = false;
+                        executedActions.push('Đã tắt đèn phòng khách');
+                    } else if (isTurnOn) {
+                        iotState.livingLight.on = true;
+                        executedActions.push('Đã bật đèn phòng khách');
+                    }
+                }
+
+                // --- ĐÈN PHÒNG NGỦ & ĐỔI MÀU ---
+                if (cmd.includes('đèn phòng ngủ') || cmd.includes('đèn ngủ') || cmd.includes('bedroom light')) {
+                    if (isTurnOff) {
+                        iotState.bedroomLight.on = false;
+                        executedActions.push('Đã tắt đèn phòng ngủ');
+                    } else if (isTurnOn || cmd.includes('màu')) {
+                        iotState.bedroomLight.on = true;
+                        if (cmd.includes('tím')) iotState.bedroomLight.color = 'purple';
+                        else if (cmd.includes('vàng')) iotState.bedroomLight.color = 'yellow';
+                        else if (cmd.includes('xanh')) iotState.bedroomLight.color = 'blue';
+                        else if (cmd.includes('đỏ') || cmd.includes('hồng')) iotState.bedroomLight.color = 'rose';
+                        executedActions.push('Đã bật đèn phòng ngủ');
+                    }
+                }
+
+                // --- NẾU CHỈ NÓI "BẬT ĐÈN" HOẶC "TẮT ĐÈN" CHUNG ---
+                if ((cmd === 'bật đèn' || cmd === 'mở đèn') && executedActions.length === 0) {
+                    iotState.livingLight.on = true;
+                    iotState.bedroomLight.on = true;
+                    executedActions.push('Đã bật đèn phòng khách và đèn phòng ngủ');
+                } else if ((cmd === 'tắt đèn' || cmd === 'đóng đèn') && executedActions.length === 0) {
+                    iotState.livingLight.on = false;
+                    iotState.bedroomLight.on = false;
+                    executedActions.push('Đã tắt đèn phòng khách và đèn phòng ngủ');
+                }
+
+                // --- QUẠT THÔNG MINH ---
+                if (cmd.includes('quạt') || cmd.includes('fan')) {
+                    if (isTurnOff) {
+                        iotState.fan.on = false;
+                        executedActions.push('Đã tắt quạt thông minh');
+                    } else {
+                        if (cmd.includes('số 1') || cmd.includes('mức 1') || cmd.includes('tốc độ 1') || cmd.includes('nhỏ')) {
+                            iotState.fan.on = true;
+                            iotState.fan.speed = 1;
+                            executedActions.push('Đã bật quạt ở tốc độ 1');
+                        } else if (cmd.includes('số 2') || cmd.includes('mức 2') || cmd.includes('tốc độ 2') || cmd.includes('vừa')) {
+                            iotState.fan.on = true;
+                            iotState.fan.speed = 2;
+                            executedActions.push('Đã bật quạt ở tốc độ 2');
+                        } else if (cmd.includes('số 3') || cmd.includes('mức 3') || cmd.includes('tốc độ 3') || cmd.includes('mạnh') || cmd.includes('tối đa')) {
+                            iotState.fan.on = true;
+                            iotState.fan.speed = 3;
+                            executedActions.push('Đã bật quạt ở tốc độ 3');
+                        } else if (isTurnOn) {
+                            iotState.fan.on = true;
+                            executedActions.push(`Đã bật quạt thông minh (Mức ${iotState.fan.speed})`);
+                        }
+                    }
+                }
+
+                // --- ĐIỀU HÒA NHIỆT ĐỘ ---
+                if (cmd.includes('điều hòa') || cmd.includes('máy lạnh') || cmd.includes('air conditioner')) {
+                    if (isTurnOff) {
+                        iotState.ac.on = false;
+                        executedActions.push('Đã tắt điều hòa nhiệt độ');
+                    } else {
+                        // Tìm số nhiệt độ trong câu lệnh (từ 16 đến 30)
+                        const tempMatch = cmd.match(/\b(1[6-9]|2[0-9]|30)\b/);
+                        if (tempMatch) {
+                            iotState.ac.on = true;
+                            iotState.ac.temp = parseInt(tempMatch[1], 10);
+                            executedActions.push(`Đã bật điều hòa ở mức ${iotState.ac.temp}°C`);
+                        } else if (isTurnOn) {
+                            iotState.ac.on = true;
+                            executedActions.push(`Đã bật điều hòa nhiệt độ (${iotState.ac.temp}°C)`);
+                        }
+                    }
+                }
+
+                // --- RÈM CỬA TỰ ĐỘNG ---
+                if (cmd.includes('rèm') || cmd.includes('cửa sổ') || cmd.includes('curtain')) {
+                    if (isTurnOff) {
+                        iotState.curtain.on = false;
+                        executedActions.push('Đã đóng rèm cửa tự động');
+                    } else if (isTurnOn) {
+                        iotState.curtain.on = true;
+                        executedActions.push('Đã mở rèm cửa tự động');
+                    }
+                }
+
+                // --- SMART TIVI ---
+                if (cmd.includes('tivi') || cmd.includes('tv') || cmd.includes('ti vi') || cmd.includes('youtube') || cmd.includes('netflix')) {
+                    if (isTurnOff) {
+                        iotState.tv.on = false;
+                        executedActions.push('Đã tắt Smart Tivi');
+                    } else {
+                        iotState.tv.on = true;
+                        if (cmd.includes('youtube')) iotState.tv.channel = 'YouTube 4K • Nhạc Lofi';
+                        else if (cmd.includes('netflix')) iotState.tv.channel = 'Netflix • Cinema';
+                        else if (cmd.includes('vtv')) iotState.tv.channel = 'VTV1 HD • Thời Sự';
+                        executedActions.push(`Đã bật Smart Tivi (${iotState.tv.channel})`);
+                    }
+                }
+            }
+
+            // Phản hồi kết quả
+            const badge = document.getElementById('last-match-badge');
+            badge.classList.remove('hidden');
+
+            if (executedActions.length > 0) {
+                const replyMessage = executedActions.join(', ') + '.';
+                badge.textContent = 'Đã thực thi';
+                badge.className = 'px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold';
+                updateAIResponse(replyMessage, 'success');
+                addLogEntry(rawCommand, replyMessage, source, true);
+                playFeedbackBeep(880, 0.1);
+                speakVietnamese(replyMessage);
+                renderAllDevices();
+            } else {
+                const failMsg = `Xin lỗi, tôi chưa hiểu lệnh "${rawCommand}". Hãy thử nói "Bật đèn phòng khách" hoặc "Mở rèm cửa".`;
+                badge.textContent = 'Không khớp lệnh';
+                badge.className = 'px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-semibold';
+                updateAIResponse(failMsg, 'warn');
+                addLogEntry(rawCommand, 'Chưa nhận diện được thiết bị phù hợp', source, false);
+                playFeedbackBeep(300, 0.15);
+            }
+        }
+
+        // ==========================================
+        // 4. CẬP NHẬT GIAO DIỆN MÔ PHỎNG THIẾT BỊ (UI RENDER)
+        // ==========================================
+        function renderAllDevices() {
+            // 1. Đèn phòng khách
+            const ll = iotState.livingLight;
+            setSwitchState('livingLight', ll.on, 'bg-yellow-500');
+            const cardLL = document.getElementById('card-livingLight');
+            const iconLL = document.getElementById('icon-livingLight');
+            const glowLL = document.getElementById('glow-circle-livingLight');
+            document.getElementById('status-livingLight').textContent = ll.on ? `Trạng thái: Đang Sáng (${ll.brightness}%)` : 'Trạng thái: Đang Tắt';
+            cardLL.classList.toggle('glow-yellow', ll.on);
+            if (ll.on) {
+                iconLL.className = 'fa-solid fa-lightbulb text-5xl text-yellow-300 drop-shadow-[0_0_20px_rgba(253,224,71,0.9)] transition-all duration-500 relative z-10';
+                iconLL.style.opacity = ll.brightness / 100;
+                glowLL.className = 'w-28 h-28 rounded-full bg-yellow-400/40 blur-xl absolute transition-all duration-500';
+            } else {
+                iconLL.className = 'fa-solid fa-lightbulb text-5xl text-slate-600 transition-all duration-500 relative z-10';
+                iconLL.style.opacity = 1;
+                glowLL.className = 'w-24 h-24 rounded-full bg-yellow-400/0 blur-xl absolute transition-all duration-500';
+            }
+
+            // 2. Đèn phòng ngủ
+            const bl = iotState.bedroomLight;
+            setSwitchState('bedroomLight', bl.on, 'bg-purple-500');
+            const cardBL = document.getElementById('card-bedroomLight');
+            const iconBL = document.getElementById('icon-bedroomLight');
+            const glowBL = document.getElementById('glow-circle-bedroomLight');
+            const colorMap = {
+                yellow: { text: 'text-amber-300', bg: 'bg-amber-400/40', glow: 'glow-yellow', label: 'Vàng ấm' },
+                purple: { text: 'text-purple-400', bg: 'bg-purple-500/40', glow: 'glow-purple', label: 'Tím lãng mạn' },
+                blue:   { text: 'text-blue-400',   bg: 'bg-blue-500/40',   glow: 'glow-blue',   label: 'Xanh dịu' },
+                rose:   { text: 'text-rose-400',   bg: 'bg-rose-500/40',   glow: 'glow-rose',   label: 'Hồng ấm' }
+            };
+            const currentTheme = colorMap[bl.color] || colorMap.purple;
+            cardBL.classList.remove('glow-yellow', 'glow-purple', 'glow-blue', 'glow-rose');
+            if (bl.on) {
+                cardBL.classList.add(currentTheme.glow);
+                iconBL.setAttribute('class', `w-14 h-14 ${currentTheme.text} drop-shadow-[0_0_15px_currentColor] transition-all duration-500 relative z-10`);
+                glowBL.className = `w-28 h-28 rounded-full ${currentTheme.bg} blur-xl absolute transition-all duration-500`;
+                document.getElementById('status-bedroomLight').textContent = `Trạng thái: Đang Bật (${currentTheme.label})`;
+            } else {
+                iconBL.setAttribute('class', 'w-14 h-14 text-slate-600 transition-all duration-500 relative z-10');
+                glowBL.className = 'w-24 h-24 rounded-full bg-purple-500/0 blur-xl absolute transition-all duration-500';
+                document.getElementById('status-bedroomLight').textContent = 'Trạng thái: Đang Tắt';
+            }
+
+            // 3. Quạt thông minh
+            const fan = iotState.fan;
+            setSwitchState('fan', fan.on, 'bg-cyan-500');
+            const cardFan = document.getElementById('card-fan');
+            const iconFan = document.getElementById('icon-fan');
+            cardFan.classList.toggle('glow-cyan', fan.on);
+            document.getElementById('status-fan').textContent = fan.on ? `Trạng thái: Đang Quay (Tốc độ ${fan.speed})` : 'Trạng thái: Đang Tắt';
+            iconFan.className = `fa-solid fa-fan text-5xl transition-colors duration-300 ${fan.on ? 'text-cyan-400 fan-spin-' + fan.speed : 'text-slate-600'}`;
+            [1, 2, 3].forEach(spd => {
+                const btn = document.getElementById(`fan-spd-${spd}`);
+                if (fan.on && fan.speed === spd) {
+                    btn.className = 'px-2.5 py-1 rounded bg-cyan-500 text-slate-950 font-bold transition cursor-pointer';
+                } else {
+                    btn.className = 'px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition cursor-pointer font-semibold';
+                }
+            });
+
+            // 4. Điều hòa nhiệt độ
+            const ac = iotState.ac;
+            setSwitchState('ac', ac.on, 'bg-blue-500');
+            const cardAC = document.getElementById('card-ac');
+            const acWaves = document.getElementById('ac-waves');
+            const acTempBadge = document.getElementById('ac-temp-badge');
+            const acSnow = document.getElementById('icon-ac-snow');
+            cardAC.classList.toggle('glow-blue', ac.on);
+            document.getElementById('status-ac').textContent = ac.on ? `Trạng thái: Làm lạnh (${ac.temp}°C)` : 'Trạng thái: Đang Tắt';
+            document.getElementById('ac-temp-control-label').textContent = `${ac.temp}°C`;
+            acTempBadge.textContent = `${ac.temp}°C`;
+            if (ac.on) {
+                acTempBadge.className = 'text-lg font-mono font-bold text-cyan-300';
+                acSnow.className = 'fa-regular fa-snowflake text-cyan-400 animate-spin';
+                acWaves.classList.remove('hidden');
+                acWaves.classList.add('flex');
+            } else {
+                acTempBadge.className = 'text-lg font-mono font-bold text-slate-500';
+                acSnow.className = 'fa-regular fa-snowflake text-slate-500';
+                acWaves.classList.add('hidden');
+                acWaves.classList.remove('flex');
+            }
+
+            // 5. Rèm cửa tự động
+            const cur = iotState.curtain;
+            setSwitchState('curtain', cur.on, 'bg-emerald-500');
+            const cardCur = document.getElementById('card-curtain');
+            const leftPanel = document.getElementById('curtain-left');
+            const rightPanel = document.getElementById('curtain-right');
+            cardCur.classList.toggle('glow-emerald', cur.on);
+            document.getElementById('status-curtain').textContent = cur.on ? 'Trạng thái: Đang Mở (Đón nắng)' : 'Trạng thái: Đang Đóng';
+            leftPanel.style.width = cur.on ? '12%' : '50%';
+            rightPanel.style.width = cur.on ? '12%' : '50%';
+
+            // 6. Smart Tivi
+            const tv = iotState.tv;
+            setSwitchState('tv', tv.on, 'bg-rose-500');
+            const cardTV = document.getElementById('card-tv');
+            const tvScreen = document.getElementById('tv-screen');
+            const tvContent = document.getElementById('tv-content');
+            const tvOffDot = document.getElementById('tv-off-dot');
+            cardTV.classList.toggle('glow-rose', tv.on);
+            document.getElementById('status-tv').textContent = tv.on ? `Đang phát: ${tv.channel}` : 'Trạng thái: Đang Tắt';
+            document.getElementById('tv-channel-label').textContent = tv.channel;
+            if (tv.on) {
+                tvScreen.classList.add('tv-screen-on');
+                tvContent.classList.remove('hidden');
+                tvContent.classList.add('flex');
+                tvOffDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 absolute bottom-1.5 right-2';
+            } else {
+                tvScreen.classList.remove('tv-screen-on');
+                tvContent.classList.add('hidden');
+                tvContent.classList.remove('flex');
+                tvOffDot.className = 'w-1.5 h-1.5 rounded-full bg-red-500 absolute bottom-1.5 right-2';
+            }
+
+            // Cập nhật tổng công suất tiêu thụ & nhiệt độ phòng
+            updateTelemetry();
+        }
+
+        function setSwitchState(deviceKey, isOn, activeBgClass) {
+            const btn = document.getElementById(`btn-${deviceKey}`);
+            const knob = document.getElementById(`knob-${deviceKey}`);
+            btn.className = `w-12 h-6 rounded-full p-1 transition-colors duration-300 flex items-center cursor-pointer ${isOn ? activeBgClass : 'bg-slate-700'}`;
+            knob.className = `w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-300 ${isOn ? 'translate-x-6' : 'translate-x-0'}`;
+        }
+
+        function updateTelemetry() {
+            let totalWatts = 15; // Công suất Hub trung tâm mặc định
+            Object.keys(iotState).forEach(key => {
+                if (iotState[key].on) {
+                    totalWatts += iotState[key].powerW;
+                }
+            });
+            document.getElementById('power-consumption').textContent = `${totalWatts} W`;
+
+            // Mô phỏng nhiệt độ phòng thay đổi theo điều hòa
+            const roomTempEl = document.getElementById('room-temp-display');
+            if (iotState.ac.on) {
+                roomTempEl.textContent = `${(iotState.ac.temp + 0.5).toFixed(1)}°C`;
+            } else {
+                roomTempEl.textContent = '28.5°C';
+            }
+        }
+
+        // ==========================================
+        // 5. TƯƠNG TÁC THỦ CÔNG TRÊN TỪNG CARD THIẾT BỊ
+        // ==========================================
+        function toggleDevice(deviceKey) {
+            iotState[deviceKey].on = !iotState[deviceKey].on;
+            const stText = iotState[deviceKey].on ? 'Bật' : 'Tắt';
+            const msg = `Đã ${stText.toLowerCase()} ${iotState[deviceKey].name}`;
+            playFeedbackBeep(iotState[deviceKey].on ? 750 : 420, 0.08);
+            updateAIResponse(msg, 'info');
+            addLogEntry(`Nhấn nút ${iotState[deviceKey].name}`, msg, 'Thủ công', true);
+            renderAllDevices();
+        }
+
+        function changeLivingLightBrightness(val) {
+            iotState.livingLight.brightness = parseInt(val, 10);
+            iotState.livingLight.on = true;
+            document.getElementById('val-bright-livingLight').textContent = `${val}%`;
+            renderAllDevices();
+        }
+
+        function setBedroomColor(color) {
+            iotState.bedroomLight.color = color;
+            iotState.bedroomLight.on = true;
+            renderAllDevices();
+        }
+
+        function setFanSpeed(speed) {
+            iotState.fan.speed = speed;
+            iotState.fan.on = true;
+            renderAllDevices();
+        }
+
+        function adjustACTemp(delta) {
+            let nextTemp = iotState.ac.temp + delta;
+            if (nextTemp < 16) nextTemp = 16;
+            if (nextTemp > 30) nextTemp = 30;
+            iotState.ac.temp = nextTemp;
+            iotState.ac.on = true;
+            renderAllDevices();
+        }
+
+        function changeTVChannel(channelName) {
+            iotState.tv.channel = channelName;
+            iotState.tv.on = true;
+            renderAllDevices();
+        }
+
+        // Giả lập lệnh giọng nói khi bấm nút mẫu hoặc nhập tay
+        function simulateVoiceCommand(commandText) {
+            processVoiceCommand(commandText, 'Giả lập giọng nói');
+        }
+
+        function handleManualCommandSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('manual-command-input');
+            const val = input.value.trim();
+            if (!val) return;
+            processVoiceCommand(val, 'Nhập lệnh');
+            input.value = '';
+        }
+
+        // ==========================================
+        // 6. ÂM THANH PHẢN HỒI (TTS & WEB AUDIO API)
+        // ==========================================
+        function toggleTTS() {
+            ttsEnabled = !ttsEnabled;
+            const icon = document.getElementById('tts-icon');
+            const label = document.getElementById('tts-label');
+            if (ttsEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                label.textContent = 'Phản hồi âm thanh: BẬT';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+                label.textContent = 'Phản hồi âm thanh: TẮT';
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        function speakVietnamese(text) {
+            if (!ttsEnabled || !('speechSynthesis' in window)) return;
+            try {
+                // Hủy hàng đợi cũ trước khi đọc phản hồi mới để không đọc nối/lặp.
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'vi-VN';
+                utterance.rate = 1.05;
+                window.speechSynthesis.speak(utterance);
+            } catch (e) {}
+        }
+
+        function playFeedbackBeep(freq = 600, duration = 0.1) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        // ==========================================
+        // 7. NHẬT KÝ HOẠT ĐỘNG & TRẠNG THÁI AI
+        // ==========================================
+        function updateAIResponse(message, type = 'info') {
+            const el = document.getElementById('ai-response-text');
+            const colorMap = {
+                info: 'text-blue-400',
+                success: 'text-emerald-400',
+                warn: 'text-amber-400',
+                error: 'text-rose-400'
+            };
+            el.className = `text-xs ${colorMap[type] || 'text-blue-400'} font-medium flex items-center gap-1.5`;
+            const icon = document.createElement('i');
+            icon.className = 'fa-solid fa-robot';
+            const text = document.createElement('span');
+            text.textContent = message;
+            el.replaceChildren(icon, text);
+        }
+
+        function addLogEntry(command, result, source, isSuccess) {
+            const list = document.getElementById('command-log-list');
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const item = document.createElement('div');
+            item.className = 'p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/60 flex flex-col gap-1';
+            item.innerHTML = `
+                <div class="flex items-center justify-between text-[10px] text-slate-400">
+                    <span class="font-semibold text-blue-300"><i class="fa-solid fa-microphone-lines mr-1"></i>${source}</span>
+                    <span>${timeStr}</span>
+                </div>
+                <div class="text-slate-200 font-medium">"${command}"</div>
+                <div class="text-[11px] ${isSuccess ? 'text-emerald-400' : 'text-amber-400'} flex items-center gap-1">
+                    <i class="fa-solid ${isSuccess ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i>
+                    <span>${result}</span>
+                </div>
+            `;
+            list.prepend(item);
+            // Giữ tối đa 60 dòng nhật ký gần nhất.
+            while (list.children.length > 60) list.lastElementChild.remove();
+        }
+
+        function clearHistoryLog() {
+            document.getElementById('command-log-list').innerHTML = '';
+            addLogEntry('Hệ thống', 'Đã xóa lịch sử điều khiển.', 'Hệ thống', true);
+        }
+
+        // Khởi chạy ứng dụng khi tải trang
+        window.onload = function () {
+            renderAllDevices();
+            addLogEntry('Khởi động hệ thống', 'Tất cả 6 thiết bị IoT đã kết nối sẵn sàng.', 'Hệ thống', true);
+        };
+    </script>
+</body>
+</html>
