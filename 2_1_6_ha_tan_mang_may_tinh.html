@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mô Phỏng Hạ Tầng Mạng Máy Tính - Tương Tác Trực Quan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        endDevice: '#38bdf8',    // Sky 400
+                        interDevice: '#34d399',  // Emerald 400
+                        mediaColor: '#fb7185',   // Rose 400
+                        protocolColor: '#fbbf24' // Amber 400
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0b1120;
+            color: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        /* Background Grid Pattern */
+        .bg-grid-pattern {
+            background-size: 32px 32px;
+            background-image: 
+                linear-gradient(to right, rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+        }
+
+        /* Animated Wireless & Fiber Lines */
+        @keyframes dashFlow {
+            to {
+                stroke-dashoffset: -24;
+            }
+        }
+        .wireless-wave {
+            stroke-dasharray: 6, 6;
+            animation: dashFlow 1s linear infinite;
+        }
+
+        @keyframes fiberPulse {
+            0%, 100% { stroke-opacity: 0.75; filter: drop-shadow(0 0 4px #f43f5e); }
+            50% { stroke-opacity: 1; filter: drop-shadow(0 0 10px #fb7185); }
+        }
+        .fiber-line {
+            animation: fiberPulse 2.5s ease-in-out infinite;
+        }
+
+        /* Wi-Fi Ripple Ring */
+        @keyframes radarRipple {
+            0% { r: 12px; opacity: 0.7; }
+            100% { r: 46px; opacity: 0; }
+        }
+        .wifi-ripple-1 { animation: radarRipple 2.6s cubic-bezier(0.1, 0.5, 0.3, 1) infinite; }
+        .wifi-ripple-2 { animation: radarRipple 2.6s cubic-bezier(0.1, 0.5, 0.3, 1) 1.3s infinite; }
+
+        /* Smooth Transitions for Nodes & Links */
+        .net-node, .net-link-group {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .net-node:hover {
+            filter: brightness(1.2) drop-shadow(0 0 12px rgba(56, 189, 248, 0.5));
+        }
+        .net-link-hit {
+            stroke: transparent;
+            stroke-width: 18px;
+            fill: none;
+            cursor: pointer;
+        }
+        .net-link-group:hover .net-link-visual {
+            stroke-width: 5px !important;
+            filter: drop-shadow(0 0 8px currentColor);
+        }
+
+        /* Dimmed state when filtering by category */
+        .dimmed {
+            opacity: 0.16 !important;
+            filter: grayscale(60%);
+        }
+        .highlighted-item {
+            filter: drop-shadow(0 0 14px currentColor) !important;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans selection:bg-sky-500 selection:text-white">
+
+    <!-- HEADER -->
+    <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div class="flex items-start sm:items-center gap-3.5">
+                <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-500 via-emerald-500 to-amber-500 p-0.5 shadow-lg shadow-sky-500/10 shrink-0 mt-0.5 sm:mt-0">
+                    <div class="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
+                        <svg class="w-6 h-6 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        </svg>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                        <h1 class="text-lg sm:text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-sky-200 to-emerald-200 bg-clip-text text-transparent">
+                            MÔ PHỎNG HẠ TẦNG MẠNG MÁY TÍNH
+                        </h1>
+                        <span class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                            Interactive Lab
+                        </span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-400 mt-0.5 max-w-4xl leading-relaxed">
+                        Mạng máy tính là xương sống cho các hoạt động hiện đại như <span class="text-sky-300 font-medium">học tập từ xa (E-learning)</span>, <span class="text-emerald-300 font-medium">giao tiếp trực tuyến</span> và <span class="text-amber-300 font-medium">lưu trữ đám mây</span>, giúp nâng cao hiệu quả làm việc và học tập.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Quick Jump / View Mode Buttons -->
+            <div class="flex items-center gap-2 shrink-0 self-start lg:self-center">
+                <a href="#pillars-section" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+                    <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                    Bảng Đối Chiếu 4 Trụ Cột
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- SIMULATION CONTROLS BAR -->
+    <section class="bg-slate-900/60 border-b border-slate-800/80 backdrop-blur-sm">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+            
+            <!-- Left: Scenario + Packet Triggers -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5">
+                    <span class="text-xs font-medium text-slate-400 whitespace-nowrap">Kịch bản truyền:</span>
+                    <select id="scenarioSelect" class="bg-transparent text-xs sm:text-sm font-semibold text-sky-300 focus:outline-none cursor-pointer pr-2">
+                        <option value="elearning" class="bg-slate-900 text-slate-100">1. Học trực tuyến E-learning (Laptop ➔ Cloud | HTTPS + TCP/IP)</option>
+                        <option value="cloud_ftp" class="bg-slate-900 text-slate-100">2. Đồng bộ Tệp Đám mây (PC ➔ Cloud | FTP / TCP/IP)</option>
+                        <option value="dns_lookup" class="bg-slate-900 text-slate-100">3. Truy vấn tên miền Web (Smartphone ➔ Cloud | DNS + HTTPS)</option>
+                        <option value="lan_print" class="bg-slate-900 text-slate-100">4. In tài liệu nội bộ LAN (Laptop ➔ Máy in | TCP/IP)</option>
+                        <option value="cam_stream" class="bg-slate-900 text-slate-100">5. Giám sát Camera IP qua Wi-Fi (Camera IP ➔ Smartphone)</option>
+                        <option value="sat_remote" class="bg-slate-900 text-slate-100">6. Kết nối vùng sâu qua Vệ tinh (Smartphone ➔ Vệ tinh ➔ Cloud)</option>
+                    </select>
+                </div>
+
+                <!-- Send Single Packet -->
+                <button id="sendPacketBtn" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white shadow-lg shadow-sky-500/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    Gửi Gói Tin Mẫu
+                </button>
+
+                <!-- Auto Stream Toggle -->
+                <button id="autoStreamBtn" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition flex items-center gap-2 cursor-pointer">
+                    <span id="autoStreamDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span id="autoStreamText">Tự động truyền: BẬT</span>
+                </button>
+
+                <!-- Speed Slider -->
+                <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5">
+                    <span class="text-xs text-slate-400">Tốc độ:</span>
+                    <input id="speedSlider" type="range" min="0.4" max="2.2" step="0.2" value="1" class="w-20 accent-sky-400 cursor-pointer">
+                    <span id="speedValue" class="text-xs font-mono text-sky-400 w-8">1.0x</span>
+                </div>
+            </div>
+
+            <!-- Right: 4 Pillar Category Highlight Filters -->
+            <div class="flex flex-wrap items-center gap-1.5">
+                <span class="text-xs text-slate-400 mr-1 hidden sm:inline">Lọc nhóm thành phần:</span>
+                <button data-filter="all" class="filter-btn active px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white border border-slate-600 transition cursor-pointer">
+                    Tất cả (4 Nhóm)
+                </button>
+                <button data-filter="end" class="filter-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 transition flex items-center gap-1.5 cursor-pointer">
+                    <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                    1. Thiết bị đầu cuối
+                </button>
+                <button data-filter="intermediate" class="filter-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition flex items-center gap-1.5 cursor-pointer">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    2. Thiết bị trung gian
+                </button>
+                <button data-filter="media" class="filter-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 transition flex items-center gap-1.5 cursor-pointer">
+                    <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                    3. Phương tiện truyền dẫn
+                </button>
+                <button data-filter="protocol" class="filter-btn px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 transition flex items-center gap-1.5 cursor-pointer">
+                    <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                    4. Giao thức mạng
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- MAIN WORKSPACE: TOPOLOGY MAP (LEFT) + INSPECTOR PANEL (RIGHT) -->
+    <main class="max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-5 flex-1 flex flex-col gap-6">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            
+            <!-- INTERACTIVE TOPOLOGY CANVAS (8 Columns on Large Screens) -->
+            <div class="lg:col-span-8 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+                
+                <!-- Map Top Status Bar -->
+                <div class="px-4 py-2.5 bg-slate-950/70 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Sơ Đồ Hoạt Động Mạng (Click vào thiết bị, đường cáp hoặc giao thức để xem giải thích)</span>
+                    </div>
+                    <div id="livePacketStatus" class="text-xs font-mono text-sky-400 bg-sky-950/50 border border-sky-800/50 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse"></span>
+                        <span>Đang truyền: [HTTPS | TCP/IP]</span>
+                    </div>
+                </div>
+
+                <!-- Interactive SVG Container -->
+                <div class="relative w-full bg-grid-pattern overflow-hidden select-none" style="aspect-ratio: 16 / 10; min-height: 430px;">
+                    <svg id="networkSvg" viewBox="0 0 1050 640" class="w-full h-full block">
+                        <defs>
+                            <!-- Glow Filters -->
+                            <filter id="glow-sky" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="5" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                            <filter id="glow-emerald" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="6" result="blur" />
+                                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                            </filter>
+                            <!-- Linear Gradients for Zone Backgrounds -->
+                            <linearGradient id="lanZoneGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.06"/>
+                                <stop offset="100%" stop-color="#10b981" stop-opacity="0.03"/>
+                            </linearGradient>
+                            <linearGradient id="wanZoneGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.05"/>
+                                <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.07"/>
+                            </linearGradient>
+                        </defs>
+
+                        <!-- ================= NETWORK ZONES BACKDROP ================= -->
+                        <!-- Zone 1: Mạng Nội Bộ (LAN & WLAN) -->
+                        <rect x="20" y="20" width="605" height="515" rx="18" fill="url(#lanZoneGrad)" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="6 4"/>
+                        <text x="38" y="46" fill="#64748b" font-size="12" font-weight="700" letter-spacing="0.08em">KHU VỰC MẠNG NỘI BỘ (LOCAL AREA NETWORK - LAN / WLAN)</text>
+
+                        <!-- Zone 2: Mạng Diện Rộng & Internet (WAN / Cloud) -->
+                        <rect x="640" y="20" width="390" height="515" rx="18" fill="url(#wanZoneGrad)" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="6 4"/>
+                        <text x="658" y="46" fill="#64748b" font-size="12" font-weight="700" letter-spacing="0.08em">KHU VỰC INTERNET &amp; ĐÁM MÂY (WAN / CLOUD)</text>
+
+                        <!-- ================= WI-FI RADAR RIPPLES AROUND ACCESS POINT ================= -->
+                        <g class="pointer-events-none">
+                            <circle cx="290" cy="180" r="18" fill="none" stroke="#38bdf8" stroke-width="1.5" class="wifi-ripple-1"/>
+                            <circle cx="290" cy="180" r="18" fill="none" stroke="#38bdf8" stroke-width="1.5" class="wifi-ripple-2"/>
+                        </g>
+
+                        <!-- ================= 3. TRANSMISSION MEDIA (LINKS) ================= -->
+                        <g id="linksLayer">
+                            <!-- Wireless: Smartphone <-> AP -->
+                            <g class="net-link-group" data-id="media_wireless" data-category="media" onclick="selectComponent('media_wireless')">
+                                <path id="path_phone_ap" d="M 115 110 Q 200 115 290 180" fill="none" stroke="#38bdf8" stroke-width="3" class="net-link-visual wireless-wave"/>
+                                <path d="M 115 110 Q 200 115 290 180" class="net-link-hit"/>
+                                <rect x="166" y="118" width="76" height="20" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+                                <text x="204" y="132" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="600">Sóng Wi-Fi</text>
+                            </g>
+
+                            <!-- Wireless: Laptop <-> AP -->
+                            <g class="net-link-group" data-id="media_wireless" data-category="media" onclick="selectComponent('media_wireless')">
+                                <path id="path_laptop_ap" d="M 115 240 Q 205 230 290 180" fill="none" stroke="#38bdf8" stroke-width="3" class="net-link-visual wireless-wave"/>
+                                <path d="M 115 240 Q 205 230 290 180" class="net-link-hit"/>
+                                <rect x="168" y="208" width="76" height="20" rx="6" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+                                <text x="206" y="222" text-anchor="middle" fill="#7dd3fc" font-size="10" font-weight="600">Wi-Fi 6</text>
+                            </g>
+
+                            <!-- Wireless: Smartphone <-> Satellite -->
+                            <g class="net-link-group" data-id="media_wireless" data-category="media" onclick="selectComponent('media_wireless')">
+                                <path id="path_phone_sat" d="M 115 110 Q 430 35 760 110" fill="none" stroke="#a855f7" stroke-width="2.5" class="net-link-visual wireless-wave"/>
+                                <path d="M 115 110 Q 430 35 760 110" class="net-link-hit"/>
+                                <rect x="395" y="58" width="115" height="20" rx="6" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+                                <text x="452" y="72" text-anchor="middle" fill="#d8b4fe" font-size="10" font-weight="600">Sóng 5G / Vệ tinh</text>
+                            </g>
+
+                            <!-- Wireless: Satellite <-> Cloud Server -->
+                            <g class="net-link-group" data-id="media_wireless" data-category="media" onclick="selectComponent('media_wireless')">
+                                <path id="path_sat_cloud" d="M 760 110 Q 870 140 925 290" fill="none" stroke="#a855f7" stroke-width="2.5" class="net-link-visual wireless-wave"/>
+                                <path d="M 760 110 Q 870 140 925 290" class="net-link-hit"/>
+                            </g>
+
+                            <!-- Copper Ethernet: AP <-> Switch -->
+                            <g class="net-link-group" data-id="media_copper" data-category="media" onclick="selectComponent('media_copper')">
+                                <path id="path_ap_switch" d="M 290 180 L 290 355" fill="none" stroke="#f97316" stroke-width="3.5" class="net-link-visual"/>
+                                <path d="M 290 180 L 290 355" class="net-link-hit"/>
+                                <rect x="242" y="255" width="96" height="20" rx="6" fill="#0f172a" stroke="#f97316" stroke-width="1"/>
+                                <text x="290" y="269" text-anchor="middle" fill="#fdba74" font-size="10" font-weight="600">Cáp đồng LAN</text>
+                            </g>
+
+                            <!-- Copper Ethernet: PC <-> Switch -->
+                            <g class="net-link-group" data-id="media_copper" data-category="media" onclick="selectComponent('media_copper')">
+                                <path id="path_pc_switch" d="M 115 365 L 290 355" fill="none" stroke="#f97316" stroke-width="3.5" class="net-link-visual"/>
+                                <path d="M 115 365 L 290 355" class="net-link-hit"/>
+                                <rect x="162" y="348" width="84" height="20" rx="6" fill="#0f172a" stroke="#f97316" stroke-width="1"/>
+                                <text x="204" y="362" text-anchor="middle" fill="#fdba74" font-size="10" font-weight="600">Ethernet RJ45</text>
+                            </g>
+
+                            <!-- Copper Ethernet: Printer <-> Switch -->
+                            <g class="net-link-group" data-id="media_copper" data-category="media" onclick="selectComponent('media_copper')">
+                                <path id="path_printer_switch" d="M 115 475 L 290 355" fill="none" stroke="#f97316" stroke-width="3.5" class="net-link-visual"/>
+                                <path d="M 115 475 L 290 355" class="net-link-hit"/>
+                            </g>
+
+                            <!-- Copper Ethernet: Camera IP <-> Switch -->
+                            <g class="net-link-group" data-id="media_copper" data-category="media" onclick="selectComponent('media_copper')">
+                                <path id="path_cam_switch" d="M 290 480 L 290 355" fill="none" stroke="#f97316" stroke-width="3.5" class="net-link-visual"/>
+                                <path d="M 290 480 L 290 355" class="net-link-hit"/>
+                            </g>
+
+                            <!-- Copper Ethernet: Switch <-> Router -->
+                            <g class="net-link-group" data-id="media_copper" data-category="media" onclick="selectComponent('media_copper')">
+                                <path id="path_switch_router" d="M 290 355 L 455 290" fill="none" stroke="#f97316" stroke-width="4" class="net-link-visual"/>
+                                <path d="M 290 355 L 455 290" class="net-link-hit"/>
+                                <rect x="330" y="310" width="86" height="20" rx="6" fill="#0f172a" stroke="#f97316" stroke-width="1"/>
+                                <text x="373" y="324" text-anchor="middle" fill="#fdba74" font-size="10" font-weight="600">Cáp xoắn đôi</text>
+                            </g>
+
+                            <!-- Fiber Optic: Router <-> Firewall -->
+                            <g class="net-link-group" data-id="media_fiber" data-category="media" onclick="selectComponent('media_fiber')">
+                                <path id="path_router_fw" d="M 455 290 L 580 290" fill="none" stroke="#fb7185" stroke-width="4" class="net-link-visual fiber-line"/>
+                                <path d="M 455 290 L 580 290" class="net-link-hit"/>
+                            </g>
+
+                            <!-- Fiber Optic: Firewall <-> Modem -->
+                            <g class="net-link-group" data-id="media_fiber" data-category="media" onclick="selectComponent('media_fiber')">
+                                <path id="path_fw_modem" d="M 580 290 L 725 290" fill="none" stroke="#fb7185" stroke-width="4" class="net-link-visual fiber-line"/>
+                                <path d="M 580 290 L 725 290" class="net-link-hit"/>
+                                <rect x="612" y="255" width="80" height="20" rx="6" fill="#0f172a" stroke="#fb7185" stroke-width="1"/>
+                                <text x="652" y="269" text-anchor="middle" fill="#fda4af" font-size="10" font-weight="600">Cáp quang</text>
+                            </g>
+
+                            <!-- Fiber Optic: Modem <-> Cloud Server -->
+                            <g class="net-link-group" data-id="media_fiber" data-category="media" onclick="selectComponent('media_fiber')">
+                                <path id="path_modem_cloud" d="M 725 290 L 925 290" fill="none" stroke="#fb7185" stroke-width="4.5" class="net-link-visual fiber-line"/>
+                                <path d="M 725 290 L 925 290" class="net-link-hit"/>
+                                <rect x="773" y="255" width="104" height="20" rx="6" fill="#0f172a" stroke="#fb7185" stroke-width="1"/>
+                                <text x="825" y="269" text-anchor="middle" fill="#fda4af" font-size="10" font-weight="600">Cáp quang FTTH</text>
+                            </g>
+                        </g>
+
+                        <!-- ================= 1 & 2. NETWORK DEVICES (NODES) ================= -->
+                        <g id="nodesLayer">
+
+                            <!-- [END DEVICE] Smartphone -->
+                            <g class="net-node" id="node_smartphone" data-id="end_smartphone" data-category="end" transform="translate(115, 110)" onclick="selectComponent('end_smartphone')">
+                                <circle r="36" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+                                <rect x="-11" y="-18" width="22" height="36" rx="4" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="2"/>
+                                <line x1="-4" y1="-14" x2="4" y2="-14" stroke="#7dd3fc" stroke-width="1.5" stroke-linecap="round"/>
+                                <circle cx="0" cy="13" r="1.8" fill="#7dd3fc"/>
+                                <text y="52" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Điện thoại</text>
+                                <text y="66" text-anchor="middle" fill="#38bdf8" font-size="10" font-family="JetBrains Mono">192.168.1.101</text>
+                            </g>
+
+                            <!-- [END DEVICE] Laptop -->
+                            <g class="net-node" id="node_laptop" data-id="end_laptop" data-category="end" transform="translate(115, 240)" onclick="selectComponent('end_laptop')">
+                                <circle r="36" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+                                <rect x="-16" y="-14" width="32" height="20" rx="2.5" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="2"/>
+                                <path d="M -22 7 L 22 7 L 18 13 L -18 13 Z" fill="#38bdf8"/>
+                                <text y="52" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Laptop (Học tập)</text>
+                                <text y="66" text-anchor="middle" fill="#38bdf8" font-size="10" font-family="JetBrains Mono">192.168.1.102</text>
+                            </g>
+
+                            <!-- [END DEVICE] Desktop PC -->
+                            <g class="net-node" id="node_pc" data-id="end_pc" data-category="end" transform="translate(115, 365)" onclick="selectComponent('end_pc')">
+                                <circle r="36" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+                                <rect x="-18" y="-14" width="24" height="18" rx="2" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="2"/>
+                                <line x1="-6" y1="4" x2="-6" y2="11" stroke="#38bdf8" stroke-width="2"/>
+                                <line x1="-13" y1="11" x2="1" y2="11" stroke="#38bdf8" stroke-width="2" stroke-linecap="round"/>
+                                <rect x="10" y="-14" width="9" height="25" rx="1.5" fill="#0284c7" fill-opacity="0.3" stroke="#38bdf8" stroke-width="1.8"/>
+                                <text y="52" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Máy tính PC</text>
+                                <text y="66" text-anchor="middle" fill="#38bdf8" font-size="10" font-family="JetBrains Mono">192.168.1.103</text>
+                            </g>
+
+                            <!-- [END DEVICE] Printer -->
+                            <g class="net-node" id="node_printer" data-id="end_printer" data-category="end" transform="translate(115, 475)" onclick="selectComponent('end_printer')">
+                                <circle r="34" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+                                <rect x="-15" y="-6" width="30" height="16" rx="2.5" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="2"/>
+                                <path d="M -10 -6 V -14 H 10 V -6" stroke="#38bdf8" stroke-width="1.8" fill="none"/>
+                                <rect x="-10" y="5" width="20" height="10" fill="#0f172a" stroke="#7dd3fc" stroke-width="1.5"/>
+                                <text y="49" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Máy in mạng</text>
+                            </g>
+
+                            <!-- [END DEVICE] Camera IP -->
+                            <g class="net-node" id="node_camera" data-id="end_camera" data-category="end" transform="translate(290, 480)" onclick="selectComponent('end_camera')">
+                                <circle r="34" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+                                <rect x="-16" y="-10" width="26" height="18" rx="4" fill="#0284c7" fill-opacity="0.25" stroke="#38bdf8" stroke-width="2"/>
+                                <circle cx="-3" cy="-1" r="4.5" stroke="#7dd3fc" stroke-width="1.8" fill="none"/>
+                                <path d="M 10 -6 L 18 -11 V 9 L 10 4 Z" fill="#38bdf8"/>
+                                <text y="49" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Camera IP</text>
+                            </g>
+
+                            <!-- [INTERMEDIATE DEVICE] Access Point (AP) -->
+                            <g class="net-node" id="node_ap" data-id="inter_ap" data-category="intermediate" transform="translate(290, 180)" onclick="selectComponent('inter_ap')">
+                                <circle r="38" fill="#0f172a" stroke="#34d399" stroke-width="2.5"/>
+                                <rect x="-18" y="3" width="36" height="11" rx="3" fill="#059669" fill-opacity="0.3" stroke="#34d399" stroke-width="2"/>
+                                <line x1="0" y1="3" x2="0" y2="-12" stroke="#34d399" stroke-width="2.2" stroke-linecap="round"/>
+                                <circle cx="0" cy="-14" r="2.5" fill="#6ee7b7"/>
+                                <path d="M -9 -7 A 12 12 0 0 1 9 -7" fill="none" stroke="#6ee7b7" stroke-width="1.8" stroke-linecap="round"/>
+                                <path d="M -14 -12 A 19 19 0 0 1 14 -12" fill="none" stroke="#6ee7b7" stroke-width="1.8" stroke-linecap="round"/>
+                                <text y="54" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Access Point (AP)</text>
+                                <text y="68" text-anchor="middle" fill="#34d399" font-size="10">Mở rộng Wi-Fi</text>
+                            </g>
+
+                            <!-- [INTERMEDIATE DEVICE] Switch -->
+                            <g class="net-node" id="node_switch" data-id="inter_switch" data-category="intermediate" transform="translate(290, 355)" onclick="selectComponent('inter_switch')">
+                                <circle r="40" fill="#0f172a" stroke="#34d399" stroke-width="2.5"/>
+                                <rect x="-24" y="-11" width="48" height="22" rx="3.5" fill="#059669" fill-opacity="0.3" stroke="#34d399" stroke-width="2"/>
+                                <!-- RJ45 Ports -->
+                                <rect x="-18" y="-4" width="5" height="5" fill="#6ee7b7"/>
+                                <rect x="-10" y="-4" width="5" height="5" fill="#6ee7b7"/>
+                                <rect x="-2" y="-4" width="5" height="5" fill="#6ee7b7"/>
+                                <rect x="6" y="-4" width="5" height="5" fill="#6ee7b7"/>
+                                <rect x="14" y="-4" width="5" height="5" fill="#fbbf24"/>
+                                <text y="55" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Switch (Bộ chuyển mạch)</text>
+                                <text y="69" text-anchor="middle" fill="#34d399" font-size="10">Kết nối nội bộ LAN</text>
+                            </g>
+
+                            <!-- [INTERMEDIATE DEVICE] Router -->
+                            <g class="net-node" id="node_router" data-id="inter_router" data-category="intermediate" transform="translate(455, 290)" onclick="selectComponent('inter_router')">
+                                <circle r="42" fill="#0f172a" stroke="#34d399" stroke-width="2.8"/>
+                                <circle r="24" fill="#059669" fill-opacity="0.25" stroke="#34d399" stroke-width="2"/>
+                                <!-- Routing Arrows -->
+                                <path d="M -12 0 H 12 M 7 -5 L 12 0 L 7 5" stroke="#6ee7b7" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                <path d="M 0 -12 V 12 M -5 -7 L 0 -12 L 5 -7" stroke="#6ee7b7" stroke-width="2" fill="none" stroke-linecap="round"/>
+                                <text y="58" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Router (Bộ định tuyến)</text>
+                                <text y="72" text-anchor="middle" fill="#34d399" font-size="10">Định tuyến gói tin IP</text>
+                            </g>
+
+                            <!-- [INTERMEDIATE DEVICE] Firewall -->
+                            <g class="net-node" id="node_firewall" data-id="inter_firewall" data-category="intermediate" transform="translate(580, 290)" onclick="selectComponent('inter_firewall')">
+                                <circle r="38" fill="#0f172a" stroke="#34d399" stroke-width="2.5"/>
+                                <!-- Shield Icon -->
+                                <path d="M 0 -18 L 16 -11 V 1 C 16 11 0 18 0 18 C 0 18 -16 11 -16 1 V -11 L 0 -18 Z" fill="#e11d48" fill-opacity="0.25" stroke="#fb7185" stroke-width="2"/>
+                                <path d="M -5 0 L -1 4 L 6 -4" stroke="#6ee7b7" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                <text y="54" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Firewall (Tường lửa)</text>
+                                <text y="68" text-anchor="middle" fill="#34d399" font-size="10">Kiểm soát bảo mật</text>
+                            </g>
+
+                            <!-- [INTERMEDIATE DEVICE] Modem -->
+                            <g class="net-node" id="node_modem" data-id="inter_modem" data-category="intermediate" transform="translate(725, 290)" onclick="selectComponent('inter_modem')">
+                                <circle r="40" fill="#0f172a" stroke="#34d399" stroke-width="2.5"/>
+                                <rect x="-20" y="-12" width="40" height="24" rx="4" fill="#059669" fill-opacity="0.25" stroke="#34d399" stroke-width="2"/>
+                                <!-- Digital <-> Analog wave symbol -->
+                                <path d="M -14 -3 H -6 V 4 H 0" stroke="#38bdf8" stroke-width="1.8" fill="none"/>
+                                <path d="M 2 0 Q 6 -7 10 0 T 16 0" stroke="#fb7185" stroke-width="1.8" fill="none"/>
+                                <text y="56" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">Modem Quang (ONT)</text>
+                                <text y="70" text-anchor="middle" fill="#34d399" font-size="10">Chuyển đổi tín hiệu</text>
+                            </g>
+
+                            <!-- [MEDIA / SATELLITE RELAY] Vệ tinh / Trạm 5G -->
+                            <g class="net-node" id="node_satellite" data-id="media_wireless" data-category="media" transform="translate(760, 110)" onclick="selectComponent('media_wireless')">
+                                <circle r="34" fill="#0f172a" stroke="#a855f7" stroke-width="2.2"/>
+                                <rect x="-7" y="-7" width="14" height="14" rx="2" fill="#9333ea" fill-opacity="0.4" stroke="#d8b4fe" stroke-width="1.8" transform="rotate(45)"/>
+                                <rect x="-24" y="-5" width="12" height="10" fill="#a855f7" transform="rotate(45)"/>
+                                <rect x="12" y="-5" width="12" height="10" fill="#a855f7" transform="rotate(45)"/>
+                                <text y="49" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="700">Vệ tinh / Trạm 5G</text>
+                            </g>
+
+                            <!-- [END DEVICE] Cloud / E-learning Server -->
+                            <g class="net-node" id="node_cloud" data-id="end_server" data-category="end" transform="translate(925, 290)" onclick="selectComponent('end_server')">
+                                <circle r="48" fill="#0f172a" stroke="#38bdf8" stroke-width="3"/>
+                                <!-- Server Rack + Cloud -->
+                                <rect x="-20" y="-18" width="40" height="11" rx="2" fill="#0284c7" fill-opacity="0.3" stroke="#38bdf8" stroke-width="1.8"/>
+                                <circle cx="-12" cy="-12.5" r="2" fill="#34d399"/>
+                                <rect x="-20" y="-4" width="40" height="11" rx="2" fill="#0284c7" fill-opacity="0.3" stroke="#38bdf8" stroke-width="1.8"/>
+                                <circle cx="-12" cy="1.5" r="2" fill="#34d399"/>
+                                <rect x="-20" y="10" width="40" height="11" rx="2" fill="#0284c7" fill-opacity="0.3" stroke="#38bdf8" stroke-width="1.8"/>
+                                <circle cx="-12" cy="15.5" r="2" fill="#38bdf8"/>
+                                <text y="64" text-anchor="middle" fill="#ffffff" font-size="12.5" font-weight="800">Máy Chủ Đám Mây</text>
+                                <text y="79" text-anchor="middle" fill="#38bdf8" font-size="10.5" font-weight="600">E-learning &amp; Web Server</text>
+                            </g>
+                        </g>
+
+                        <!-- ================= 4. INTERACTIVE NETWORK PROTOCOL BADGES (BOTTOM DOCK ON MAP) ================= -->
+                        <g id="protocolsDock" transform="translate(20, 550)">
+                            <rect x="0" y="0" width="1010" height="72" rx="14" fill="#0f172a" stroke="#334155" stroke-width="1.5"/>
+                            <text x="20" y="28" fill="#fbbf24" font-size="11.5" font-weight="800" letter-spacing="0.06em">4. GIAO THỨC MẠNG (NETWORK PROTOCOLS)</text>
+                            <text x="20" y="48" fill="#94a3b8" font-size="11">Bộ quy tắc chuẩn hóa giúp các thiết bị hiểu và giao tiếp hiệu quả (Click để xem):</text>
+
+                            <!-- Protocol Badge 1: TCP/IP -->
+                            <g class="net-node" data-id="proto_tcpip" data-category="protocol" transform="translate(495, 14)" onclick="selectComponent('proto_tcpip')">
+                                <rect width="120" height="44" rx="10" fill="#451a03" fill-opacity="0.7" stroke="#fbbf24" stroke-width="2"/>
+                                <text x="60" y="20" text-anchor="middle" fill="#fde68a" font-size="12" font-weight="800" font-family="JetBrains Mono">TCP / IP</text>
+                                <text x="60" y="35" text-anchor="middle" fill="#fbbf24" font-size="9.5">Truyền tin cậy</text>
+                            </g>
+
+                            <!-- Protocol Badge 2: HTTPS -->
+                            <g class="net-node" data-id="proto_https" data-category="protocol" transform="translate(628, 14)" onclick="selectComponent('proto_https')">
+                                <rect width="120" height="44" rx="10" fill="#451a03" fill-opacity="0.7" stroke="#fbbf24" stroke-width="2"/>
+                                <text x="60" y="20" text-anchor="middle" fill="#fde68a" font-size="12" font-weight="800" font-family="JetBrains Mono">HTTPS / SSL</text>
+                                <text x="60" y="35" text-anchor="middle" fill="#fbbf24" font-size="9.5">Web &amp; E-learning</text>
+                            </g>
+
+                            <!-- Protocol Badge 3: DNS -->
+                            <g class="net-node" data-id="proto_dns" data-category="protocol" transform="translate(761, 14)" onclick="selectComponent('proto_dns')">
+                                <rect width="112" height="44" rx="10" fill="#451a03" fill-opacity="0.7" stroke="#fbbf24" stroke-width="2"/>
+                                <text x="56" y="20" text-anchor="middle" fill="#fde68a" font-size="12" font-weight="800" font-family="JetBrains Mono">DNS</text>
+                                <text x="56" y="35" text-anchor="middle" fill="#fbbf24" font-size="9.5">Phân giải tên miền</text>
+                            </g>
+
+                            <!-- Protocol Badge 4: FTP -->
+                            <g class="net-node" data-id="proto_ftp" data-category="protocol" transform="translate(886, 14)" onclick="selectComponent('proto_ftp')">
+                                <rect width="108" height="44" rx="10" fill="#451a03" fill-opacity="0.7" stroke="#fbbf24" stroke-width="2"/>
+                                <text x="54" y="20" text-anchor="middle" fill="#fde68a" font-size="12" font-weight="800" font-family="JetBrains Mono">FTP / SMB</text>
+                                <text x="54" y="35" text-anchor="middle" fill="#fbbf24" font-size="9.5">Truyền tải tệp</text>
+                            </g>
+                        </g>
+
+                        <!-- ================= DYNAMIC PACKET & POPUP LAYER ================= -->
+                        <g id="packetsLayer" class="pointer-events-none"></g>
+                        <g id="statusBubblesLayer" class="pointer-events-none"></g>
+                    </svg>
+
+                    <!-- Floating Legend Overlay (Bottom Left of Map) -->
+                    <div class="hidden sm:flex items-center gap-4 px-3.5 py-2 bg-slate-950/85 border border-slate-800 rounded-xl text-[11px] text-slate-300 backdrop-blur-md mx-4 mb-3 justify-between">
+                        <div class="flex items-center gap-4 flex-wrap">
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-0.5 bg-sky-400 inline-block border-b border-dashed border-sky-400"></span> Sóng vô tuyến (Wi-Fi/5G/Vệ tinh)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-1 bg-orange-500 rounded-full inline-block"></span> Cáp đồng (Ethernet RJ45)</span>
+                            <span class="flex items-center gap-1.5"><span class="w-3 h-1 bg-rose-500 rounded-full inline-block shadow-[0_0_6px_#f43f5e]"></span> Cáp quang (Tốc độ cao)</span>
+                        </div>
+                        <span class="text-slate-400 italic">Mẹo: Nhấn vào bất kỳ thành phần nào để tra cứu</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- INTERACTIVE INSPECTOR PANEL (4 Columns on Large Screens) -->
+            <div class="lg:col-span-4 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+                
+                <!-- Inspector Header -->
+                <div id="inspectorHeader" class="p-5 border-b border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900 to-emerald-950/40">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                        <span id="inspectorCategoryBadge" class="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            2. Thiết bị mạng trung gian
+                        </span>
+                        <span id="inspectorTechTag" class="text-xs font-mono text-slate-400 bg-slate-950/70 px-2 py-0.5 rounded border border-slate-800">
+                            OSI Layer 3
+                        </span>
+                    </div>
+                    <h2 id="inspectorTitle" class="text-xl font-extrabold text-white tracking-tight">
+                        Router (Bộ định tuyến)
+                    </h2>
+                    <p id="inspectorSubtitle" class="text-xs text-slate-400 mt-1">
+                        Trái tim điều hướng gói tin giữa mạng nội bộ (LAN) và mạng Internet toàn cầu.
+                    </p>
+                </div>
+
+                <!-- Inspector Body Content -->
+                <div class="p-5 space-y-4 flex-1 overflow-y-auto max-h-[540px]">
+                    
+                    <!-- Main Explanation -->
+                    <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-4">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Chức năng &amp; Nguyên lý hoạt động
+                        </h3>
+                        <p id="inspectorDescription" class="text-sm text-slate-200 leading-relaxed">
+                            Router có nhiệm vụ định tuyến dữ liệu (tìm đường đi tối ưu nhất) để chuyển các gói tin giữa các mạng khác nhau (ví dụ từ mạng LAN gia đình/trường học ra ngoài mạng Internet).
+                        </p>
+                    </div>
+
+                    <!-- Key Specs / Bullet Points -->
+                    <div class="bg-slate-950/60 border border-slate-800/90 rounded-xl p-4">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Đặc điểm kỹ thuật cốt lõi
+                        </h3>
+                        <ul id="inspectorBullets" class="space-y-2 text-xs sm:text-sm text-slate-300">
+                            <!-- Populated by JS -->
+                        </ul>
+                    </div>
+
+                    <!-- Real-World Application (E-learning, Cloud, Online Comms) -->
+                    <div class="bg-gradient-to-br from-sky-950/40 to-indigo-950/30 border border-sky-500/25 rounded-xl p-4">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-sky-300 mb-1.5 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                            Vai trò trong E-learning &amp; Lưu trữ Đám mây
+                        </h3>
+                        <p id="inspectorRealWorld" class="text-xs sm:text-sm text-sky-100/90 leading-relaxed">
+                            Khi bạn tham gia lớp học trực tuyến hoặc tải bài giảng từ Cloud, Router đọc địa chỉ IP đích của máy chủ E-learning và dẫn đường cho gói tin đi ra đúng cổng Internet mà không bị thất lạc trong mạng nội bộ.
+                        </p>
+                    </div>
+
+                    <!-- Simulate Action Button for Selected Component -->
+                    <button id="inspectorSimulateBtn" class="w-full py-2.5 px-4 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 transition flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Chạy mô phỏng gói tin đi qua thành phần này</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= 4 PILLARS OVERVIEW CARDS (MATCHING REFERENCE INFOGRAPHIC) ================= -->
+        <section id="pillars-section" class="pt-2 pb-8">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between mb-4 gap-2">
+                <div>
+                    <h2 class="text-lg sm:text-xl font-extrabold text-white flex items-center gap-2">
+                        <span>TỔNG QUAN 4 TRỤ CỘT CỦA HẠ TẦNG MẠNG</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-400">
+                        Nhấn vào bất kỳ thành phần nào bên dưới để định vị trên sơ đồ và xem nguyên lý hoạt động chi tiết.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                
+                <!-- COLUMN 1: THIẾT BỊ ĐẦU CUỐI (END DEVICES) -->
+                <div class="rounded-2xl bg-slate-900/90 border-2 border-sky-500/30 overflow-hidden flex flex-col shadow-lg">
+                    <div class="bg-sky-500/20 border-b border-sky-500/30 px-4 py-3 text-center">
+                        <h3 class="text-sm font-extrabold text-sky-300 uppercase tracking-wide">1. Thiết Bị Đầu Cuối</h3>
+                        <p class="text-[11px] font-semibold text-sky-200/80">(END DEVICES / HOSTS)</p>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div class="space-y-2">
+                            <button onclick="selectComponent('end_laptop')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-sky-500/15 border border-slate-800 hover:border-sky-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">💻</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Laptop &amp; Máy tính PC</div>
+                                    <div class="text-[11px] text-slate-400">Soạn thảo, học E-learning, truy cập web.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('end_smartphone')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-sky-500/15 border border-slate-800 hover:border-sky-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">📱</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Điện thoại thông minh</div>
+                                    <div class="text-[11px] text-slate-400">Thiết bị di động kết nối qua Wi-Fi / 5G.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('end_server')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-sky-500/15 border border-slate-800 hover:border-sky-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">☁️</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Máy chủ (Cloud Server)</div>
+                                    <div class="text-[11px] text-slate-400">Lưu trữ đám mây, cung cấp dịch vụ web.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('end_printer')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-sky-500/15 border border-slate-800 hover:border-sky-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">🖨️</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Máy in &amp; Camera IP</div>
+                                    <div class="text-[11px] text-slate-400">Chia sẻ in ấn LAN và truyền hình ảnh an ninh.</div>
+                                </div>
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-sky-200/80 bg-sky-950/40 border border-sky-800/40 rounded-lg p-2.5 text-center">
+                            Là nơi <strong>khởi tạo</strong> hoặc <strong>nhận dữ liệu</strong> cuối cùng trong quá trình giao tiếp mạng.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- COLUMN 2: THIẾT BỊ MẠNG TRUNG GIAN (INTERMEDIATE DEVICES) -->
+                <div class="rounded-2xl bg-slate-900/90 border-2 border-emerald-500/30 overflow-hidden flex flex-col shadow-lg">
+                    <div class="bg-emerald-500/20 border-b border-emerald-500/30 px-4 py-3 text-center">
+                        <h3 class="text-sm font-extrabold text-emerald-300 uppercase tracking-wide">2. Thiết Bị Mạng Trung Gian</h3>
+                        <p class="text-[11px] font-semibold text-emerald-200/80">(INTERMEDIATE DEVICES)</p>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div class="space-y-2">
+                            <button onclick="selectComponent('inter_router')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-emerald-500/15 border border-slate-800 hover:border-emerald-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">🧭</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Router (Bộ định tuyến)</div>
+                                    <div class="text-[11px] text-slate-400">Định tuyến gói tin giữa các mạng (LAN ↔ WAN).</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('inter_switch')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-emerald-500/15 border border-slate-800 hover:border-emerald-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">🔀</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Switch (Bộ chuyển mạch)</div>
+                                    <div class="text-[11px] text-slate-400">Kết nối các thiết bị trong cùng một mạng nội bộ LAN.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('inter_modem')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-emerald-500/15 border border-slate-800 hover:border-emerald-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">⚡</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Modem (Chuyển đổi tín hiệu)</div>
+                                    <div class="text-[11px] text-slate-400">Biến đổi tín hiệu số ↔ tín hiệu quang/tương tự.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('inter_ap')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-emerald-500/15 border border-slate-800 hover:border-emerald-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">📡</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Access Point &amp; Firewall</div>
+                                    <div class="text-[11px] text-slate-400">Phát sóng Wi-Fi mở rộng phạm vi &amp; Bảo vệ mạng.</div>
+                                </div>
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-emerald-200/80 bg-emerald-950/40 border border-emerald-800/40 rounded-lg p-2.5 text-center">
+                            Đảm bảo gói tin đi <strong>đúng hướng, đúng đích</strong> và <strong>an toàn</strong> qua mạng.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- COLUMN 3: PHƯƠNG TIỆN TRUYỀN DẪN (TRANSMISSION MEDIA) -->
+                <div class="rounded-2xl bg-slate-900/90 border-2 border-rose-500/30 overflow-hidden flex flex-col shadow-lg">
+                    <div class="bg-rose-500/20 border-b border-rose-500/30 px-4 py-3 text-center">
+                        <h3 class="text-sm font-extrabold text-rose-300 uppercase tracking-wide">3. Phương Tiện Truyền Dẫn</h3>
+                        <p class="text-[11px] font-semibold text-rose-200/80">(TRANSMISSION MEDIA)</p>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div class="space-y-2.5">
+                            <button onclick="selectComponent('media_copper')" class="w-full text-left p-3 rounded-xl bg-slate-950/70 hover:bg-rose-500/15 border border-slate-800 hover:border-rose-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">🔌</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Cáp đồng (Ethernet)</div>
+                                    <div class="text-[11px] text-slate-400">Cáp xoắn đôi (UTP/STP), cáp đồng trục; truyền bằng xung điện trong LAN.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('media_fiber')" class="w-full text-left p-3 rounded-xl bg-slate-950/70 hover:bg-rose-500/15 border border-slate-800 hover:border-rose-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">✨</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Cáp quang (Fiber Optic)</div>
+                                    <div class="text-[11px] text-slate-400">Truyền bằng ánh sáng tốc độ rất cao, khoảng cách xa, không bị nhiễu điện từ.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('media_wireless')" class="w-full text-left p-3 rounded-xl bg-slate-950/70 hover:bg-rose-500/15 border border-slate-800 hover:border-rose-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="text-lg">📶</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Sóng vô tuyến (Wireless)</div>
+                                    <div class="text-[11px] text-slate-400">Wi-Fi, Bluetooth, 4G/5G, vệ tinh; linh hoạt cho thiết bị di động.</div>
+                                </div>
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-rose-200/80 bg-rose-950/40 border border-rose-800/40 rounded-lg p-2.5 text-center">
+                            Là <strong>môi trường vật lý</strong> (có dây hoặc không dây) để tín hiệu dữ liệu di chuyển.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- COLUMN 4: GIAO THỨC MẠNG (NETWORK PROTOCOLS) -->
+                <div class="rounded-2xl bg-slate-900/90 border-2 border-amber-500/30 overflow-hidden flex flex-col shadow-lg">
+                    <div class="bg-amber-500/20 border-b border-amber-500/30 px-4 py-3 text-center">
+                        <h3 class="text-sm font-extrabold text-amber-300 uppercase tracking-wide">4. Giao Thức Mạng</h3>
+                        <p class="text-[11px] font-semibold text-amber-200/80">(NETWORK PROTOCOLS)</p>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col justify-between space-y-3">
+                        <div class="space-y-2">
+                            <button onclick="selectComponent('proto_tcpip')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-amber-500/15 border border-slate-800 hover:border-amber-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold mt-0.5">TCP/IP</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Giao thức cốt lõi TCP/IP</div>
+                                    <div class="text-[11px] text-slate-400">Đóng gói, đánh địa chỉ IP và đảm bảo truyền dữ liệu đáng tin cậy.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('proto_https')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-amber-500/15 border border-slate-800 hover:border-amber-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold mt-0.5">HTTPS</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Giao thức Web HTTPS</div>
+                                    <div class="text-[11px] text-slate-400">Truy cập web &amp; E-learning an toàn, mã hóa bảo mật dữ liệu.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('proto_dns')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-amber-500/15 border border-slate-800 hover:border-amber-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono text-[10px] font-bold mt-0.5">DNS</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Hệ thống tên miền DNS</div>
+                                    <div class="text-[11px] text-slate-400">Chuyển đổi tên miền dễ nhớ thành địa chỉ IP số.</div>
+                                </div>
+                            </button>
+                            <button onclick="selectComponent('proto_ftp')" class="w-full text-left p-2.5 rounded-xl bg-slate-950/70 hover:bg-amber-500/15 border border-slate-800 hover:border-amber-500/40 transition flex items-start gap-3 cursor-pointer">
+                                <span class="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold mt-0.5">FTP</span>
+                                <div>
+                                    <div class="text-xs font-bold text-white">Truyền tải tệp FTP</div>
+                                    <div class="text-[11px] text-slate-400">Tải lên và tải xuống tài liệu dung lượng lớn từ máy chủ.</div>
+                                </div>
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-amber-200/80 bg-amber-950/40 border border-amber-800/40 rounded-lg p-2.5 text-center">
+                            Tập hợp các <strong>quy tắc &amp; tiêu chuẩn</strong> giúp các thiết bị khác hãng hiểu và giao tiếp hiệu quả.
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JAVASCRIPT SIMULATION & INTERACTION LOGIC -->
+    <script>
+        // ============================================================================
+        // 1. DATABASE OF NETWORK COMPONENTS (VIETNAMESE EDUCATIONAL CONTENT)
+        // ============================================================================
+        const COMPONENT_DB = {
+            // --- GROUP 1: END DEVICES ---
+            end_laptop: {
+                title: "Máy tính xách tay (Laptop)",
+                category: "end",
+                categoryLabel: "1. Thiết bị đầu cuối (End Device)",
+                techTag: "Host | IP: 192.168.1.102",
+                subtitle: "Thiết bị đầu cuối di động phổ biến nhất cho học tập và làm việc từ xa.",
+                description: "Laptop là thiết bị đầu cuối (Host) nơi người dùng trực tiếp khởi tạo dữ liệu (gửi yêu cầu truy cập bài giảng, gửi tin nhắn, tải tệp) hoặc nhận dữ liệu trả về từ mạng. Laptop thường tích hợp cả card mạng không dây (Wi-Fi) và cổng mạng dây (Ethernet).",
+                bullets: [
+                    "Tích hợp trình duyệt web, phần mềm học trực tuyến (Zoom, MS Teams, LMS).",
+                    "Sử dụng địa chỉ IP riêng trong mạng nội bộ để định danh khi giao tiếp.",
+                    "Kết nối linh hoạt với Access Point qua sóng Wi-Fi mà không cần dây cáp."
+                ],
+                realWorld: "Học sinh, sinh viên dùng Laptop kết nối Wi-Fi để xem video bài giảng trực tuyến trên hệ thống E-learning và nộp bài tập lên lưu trữ đám mây.",
+                demoScenario: "elearning"
+            },
+            end_smartphone: {
+                title: "Điện thoại thông minh (Smartphone)",
+                category: "end",
+                categoryLabel: "1. Thiết bị đầu cuối (End Device)",
+                techTag: "Host | Wi-Fi & 5G",
+                subtitle: "Thiết bị đầu cuối không dây kết nối mọi lúc mọi nơi qua Wi-Fi hoặc sóng di động.",
+                description: "Smartphone đóng vai trò là thiết bị đầu cuối siêu di động. Thiết bị chuyển đổi mượt mà giữa mạng Wi-Fi nội bộ (thông qua Access Point) và mạng viễn thông băng rộng (4G/5G hoặc Vệ tinh) khi di chuyển ra ngoài.",
+                bullets: [
+                    "Giao tiếp hoàn toàn qua phương tiện truyền dẫn sóng vô tuyến (Wi-Fi, 4G/5G, Bluetooth).",
+                    "Sử dụng các giao thức HTTPS, TCP/IP, DNS tương tự như máy tính.",
+                    "Cho phép xem camera an ninh, họp trực tuyến và đồng bộ ảnh lên Cloud tức thì."
+                ],
+                realWorld: "Giúp người học tra cứu tài liệu nhanh, trao đổi nhóm qua ứng dụng nhắn tin trực tuyến hoặc học ngoại ngữ mọi lúc mọi nơi.",
+                demoScenario: "dns_lookup"
+            },
+            end_pc: {
+                title: "Máy tính để bàn (Desktop PC)",
+                category: "end",
+                categoryLabel: "1. Thiết bị đầu cuối (End Device)",
+                techTag: "Host | IP: 192.168.1.103",
+                subtitle: "Trạm làm việc cố định kết nối qua cáp đồng Ethernet độ ổn định cao.",
+                description: "Máy tính PC trong phòng máy trường học hoặc văn phòng thường được kết nối trực tiếp vào Switch thông qua cáp đồng xoắn đôi (Ethernet RJ45) để đạt tốc độ truyền tải ổn định và độ trễ thấp nhất.",
+                bullets: [
+                    "Kết nối vật lý qua cổng RJ45 tới Switch trung tâm của phòng máy.",
+                    "Băng thông ổn định (1 Gbps - 10 Gbps), không bị suy hao như sóng Wi-Fi xuyên tường.",
+                    "Phù hợp để tải/đồng bộ các tệp dữ liệu lớn lên máy chủ lưu trữ đám mây."
+                ],
+                realWorld: "Trong phòng thực hành Tin học hoặc văn phòng, hàng chục máy PC kết nối qua Switch để cùng truy cập kho học liệu số và đồng bộ dữ liệu đám mây.",
+                demoScenario: "cloud_ftp"
+            },
+            end_printer: {
+                title: "Máy in mạng (Network Printer)",
+                category: "end",
+                categoryLabel: "1. Thiết bị đầu cuối (End Device)",
+                techTag: "LAN Host | IP: 192.168.1.200",
+                subtitle: "Thiết bị đầu cuối ngoại vi dùng chung cho toàn bộ máy tính trong mạng LAN.",
+                description: "Thay vì phải cắm cáp USB trực tiếp vào từng máy tính, Máy in mạng được gắn vào Switch bằng cáp Ethernet. Mọi Laptop và PC trong cùng mạng LAN đều có thể gửi lệnh in từ xa qua giao thức TCP/IP.",
+                bullets: [
+                    "Có địa chỉ IP riêng và cổng giao tiếp mạng nội bộ.",
+                    "Nhận các gói tin chứa dữ liệu trang in từ PC hoặc Laptop thông qua Switch.",
+                    "Tiết kiệm chi phí thiết bị cho trường học và doanh nghiệp."
+                ],
+                realWorld: "Giáo viên ngồi tại phòng hội đồng dùng Laptop kết nối Wi-Fi vẫn có thể in đề cương bài giảng ra máy in đặt tại văn phòng khoa.",
+                demoScenario: "lan_print"
+            },
+            end_camera: {
+                title: "Camera IP An Ninh",
+                category: "end",
+                categoryLabel: "1. Thiết bị đầu cuối (End Device)",
+                techTag: "IoT Host | IP: 192.168.1.210",
+                subtitle: "Thiết bị đầu cuối IoT thu nhận và truyền luồng video số qua hạ tầng mạng.",
+                description: "Camera IP ghi nhận hình ảnh, mã hóa thành các gói dữ liệu số và truyền liên tục qua cáp đồng (kèm cấp nguồn PoE) về Switch để người dùng giám sát trực tiếp trên điện thoại hoặc lưu trữ lên Cloud.",
+                bullets: [
+                    "Hoạt động độc lập như một máy tính thu nhỏ có địa chỉ IP riêng.",
+                    "Truyền luồng dữ liệu hình ảnh thời gian thực (Video Streaming).",
+                    "Có thể truy cập nội bộ qua Switch/AP hoặc xem từ xa qua Router."
+                ],
+                realWorld: "Ứng dụng trong trường học thông minh để giám sát an ninh khuôn viên hoặc truyền hình trực tiếp buổi thí nghiệm.",
+                demoScenario: "cam_stream"
+            },
+            end_server: {
+                title: "Máy chủ Đám mây (Cloud / E-learning Server)",
+                category: "end",
+                categoryLabel: "1. Thiết bị đầu cuối (End Device)",
+                techTag: "Remote Host | Public IP",
+                subtitle: "Hệ thống máy chủ hiệu năng cao lưu trữ website, học liệu E-learning và dữ liệu đám mây.",
+                description: "Máy chủ (Server) cũng là một thiết bị đầu cuối trên mạng nhưng chuyên thực hiện vai trò lắng nghe và phản hồi yêu cầu từ hàng triệu thiết bị khách (Client) như Laptop, Điện thoại thông qua Internet.",
+                bullets: [
+                    "Hoạt động 24/7 tại các trung tâm dữ liệu (Data Center) kết nối bằng cáp quang tốc độ cao.",
+                    "Chạy các dịch vụ Web (HTTPS), Lưu trữ tệp (FTP/Cloud Storage), Hệ thống quản lý học tập (LMS).",
+                    "Đảm bảo an toàn, sao lưu dữ liệu và cho phép cộng tác trực tuyến thời gian thực."
+                ],
+                realWorld: "Là nơi lưu trữ toàn bộ video bài giảng E-learning, tài liệu Google Drive/OneDrive và xử lý các phòng học trực tuyến.",
+                demoScenario: "elearning"
+            },
+
+            // --- GROUP 2: INTERMEDIATE DEVICES ---
+            inter_router: {
+                title: "Router (Bộ định tuyến)",
+                category: "intermediate",
+                categoryLabel: "2. Thiết bị mạng trung gian",
+                techTag: "OSI Layer 3 | IP Routing",
+                subtitle: "Định tuyến dữ liệu thông minh giữa mạng nội bộ (LAN) và mạng bên ngoài (WAN/Internet).",
+                description: "Router là thiết bị mạng trung gian quan trọng bậc nhất. Khi nhận một gói tin, Router kiểm tra địa chỉ IP đích trong gói tin, tra cứu bảng định tuyến (Routing Table) để chọn đường đi tốt nhất chuyển gói tin sang mạng khác.",
+                bullets: [
+                    "Kết nối các mạng khác nhau (ví dụ: mạng LAN nội bộ với mạng Internet của nhà mạng ISP).",
+                    "Thực hiện cơ chế NAT (Network Address Translation) giúp nhiều thiết bị LAN dùng chung 1 địa chỉ IP Public.",
+                    "Ngăn chặn các gói tin quảng bá (Broadcast) không cần thiết tràn ra ngoài Internet."
+                ],
+                realWorld: "Khi bạn nhấn vào một đường link bài giảng E-learning, Router phân biệt được đây là yêu cầu đi ra Internet (chứ không phải in ấn nội bộ) và lập tức chuyển gói tin ra hướng Modem quang.",
+                demoScenario: "elearning"
+            },
+            inter_switch: {
+                title: "Switch (Bộ chuyển mạch)",
+                category: "intermediate",
+                categoryLabel: "2. Thiết bị mạng trung gian",
+                techTag: "OSI Layer 2 | MAC Switching",
+                subtitle: "Trung tâm kết nối các thiết bị trong cùng một mạng nội bộ (LAN).",
+                description: "Switch có nhiều cổng kết nối cáp đồng (RJ45) để nối các thiết bị như PC, Máy in, Camera IP, Access Point và Router lại với nhau. Switch sử dụng địa chỉ vật lý (MAC Address) để chuyển dữ liệu chính xác tới đúng thiết bị nhận mà không làm nghẽn các cổng khác.",
+                bullets: [
+                    "Kết nối nội bộ (LAN) tốc độ cao cho hàng chục đến hàng trăm thiết bị.",
+                    "Học và ghi nhớ địa chỉ MAC của từng thiết bị cắm vào mỗi cổng.",
+                    "Nếu 2 thiết bị trong cùng mạng LAN giao tiếp (như Laptop in tài liệu ra Máy in), Switch chuyển thẳng gói tin mà không cần đi qua Router hay Internet."
+                ],
+                realWorld: "Đóng vai trò xương sống nối kết toàn bộ máy tính phòng Lab, máy in, camera và bộ phát Wi-Fi trong trường học thành một hệ thống thống nhất.",
+                demoScenario: "lan_print"
+            },
+            inter_modem: {
+                title: "Modem (Bộ điều chế & giải điều chế)",
+                category: "intermediate",
+                categoryLabel: "2. Thiết bị mạng trung gian",
+                techTag: "Signal Converter | Optical/Digital",
+                subtitle: "Chuyển đổi tín hiệu giữa mạng nội bộ và đường truyền của nhà cung cấp dịch vụ (ISP).",
+                description: "Modem (Modulator / Demodulator) làm nhiệm vụ biên dịch tín hiệu: chuyển đổi tín hiệu số (Digital) từ Router/máy tính sang tín hiệu ánh sáng (trên cáp quang) hoặc tín hiệu tương tự (Analog/Sóng) để truyền đi xa tới nhà mạng ISP, và ngược lại.",
+                bullets: [
+                    "Chiều đi (Modulation): Biến dữ liệu bit (0, 1) thành xung ánh sáng laser trên sợi cáp quang.",
+                    "Chiều về (Demodulation): Thu nhận xung ánh sáng từ cáp quang ISP và chuyển ngược lại thành tín hiệu điện số cho Router.",
+                    "Là chiếc cầu nối vật lý không thể thiếu để kết nối mạng gia đình/trường học với hạ tầng Internet quốc gia."
+                ],
+                realWorld: "Nhờ có Modem quang (ONT), đường truyền cáp quang tốc độ cao từ nhà mạng mới có thể biến thành kết nối Internet cho cả gia đình học tập và làm việc.",
+                demoScenario: "elearning"
+            },
+            inter_ap: {
+                title: "Access Point - AP (Điểm truy cập không dây)",
+                category: "intermediate",
+                categoryLabel: "2. Thiết bị mạng trung gian",
+                techTag: "Wireless Bridge | Wi-Fi 6",
+                subtitle: "Phát sóng Wi-Fi giúp mở rộng phạm vi kết nối cho các thiết bị không dây.",
+                description: "Access Point (AP) nhận dữ liệu từ Switch thông qua dây cáp đồng Ethernet và phát thành sóng vô tuyến (Wi-Fi) ra không gian, giúp Laptop, Điện thoại kết nối vào mạng LAN và Internet mà không cần cắm dây.",
+                bullets: [
+                    "Đóng vai trò cầu nối giữa mạng có dây (Ethernet LAN) và mạng không dây (WLAN).",
+                    "Mở rộng vùng phủ sóng mạng tới các phòng học, hội trường, khu vực di chuyển nhiều.",
+                    "Hỗ trợ hàng chục thiết bị di động truy cập đồng thời."
+                ],
+                realWorld: "Trong khuôn viên trường học hoặc văn phòng lớn, nhiều Access Point được lắp đặt dọc hành lang để sinh viên mang Laptop đi đâu cũng có sóng Wi-Fi học tập.",
+                demoScenario: "cam_stream"
+            },
+            inter_firewall: {
+                title: "Firewall (Tường lửa bảo mật)",
+                category: "intermediate",
+                categoryLabel: "2. Thiết bị mạng trung gian",
+                techTag: "Security | Packet Filtering",
+                subtitle: "Lá chắn kiểm soát lưu lượng và bảo vệ mạng nội bộ khỏi các truy cập trái phép.",
+                description: "Firewall đặt giữa mạng nội bộ (Router) và Internet (Modem) để giám sát mọi gói tin ra vào. Thiết bị đối chiếu các gói tin với bộ quy tắc an ninh để cho phép dữ liệu hợp lệ đi qua và chặn đứng mã độc hoặc tin tặc tấn công.",
+                bullets: [
+                    "Kiểm tra địa chỉ IP nguồn/đích, cổng dịch vụ (Port) và giao thức của từng gói tin.",
+                    "Ngăn chặn các kết nối xâm nhập trái phép từ ngoài Internet vào mạng LAN nội bộ.",
+                    "Đảm bảo an toàn dữ liệu cho hệ thống máy chủ và người dùng."
+                ],
+                realWorld: "Bảo vệ dữ liệu cá nhân của học sinh, tài liệu nội bộ của cơ quan khỏi các cuộc tấn công mạng khi kết nối Internet.",
+                demoScenario: "cloud_ftp"
+            },
+
+            // --- GROUP 3: TRANSMISSION MEDIA ---
+            media_copper: {
+                title: "Cáp đồng (Ethernet - Xoắn đôi / Đồng trục)",
+                category: "media",
+                categoryLabel: "3. Phương tiện truyền dẫn",
+                techTag: "Tín hiệu Xung điện | RJ45 Cat6",
+                subtitle: "Phương tiện truyền dẫn có dây phổ biến nhất trong mạng nội bộ LAN.",
+                description: "Cáp đồng (tiêu biểu là cáp xoắn đôi UTP/STP chuẩn Ethernet sử dụng đầu bấm RJ45 và cáp đồng trục) truyền dữ liệu dưới dạng các xung điện qua lõi dây đồng. Các cặp dây đồng được xoắn vào nhau để triệt tiêu nhiễu điện từ.",
+                bullets: [
+                    "Chi phí hợp lý, dễ thi công lắp đặt trong phạm vi tòa nhà (dưới 100 mét mỗi chặng).",
+                    "Độ ổn định rất cao, tốc độ phổ biến từ 1 Gbps đến 10 Gbps trong mạng LAN.",
+                    "Kết nối trực tiếp giữa PC, Máy in, Camera IP, Access Point vào Switch và Router."
+                ],
+                realWorld: "Hệ thống dây mạng âm tường nối từ các ổ cắm mạng trong phòng học, văn phòng về tủ mạng Switch trung tâm đều sử dụng cáp đồng xoắn đôi Cat5e/Cat6.",
+                demoScenario: "lan_print"
+            },
+            media_fiber: {
+                title: "Cáp quang (Fiber Optic Cable)",
+                category: "media",
+                categoryLabel: "3. Phương tiện truyền dẫn",
+                techTag: "Tín hiệu Ánh sáng | Tốc độ cao",
+                subtitle: "Truyền dữ liệu bằng tia sáng qua sợi thủy tinh với tốc độ cực cao và khoảng cách xa.",
+                description: "Cáp quang sử dụng lõi sợi thủy tinh hoặc nhựa trong suốt siêu mảnh để dẫn truyền các xung ánh sáng. Đây là phương tiện truyền dẫn cốt lõi của mạng Internet toàn cầu, nối từ Modem gia đình ra tới các trung tâm dữ liệu đám mây.",
+                bullets: [
+                    "Tốc độ truyền tải cực cao (từ hàng chục Gbps tới hàng Tbps).",
+                    "Truyền đi khoảng cách rất xa (hàng chục km tới xuyên đại dương) với độ suy hao cực thấp.",
+                    "Hoàn toàn miễn nhiễm với nhiễu điện từ và sấm sét."
+                ],
+                realWorld: "Đường truyền Internet cáp quang FTTH giúp tải các bộ phim độ phân giải 4K, họp trực tuyến hàng trăm người và đồng bộ dữ liệu đám mây chỉ trong tích tắc.",
+                demoScenario: "elearning"
+            },
+            media_wireless: {
+                title: "Sóng vô tuyến (Wi-Fi, 4G/5G, Vệ tinh)",
+                category: "media",
+                categoryLabel: "3. Phương tiện truyền dẫn",
+                techTag: "Sóng điện từ | Không dây",
+                subtitle: "Truyền dữ liệu qua không gian bằng sóng điện từ, mang lại sự tự do di chuyển tối đa.",
+                description: "Không cần dây dẫn vật lý, sóng vô tuyến sử dụng các tần số sóng điện từ (như 2.4GHz, 5GHz, 6GHz của Wi-Fi hoặc sóng vi ba của 5G, Vệ tinh) để truyền tải dữ liệu giữa Access Point/Trạm thu phát và các thiết bị di động.",
+                bullets: [
+                    "Wi-Fi / Bluetooth: Phục vụ kết nối không dây tầm ngắn trong nhà, văn phòng.",
+                    "Mạng di động 3G/4G/5G: Phủ sóng diện rộng khắp đô thị và nông thôn.",
+                    "Vệ tinh (Satellite): Cung cấp kết nối Internet cho vùng sâu, vùng xa, hải đảo hoặc trên máy bay."
+                ],
+                realWorld: "Nhờ sóng Wi-Fi, 5G và Internet vệ tinh, học sinh ở vùng cao hay hải đảo xa xôi vẫn có thể tiếp cận các lớp học từ xa (E-learning) bình đẳng như ở thành phố.",
+                demoScenario: "sat_remote"
+            },
+
+            // --- GROUP 4: NETWORK PROTOCOLS ---
+            proto_tcpip: {
+                title: "Bộ giao thức TCP/IP",
+                category: "protocol",
+                categoryLabel: "4. Giao thức mạng (Protocol)",
+                techTag: "Transport & Network Layer",
+                subtitle: "Ngôn ngữ chung cốt lõi của Internet, đảm bảo truyền dữ liệu chính xác và đáng tin cậy.",
+                description: "TCP/IP là bộ quy tắc nền tảng điều khiển mọi hoạt động giao tiếp trên mạng. Trong đó, IP (Internet Protocol) chịu trách nhiệm gắn địa chỉ nguồn/đích và tìm đường đi, còn TCP (Transmission Control Protocol) chia nhỏ dữ liệu thành các gói tin, đánh số thứ tự và kiểm tra xem gói tin có đến đủ và nguyên vẹn hay không.",
+                bullets: [
+                    "Nếu một gói tin bị lỗi hoặc thất lạc trên đường truyền, TCP sẽ tự động yêu cầu gửi lại.",
+                    "Đảm bảo dữ liệu khi ghép lại ở máy nhận đúng 100% so với bản gốc ở máy gửi.",
+                    "Cho phép mọi thiết bị khác hệ điều hành (Windows, macOS, Android, iOS) hiểu nhau."
+                ],
+                realWorld: "Khi bạn gửi một bài kiểm tra trực tuyến hoặc in một tài liệu quan trọng, TCP/IP đảm bảo không một chữ hay con số nào bị mất mát trên đường truyền.",
+                demoScenario: "elearning"
+            },
+            proto_https: {
+                title: "Giao thức HTTPS (Hypertext Transfer Protocol Secure)",
+                category: "protocol",
+                categoryLabel: "4. Giao thức mạng (Protocol)",
+                techTag: "Application Layer | Port 443",
+                subtitle: "Giao thức tiêu chuẩn để truy cập các trang web và hệ thống E-learning một cách an toàn.",
+                description: "HTTPS là phiên bản mở rộng bảo mật của giao thức HTTP. Giao thức này quy định cách trình duyệt web (trên Laptop/Điện thoại) gửi yêu cầu và nhận nội dung trang web (văn bản, hình ảnh, video) từ Máy chủ Web, đồng thời mã hóa toàn bộ nội dung bằng SSL/TLS.",
+                bullets: [
+                    "Mã hóa dữ liệu truyền đi để ngăn chặn kẻ xấu nghe lén mật khẩu hoặc thông tin cá nhân.",
+                    "Xác thực danh tính chính xác của máy chủ Website (biểu tượng ổ khóa trên trình duyệt).",
+                    "Chạy trên nền tảng đáng tin cậy của bộ giao thức TCP/IP."
+                ],
+                realWorld: "Mọi nền tảng học trực tuyến (LMS), cổng thông tin trường học, ngân hàng số và email hiện đại đều sử dụng HTTPS để bảo vệ tài khoản người học.",
+                demoScenario: "elearning"
+            },
+            proto_dns: {
+                title: "Giao thức DNS (Domain Name System)",
+                category: "protocol",
+                categoryLabel: "4. Giao thức mạng (Protocol)",
+                techTag: "Application Layer | Port 53",
+                subtitle: "Danh bạ của Internet: Phân giải tên miền dễ nhớ thành địa chỉ IP dạng số.",
+                description: "Các thiết bị mạng chỉ giao tiếp với nhau bằng địa chỉ IP dạng số (ví dụ `142.250.199.78`), nhưng con người lại dễ nhớ tên miền bằng chữ (ví dụ `elearning.edu.vn`). Giao thức DNS làm nhiệm vụ tự động dịch tên miền sang địa chỉ IP tương ứng trước khi kết nối.",
+                bullets: [
+                    "Hoạt động hoàn toàn tự động trong vài phần nghìn giây ngay khi bạn gõ địa chỉ web.",
+                    "Giúp người dùng không cần phải học thuộc lòng hàng백 dãy số IP phức tạp.",
+                    "Nếu máy chủ DNS bị gián đoạn, bạn sẽ không thể truy cập web bằng tên miền thông thường."
+                ],
+                realWorld: "Khi bạn gõ tên trang web học trực tuyến vào trình duyệt, gói tin DNS sẽ đi hỏi máy chủ để lấy địa chỉ IP thực sự rồi mới bắt đầu tải bài học.",
+                demoScenario: "dns_lookup"
+            },
+            proto_ftp: {
+                title: "Giao thức FTP / SMB (Truyền tải tệp tin)",
+                category: "protocol",
+                categoryLabel: "4. Giao thức mạng (Protocol)",
+                techTag: "File Transfer Protocol",
+                subtitle: "Bộ quy tắc chuyên dụng để tải lên (Upload) và tải xuống (Download) các tệp dữ liệu.",
+                description: "FTP (File Transfer Protocol) là giao thức chuẩn hóa việc trao đổi các tệp dữ liệu dung lượng lớn giữa máy tính cá nhân và máy chủ lưu trữ từ xa qua mạng TCP/IP với tốc độ cao và khả năng khôi phục khi đứt quãng.",
+                bullets: [
+                    "Hỗ trợ truyền tải các thư mục, video bài giảng, phần mềm, bản sao lưu dữ liệu.",
+                    "Kiểm soát quyền truy cập (tài khoản, mật khẩu) khi đọc/ghi tệp trên máy chủ.",
+                    "Là nền tảng cho các dịch vụ đồng bộ hóa và lưu trữ đám mây hiện đại."
+                ],
+                realWorld: "Giảng viên tải bộ video bài giảng dung lượng hàng Gigabyte lên máy chủ lưu trữ đám mây để sinh viên toàn khóa tải về học tập.",
+                demoScenario: "cloud_ftp"
+            }
+        };
+
+        // ============================================================================
+        // 2. SCENARIO PATHS & STEP-BY-STEP HOP DEFINITIONS
+        // ============================================================================
+        const SCENARIOS = {
+            elearning: {
+                name: "Truy cập E-learning (HTTPS + TCP/IP)",
+                badgeText: "HTTPS | TCP/IP",
+                packetColor: "#38bdf8",
+                hops: [
+                    { pathId: "path_laptop_ap", reverse: false, fromNode: "node_laptop", toNode: "node_ap", statusText: "Access Point: Thu sóng Wi-Fi ➔ Chuyển sang Cáp đồng" },
+                    { pathId: "path_ap_switch", reverse: false, fromNode: "node_ap", toNode: "node_switch", statusText: "Switch: Chuyển mạch khung tin LAN tới Router" },
+                    { pathId: "path_switch_router", reverse: false, fromNode: "node_switch", toNode: "node_router", statusText: "Router: Định tuyến IP ra cổng Internet" },
+                    { pathId: "path_router_fw", reverse: false, fromNode: "node_router", toNode: "node_firewall", statusText: "Firewall: Kiểm tra bảo mật gói HTTPS ➔ Hợp lệ!" },
+                    { pathId: "path_fw_modem", reverse: false, fromNode: "node_firewall", toNode: "node_modem", statusText: "Modem: Chuyển tín hiệu Điện số ➔ Ánh sáng Quang" },
+                    { pathId: "path_modem_cloud", reverse: false, fromNode: "node_modem", toNode: "node_cloud", statusText: "Cloud Server: Gửi trả bài giảng E-learning!" }
+                ]
+            },
+            cloud_ftp: {
+                name: "Đồng bộ Tệp Đám mây (FTP / TCP/IP)",
+                badgeText: "FTP | TCP/IP",
+                packetColor: "#fbbf24",
+                hops: [
+                    { pathId: "path_pc_switch", reverse: false, fromNode: "node_pc", toNode: "node_switch", statusText: "Switch: Nhận tệp qua cáp đồng Ethernet RJ45" },
+                    { pathId: "path_switch_router", reverse: false, fromNode: "node_switch", toNode: "node_router", statusText: "Router: Định tuyến gói tin FTP tới Cloud IP" },
+                    { pathId: "path_router_fw", reverse: false, fromNode: "node_router", toNode: "node_firewall", statusText: "Firewall: Xác thực phiên truyền tệp an toàn" },
+                    { pathId: "path_fw_modem", reverse: false, fromNode: "node_firewall", toNode: "node_modem", statusText: "Modem: Điều chế tín hiệu lên Cáp quang FTTH" },
+                    { pathId: "path_modem_cloud", reverse: false, fromNode: "node_modem", toNode: "node_cloud", statusText: "Cloud Server: Lưu trữ tệp đám mây thành công!" }
+                ]
+            },
+            dns_lookup: {
+                name: "Truy vấn tên miền Web (DNS + HTTPS)",
+                badgeText: "DNS ➔ HTTPS",
+                packetColor: "#34d399",
+                hops: [
+                    { pathId: "path_phone_ap", reverse: false, fromNode: "node_smartphone", toNode: "node_ap", statusText: "Access Point: Nhận truy vấn DNS từ Điện thoại" },
+                    { pathId: "path_ap_switch", reverse: false, fromNode: "node_ap", toNode: "node_switch", statusText: "Switch: Chuyển tiếp gói tin tới Router" },
+                    { pathId: "path_switch_router", reverse: false, fromNode: "node_switch", toNode: "node_router", statusText: "Router: Tra cứu & Chuyển tiếp truy vấn DNS" },
+                    { pathId: "path_router_fw", reverse: false, fromNode: "node_router", toNode: "node_firewall", statusText: "Firewall: Cho phép cổng UDP/53 (DNS)" },
+                    { pathId: "path_fw_modem", reverse: false, fromNode: "node_firewall", toNode: "node_modem", statusText: "Modem: Truyền tín hiệu quang tới máy chủ" },
+                    { pathId: "path_modem_cloud", reverse: false, fromNode: "node_modem", toNode: "node_cloud", statusText: "Server: Phân giải tên miền ➔ Trả về IP Website!" }
+                ]
+            },
+            lan_print: {
+                name: "In tài liệu nội bộ LAN (TCP/IP)",
+                badgeText: "LAN | TCP/IP",
+                packetColor: "#f97316",
+                hops: [
+                    { pathId: "path_laptop_ap", reverse: false, fromNode: "node_laptop", toNode: "node_ap", statusText: "Access Point: Nhận lệnh in qua sóng Wi-Fi" },
+                    { pathId: "path_ap_switch", reverse: false, fromNode: "node_ap", toNode: "node_switch", statusText: "Switch: Nội bộ LAN! Chuyển thẳng tới cổng Máy in" },
+                    { pathId: "path_printer_switch", reverse: true, fromNode: "node_switch", toNode: "node_printer", statusText: "Máy in mạng: Đã nhận gói tin & Đang in tài liệu!" }
+                ]
+            },
+            cam_stream: {
+                name: "Truyền hình ảnh Camera IP (UDP/TCP)",
+                badgeText: "RTSP | STREAM",
+                packetColor: "#ec4899",
+                hops: [
+                    { pathId: "path_cam_switch", reverse: false, fromNode: "node_camera", toNode: "node_switch", statusText: "Switch: Nhận luồng Video từ Camera IP qua cáp đồng" },
+                    { pathId: "path_ap_switch", reverse: true, fromNode: "node_switch", toNode: "node_ap", statusText: "Access Point: Phát luồng Video qua sóng Wi-Fi" },
+                    { pathId: "path_phone_ap", reverse: true, fromNode: "node_ap", toNode: "node_smartphone", statusText: "Điện thoại: Hiển thị hình ảnh Camera trực tiếp!" }
+                ]
+            },
+            sat_remote: {
+                name: "Kết nối Vệ tinh / 5G (HTTPS + TCP/IP)",
+                badgeText: "5G / SAT | HTTPS",
+                packetColor: "#a855f7",
+                hops: [
+                    { pathId: "path_phone_sat", reverse: false, fromNode: "node_smartphone", toNode: "node_satellite", statusText: "Trạm Vệ tinh / 5G: Thu sóng vô tuyến tầm xa" },
+                    { pathId: "path_sat_cloud", reverse: false, fromNode: "node_satellite", toNode: "node_cloud", statusText: "Cloud Server: Kết nối E-learning vùng xa thành công!" }
+                ]
+            }
+        };
+
+        // ============================================================================
+        // 3. STATE & ANIMATION ENGINE
+        // ============================================================================
+        let currentScenarioKey = 'elearning';
+        let activeComponentId = 'inter_router';
+        let isAutoStreaming = true;
+        let speedMultiplier = 1.0;
+        let activePackets = [];
+        let lastAutoSpawnTime = 0;
+
+        const packetsLayer = document.getElementById('packetsLayer');
+        const statusBubblesLayer = document.getElementById('statusBubblesLayer');
+        const livePacketStatus = document.getElementById('livePacketStatus');
+
+        // Spawn a new animated packet along the selected scenario route
+        function spawnPacket(scenarioKey = currentScenarioKey) {
+            const scenario = SCENARIOS[scenarioKey];
+            if (!scenario) return;
+
+            // Update status bar
+            livePacketStatus.innerHTML = `
+                <span class="w-2 h-2 rounded-full animate-ping" style="background:${scenario.packetColor}"></span>
+                <span>Đang truyền: [${scenario.badgeText}] - ${scenario.name}</span>
+            `;
+
+            // Create SVG group for packet + protocol label
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+
+            // Glowing outer circle
+            const glowCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            glowCircle.setAttribute("r", "11");
+            glowCircle.setAttribute("fill", scenario.packetColor);
+            glowCircle.setAttribute("fill-opacity", "0.3");
+
+            // Core circle
+            const coreCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            coreCircle.setAttribute("r", "5.5");
+            coreCircle.setAttribute("fill", "#ffffff");
+            coreCircle.setAttribute("stroke", scenario.packetColor);
+            coreCircle.setAttribute("stroke-width", "3");
+
+            // Protocol Pill Tag above the packet
+            const tagWidth = scenario.badgeText.length * 6.5 + 16;
+            const tagRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            tagRect.setAttribute("x", -tagWidth / 2);
+            tagRect.setAttribute("y", "-28");
+            tagRect.setAttribute("width", tagWidth);
+            tagRect.setAttribute("height", "17");
+            tagRect.setAttribute("rx", "5");
+            tagRect.setAttribute("fill", "#0f172a");
+            tagRect.setAttribute("stroke", scenario.packetColor);
+            tagRect.setAttribute("stroke-width", "1.4");
+
+            const tagText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            tagText.setAttribute("x", "0");
+            tagText.setAttribute("y", "-16.5");
+            tagText.setAttribute("text-anchor", "middle");
+            tagText.setAttribute("fill", "#f8fafc");
+            tagText.setAttribute("font-size", "9.5");
+            tagText.setAttribute("font-weight", "700");
+            tagText.setAttribute("font-family", "JetBrains Mono, monospace");
+            tagText.textContent = scenario.badgeText;
+
+            g.appendChild(glowCircle);
+            g.appendChild(coreCircle);
+            g.appendChild(tagRect);
+            g.appendChild(tagText);
+            packetsLayer.appendChild(g);
+
+            // Pulse source node
+            pulseNode(scenario.hops[0].fromNode, scenario.packetColor);
+
+            activePackets.push({
+                element: g,
+                scenario: scenario,
+                hopIndex: 0,
+                progress: 0
+            });
+        }
+
+        // Visual pulse effect & status toast when packet reaches a device
+        function pulseNode(nodeId, color, statusMessage = null) {
+            const nodeEl = document.getElementById(nodeId);
+            if (!nodeEl) return;
+
+            const circle = nodeEl.querySelector('circle');
+            if (circle) {
+                const origStrokeWidth = circle.getAttribute('stroke-width') || "2.5";
+                circle.setAttribute('stroke-width', '5');
+                setTimeout(() => {
+                    circle.setAttribute('stroke-width', origStrokeWidth);
+                }, 420);
+            }
+
+            if (statusMessage) {
+                showNodeToast(nodeEl, statusMessage, color);
+            }
+        }
+
+        // Floating status bubble above a device when processing a packet
+        function showNodeToast(nodeEl, text, color) {
+            const transformAttr = nodeEl.getAttribute('transform');
+            const match = /translate\(\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/.exec(transformAttr);
+            if (!match) return;
+
+            const x = parseFloat(match[1]);
+            const y = parseFloat(match[2]) - 54;
+
+            const toastG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            const boxWidth = Math.max(170, text.length * 5.8 + 20);
+
+            // Keep bubble within SVG horizontal bounds
+            const clampedX = Math.min(Math.max(x, boxWidth / 2 + 12), 1050 - boxWidth / 2 - 12);
+
+            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rect.setAttribute("x", clampedX - boxWidth / 2);
+            rect.setAttribute("y", y - 14);
+            rect.setAttribute("width", boxWidth);
+            rect.setAttribute("height", "24");
+            rect.setAttribute("rx", "6");
+            rect.setAttribute("fill", "#020617");
+            rect.setAttribute("fill-opacity", "0.92");
+            rect.setAttribute("stroke", color);
+            rect.setAttribute("stroke-width", "1.5");
+
+            const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            label.setAttribute("x", clampedX);
+            label.setAttribute("y", y + 2);
+            label.setAttribute("text-anchor", "middle");
+            label.setAttribute("fill", "#f1f5f9");
+            label.setAttribute("font-size", "10.5");
+            label.setAttribute("font-weight", "600");
+            label.textContent = text;
+
+            toastG.appendChild(rect);
+            toastG.appendChild(label);
+            statusBubblesLayer.appendChild(toastG);
+
+            // Fade out & remove
+            setTimeout(() => {
+                toastG.style.transition = "opacity 0.35s ease";
+                toastG.style.opacity = "0";
+                setTimeout(() => toastG.remove(), 350);
+            }, 1050 / speedMultiplier);
+        }
+
+        // Main Animation Loop (requestAnimationFrame)
+        let lastFrameTime = performance.now();
+        function animateNetwork(now) {
+            const dt = (now - lastFrameTime) / 1000;
+            lastFrameTime = now;
+
+            // Auto spawn packets periodically if Auto Stream is enabled
+            if (isAutoStreaming && (now - lastAutoSpawnTime > (2700 / speedMultiplier))) {
+                if (activePackets.length < 4) {
+                    spawnPacket(currentScenarioKey);
+                }
+                lastAutoSpawnTime = now;
+            }
+
+            // Update all active packets
+            for (let i = activePackets.length - 1; i >= 0; i--) {
+                const pkt = activePackets[i];
+                const hop = pkt.scenario.hops[pkt.hopIndex];
+                const pathEl = document.getElementById(hop.pathId);
+
+                if (!pathEl) {
+                    pkt.element.remove();
+                    activePackets.splice(i, 1);
+                    continue;
+                }
+
+                const totalLength = pathEl.getTotalLength();
+                // Travel speed in pixels per second
+                const travelSpeed = 195 * speedMultiplier;
+                pkt.progress += (travelSpeed * dt) / Math.max(totalLength, 1);
+
+                if (pkt.progress >= 1) {
+                    // Reached end of current hop
+                    pulseNode(hop.toNode, pkt.scenario.packetColor, hop.statusText);
+                    pkt.hopIndex++;
+                    pkt.progress = 0;
+
+                    if (pkt.hopIndex >= pkt.scenario.hops.length) {
+                        // Packet finished entire journey
+                        pkt.element.remove();
+                        activePackets.splice(i, 1);
+                        continue;
+                    }
+                } else {
+                    // Calculate current point along SVG path
+                    const currentHop = pkt.scenario.hops[pkt.hopIndex];
+                    const currentPath = document.getElementById(currentHop.pathId);
+                    const len = currentPath.getTotalLength();
+                    const dist = currentHop.reverse ? (1 - pkt.progress) * len : pkt.progress * len;
+                    const pt = currentPath.getPointAtLength(dist);
+                    pkt.element.setAttribute("transform", `translate(${pt.x}, ${pt.y})`);
+                }
+            }
+
+            requestAnimationFrame(animateNetwork);
+        }
+
+        // ============================================================================
+        // 4. INSPECTOR & CATEGORY FILTER LOGIC
+        // ============================================================================
+        function selectComponent(compId) {
+            const data = COMPONENT_DB[compId];
+            if (!data) return;
+            activeComponentId = compId;
+
+            // Highlight selected element on SVG
+            document.querySelectorAll('.net-node, .net-link-group').forEach(el => {
+                if (el.getAttribute('data-id') === compId) {
+                    el.classList.add('highlighted-item');
+                } else {
+                    el.classList.remove('highlighted-item');
+                }
+            });
+
+            // Category styling map
+            const badgeStyles = {
+                end: {
+                    badge: "bg-sky-500/15 text-sky-300 border-sky-500/30",
+                    headerGrad: "from-slate-900 via-slate-900 to-sky-950/50"
+                },
+                intermediate: {
+                    badge: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
+                    headerGrad: "from-slate-900 via-slate-900 to-emerald-950/50"
+                },
+                media: {
+                    badge: "bg-rose-500/15 text-rose-300 border-rose-500/30",
+                    headerGrad: "from-slate-900 via-slate-900 to-rose-950/50"
+                },
+                protocol: {
+                    badge: "bg-amber-500/15 text-amber-300 border-amber-500/30",
+                    headerGrad: "from-slate-900 via-slate-900 to-amber-950/50"
+                }
+            };
+
+            const style = badgeStyles[data.category] || badgeStyles.intermediate;
+
+            const headerEl = document.getElementById('inspectorHeader');
+            headerEl.className = `p-5 border-b border-slate-800 bg-gradient-to-br ${style.headerGrad}`;
+
+            const badgeEl = document.getElementById('inspectorCategoryBadge');
+            badgeEl.className = `px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${style.badge}`;
+            badgeEl.textContent = data.categoryLabel;
+
+            document.getElementById('inspectorTechTag').textContent = data.techTag;
+            document.getElementById('inspectorTitle').textContent = data.title;
+            document.getElementById('inspectorSubtitle').textContent = data.subtitle;
+            document.getElementById('inspectorDescription').textContent = data.description;
+            document.getElementById('inspectorRealWorld').textContent = data.realWorld;
+
+            const bulletsContainer = document.getElementById('inspectorBullets');
+            bulletsContainer.innerHTML = data.bullets.map(b => `
+                <li class="flex items-start gap-2">
+                    <span class="text-sky-400 mt-1">•</span>
+                    <span>${b}</span>
+                </li>
+            `).join('');
+        }
+
+        // Filter 4 Categories (Pillars)
+        function applyCategoryFilter(category) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-filter') === category) {
+                    btn.classList.add('ring-2', 'ring-white/40');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-white/40');
+                }
+            });
+
+            const allItems = document.querySelectorAll('.net-node, .net-link-group');
+            allItems.forEach(el => {
+                const itemCat = el.getAttribute('data-category');
+                if (category === 'all' || itemCat === category) {
+                    el.classList.remove('dimmed');
+                } else {
+                    el.classList.add('dimmed');
+                }
+            });
+
+            // Auto-select a representative item when clicking a filter pill
+            const defaultByCat = {
+                end: 'end_laptop',
+                intermediate: 'inter_router',
+                media: 'media_fiber',
+                protocol: 'proto_tcpip'
+            };
+            if (defaultByCat[category]) {
+                selectComponent(defaultByCat[category]);
+            }
+        }
+
+        // ============================================================================
+        // 5. EVENT LISTENERS & INITIALIZATION
+        // ============================================================================
+        document.getElementById('scenarioSelect').addEventListener('change', (e) => {
+            currentScenarioKey = e.target.value;
+            // Clear existing packets and launch a new packet immediately
+            activePackets.forEach(p => p.element.remove());
+            activePackets = [];
+            spawnPacket(currentScenarioKey);
+            lastAutoSpawnTime = performance.now();
+        });
+
+        document.getElementById('sendPacketBtn').addEventListener('click', () => {
+            spawnPacket(currentScenarioKey);
+        });
+
+        document.getElementById('autoStreamBtn').addEventListener('click', () => {
+            isAutoStreaming = !isAutoStreaming;
+            const dot = document.getElementById('autoStreamDot');
+            const text = document.getElementById('autoStreamText');
+            const btn = document.getElementById('autoStreamBtn');
+
+            if (isAutoStreaming) {
+                text.textContent = "Tự động truyền: BẬT";
+                dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-ping";
+                btn.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition flex items-center gap-2 cursor-pointer";
+                spawnPacket(currentScenarioKey);
+            } else {
+                text.textContent = "Tự động truyền: TẮT";
+                dot.className = "w-2 h-2 rounded-full bg-slate-500";
+                btn.className = "px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 transition flex items-center gap-2 cursor-pointer";
+            }
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            speedMultiplier = parseFloat(e.target.value);
+            document.getElementById('speedValue').textContent = speedMultiplier.toFixed(1) + 'x';
+        });
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                applyCategoryFilter(btn.getAttribute('data-filter'));
+            });
+        });
+
+        document.getElementById('inspectorSimulateBtn').addEventListener('click', () => {
+            const comp = COMPONENT_DB[activeComponentId];
+            if (comp && comp.demoScenario) {
+                currentScenarioKey = comp.demoScenario;
+                document.getElementById('scenarioSelect').value = currentScenarioKey;
+                spawnPacket(currentScenarioKey);
+            }
+        });
+
+        window.onload = function () {
+            selectComponent('inter_router');
+            spawnPacket('elearning');
+            lastAutoSpawnTime = performance.now();
+            requestAnimationFrame(animateNetwork);
+        };
+    </script>
+</body>
+</html>
