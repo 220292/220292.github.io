@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mô phỏng các mô hình dịch vụ Điện toán đám mây</title>
+<style>
+:root{
+  --ink:#18324b;--muted:#62758a;--line:#dce6ef;--paper:#f4f8fc;--white:#fff;
+  --blue:#2878d0;--cyan:#26a6c8;--purple:#7864d8;--green:#259b78;
+  --shadow:0 12px 34px rgba(29,67,103,.08);--radius:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(145deg,#f7fbff 0%,#eef5fb 55%,#f8fbff 100%);
+ color:var(--ink);font-family:Inter,"Segoe UI",Arial,sans-serif;min-height:100vh}
+header{padding:24px clamp(18px,4vw,56px) 18px;max-width:1600px;margin:auto}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:var(--blue)}
+h1{font-size:clamp(24px,3vw,36px);margin:8px 0 8px;letter-spacing:-.035em}
+header p{margin:0;color:var(--muted);max-width:900px;line-height:1.6;font-size:15px}
+main{max-width:1600px;margin:auto;padding:0 clamp(14px,3vw,42px) 34px}
+.top-layout{display:grid;grid-template-columns:minmax(190px,.78fr) minmax(300px,1.15fr) minmax(360px,1.55fr);gap:16px;align-items:stretch}
+.panel{background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);min-width:0}
+.panel-head{padding:18px 20px 12px;border-bottom:1px solid #edf2f7}
+.panel-head small{color:var(--blue);font-weight:800;letter-spacing:.09em;text-transform:uppercase;font-size:10px}
+.panel-head h2{font-size:16px;margin:5px 0 0}
+.model-list{padding:12px;display:flex;flex-direction:column;gap:8px}
+.model-button{border:1px solid transparent;background:#f6f9fc;border-radius:13px;padding:13px 12px;text-align:left;cursor:pointer;display:flex;gap:11px;align-items:center;color:var(--ink);transition:background .25s,border-color .25s,transform .25s}
+.model-button:hover{transform:translateX(3px);background:#eef6ff}
+.model-button.active{background:#eaf3ff;border-color:#a9ccef;box-shadow:inset 3px 0 0 var(--blue)}
+.model-icon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#fff;color:var(--blue);font-size:18px;box-shadow:0 3px 10px #244b7010;flex:none}
+.model-button strong{display:block;font-size:13px}
+.model-button span:last-child{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.hint{font-size:11px;color:var(--muted);padding:2px 14px 14px;line-height:1.5}
+.detail{padding:20px}
+.detail-tag{display:inline-flex;align-items:center;gap:6px;background:#edf5ff;color:#276eb5;border-radius:30px;padding:6px 10px;font-size:11px;font-weight:800}
+.detail h2{font-size:24px;letter-spacing:-.03em;margin:13px 0 8px}
+.detail .lead{font-size:14px;line-height:1.65;color:#526b82;margin:0 0 16px}
+.info-block{border-top:1px solid #edf2f7;padding:12px 0}
+.info-block h3{font-size:12px;margin:0 0 6px;color:#294b68}
+.info-block p{font-size:12px;line-height:1.6;color:var(--muted);margin:0}
+.example{background:#f3f8fc;border:1px solid #e5eef6;border-radius:12px;padding:11px 12px;margin-top:13px}
+.example b{font-size:11px;color:#276eb5;display:block;margin-bottom:4px}
+.example p{font-size:12px;line-height:1.5;margin:0;color:#526b82}
+.diagram-panel{padding-bottom:14px;overflow:hidden}
+.diagram-top{display:flex;align-items:center;justify-content:space-between;padding:17px 20px 8px;gap:10px}
+.diagram-top h2{font-size:16px;margin:0}
+.status{font-size:10px;color:#268466;background:#eaf8f2;border-radius:20px;padding:6px 9px;font-weight:800;white-space:nowrap}
+.diagram-sub{padding:0 20px;color:var(--muted);font-size:11px}
+.scene{position:relative;margin:12px 14px 0;height:320px;border-radius:16px;overflow:hidden;
+ background:radial-gradient(ellipse at 50% 42%,#fff 0%,#f3f8ff 58%,#eaf2fb 100%);
+ border:1px solid #e1ebf4}
+.scene:before,.scene:after{content:"";position:absolute;border:1px solid rgba(75,145,201,.13);border-radius:50%;width:380px;height:160px;left:50%;top:52%;transform:translate(-50%,-50%) rotate(-18deg)}
+.scene:after{width:300px;height:220px;transform:translate(-50%,-50%) rotate(55deg)}
+.orbit{position:absolute;left:50%;top:48%;width:280px;height:135px;border:1px dashed rgba(48,133,196,.27);border-radius:50%;transform:translate(-50%,-50%) rotate(-20deg);animation:orbit 32s linear infinite}
+@keyframes orbit{to{transform:translate(-50%,-50%) rotate(340deg)}}
+.cloud{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:120px;height:76px;border-radius:40px;background:linear-gradient(145deg,#fff,#e4f2ff);box-shadow:0 12px 25px #4789bd25;border:1px solid #c5def3;display:grid;place-items:center;z-index:2;color:#2878bd;font-size:28px}
+.cloud:before,.cloud:after{content:"";position:absolute;background:inherit;border:inherit;border-bottom:0;border-right:0;border-radius:50%;z-index:-1}
+.cloud:before{width:52px;height:52px;left:16px;top:-22px}
+.cloud:after{width:64px;height:64px;right:14px;top:-30px}
+.node{position:absolute;z-index:3;display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #d8e7f4;background:#ffffffed;border-radius:11px;box-shadow:0 5px 14px #1d4a7010;font-size:10px;font-weight:700;color:#42617c;animation:float 6s ease-in-out infinite}
+.node i{font-style:normal;font-size:15px}
+.node.n1{left:7%;top:17%;animation-delay:-1s}.node.n2{right:7%;top:17%;animation-delay:-3s}.node.n3{left:7%;bottom:16%;animation-delay:-2s}.node.n4{right:7%;bottom:16%;animation-delay:-4s}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -6px}}
+.stack{position:absolute;left:50%;bottom:17px;transform:translateX(-50%);display:flex;gap:5px;z-index:4;align-items:end}
+.stack-layer{width:47px;height:42px;border-radius:9px 9px 5px 5px;border:1px solid #c9d9e8;background:linear-gradient(160deg,#fff,#e8f1fa);display:grid;place-items:center;font-size:8px;color:#58718a;font-weight:800;box-shadow:0 5px 10px #244b7010;transition:all .5s ease;position:relative}
+.stack-layer:after{content:"";position:absolute;bottom:-5px;left:4px;right:4px;height:5px;background:#d5e3f0;border-radius:0 0 5px 5px}
+.stack-layer.managed{background:linear-gradient(150deg,#dff3ff,#a9d9f7);border-color:#86c3e9;color:#155b91;box-shadow:0 0 0 2px #b8e2fb55,0 6px 12px #398ac52b}
+.stack-layer.user{background:linear-gradient(150deg,#fff3d9,#ffe0a2);border-color:#f0c76e;color:#875a09}
+.stack-label{position:absolute;left:50%;bottom:67px;transform:translateX(-50%);font-size:9px;color:#748ba0;white-space:nowrap;font-weight:700}
+.legend{display:flex;justify-content:center;gap:16px;padding:12px 10px 0;flex-wrap:wrap}
+.legend span{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:3px;background:#9fd5f2}.dot.user{background:#f6d17e}
+.diagram-caption{text-align:center;font-size:10px;color:#71869a;padding:8px 16px 0}
+.comparison{margin-top:17px}
+.comparison .panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.comparison .panel-head p{font-size:11px;color:var(--muted);margin:0}
+.table-wrap{overflow-x:auto;padding:8px 14px 15px}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:760px;font-size:11px}
+th,td{padding:11px 12px;text-align:left;border-bottom:1px solid #edf2f7;line-height:1.45}
+th{background:#f5f9fc;color:#36536d;font-size:11px}
+th:first-child{border-radius:9px 0 0 0}th:last-child{border-radius:0 9px 0 0}
+td:first-child{font-weight:800;color:#31516e;white-space:nowrap}
+td{color:#61778b}
+td .yes{color:#238664;font-weight:800}td .partial{color:#b47a19;font-weight:800}
+tfoot td{border:0}
+.footer-note{padding:0 20px 16px;color:#8293a3;font-size:10px;line-height:1.5}
+@media(max-width:1050px){.top-layout{grid-template-columns:220px 1fr}.diagram-panel{grid-column:1/-1}.scene{height:300px}}
+@media(max-width:650px){header{padding-top:18px}.top-layout{grid-template-columns:1fr}.model-list{display:grid;grid-template-columns:1fr 1fr}.hint{grid-column:1/-1}.diagram-panel{grid-column:auto}.scene{height:300px;margin-inline:9px}.node{font-size:9px;padding:6px}.node.n1,.node.n3{left:3%}.node.n2,.node.n4{right:3%}.stack-layer{width:39px;height:38px;font-size:7px}.detail h2{font-size:21px}.comparison .panel-head{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="eyebrow">Cloud computing · Interactive learning</div>
+  <h1>Các mô hình dịch vụ Điện toán đám mây</h1>
+  <p>Khám phá ai chịu trách nhiệm quản lý từng lớp công nghệ — từ máy chủ vật lý đến phần mềm mà người dùng sử dụng. Chọn một mô hình để xem giải thích và quan sát sơ đồ mô phỏng.</p>
+</header>
+<main>
+  <section class="top-layout" aria-label="Khám phá mô hình dịch vụ">
+    <div class="panel">
+      <div class="panel-head"><small>01 · Chọn mô hình</small><h2>Bốn cách triển khai dịch vụ</h2></div>
+      <div class="model-list" id="modelList">
+        <button class="model-button active" data-model="onprem" aria-pressed="true"><span class="model-icon">🏢</span><span><strong>On-Premises</strong><span>Tại chỗ · Tự quản lý</span></span></button>
+        <button class="model-button" data-model="iaas" aria-pressed="false"><span class="model-icon">🖥️</span><span><strong>IaaS</strong><span>Hạ tầng như một dịch vụ</span></span></button>
+        <button class="model-button" data-model="paas" aria-pressed="false"><span class="model-icon">🧰</span><span><strong>PaaS</strong><span>Nền tảng như một dịch vụ</span></span></button>
+        <button class="model-button" data-model="saas" aria-pressed="false"><span class="model-icon">☁️</span><span><strong>SaaS</strong><span>Phần mềm như một dịch vụ</span></span></button>
+      </div>
+      <div class="hint">Chọn từng mô hình để thay đổi nội dung và phần được nhà cung cấp quản lý trong sơ đồ.</div>
+    </div>
+
+    <article class="panel detail" aria-live="polite">
+      <span class="detail-tag" id="detailTag">MÔ HÌNH TRUYỀN THỐNG</span>
+      <h2 id="detailTitle">On-Premises (Tại chỗ)</h2>
+      <p class="lead" id="detailLead">Doanh nghiệp hoặc tổ chức tự đầu tư, vận hành và bảo trì toàn bộ hệ thống công nghệ thông tin tại cơ sở của mình.</p>
+      <div class="info-block"><h3>Ai quản lý?</h3><p id="detailManage">Đơn vị sử dụng chịu trách nhiệm từ trung tâm dữ liệu, máy chủ, lưu trữ, mạng đến hệ điều hành, phần mềm trung gian, ứng dụng và dữ liệu.</p></div>
+      <div class="info-block"><h3>Đặc điểm cần nhớ</h3><p id="detailFeature">Toàn quyền kiểm soát và tùy biến, nhưng cần vốn đầu tư ban đầu, đội ngũ kỹ thuật và kế hoạch bảo trì, an toàn thông tin.</p></div>
+      <div class="example"><b>VÍ DỤ DỄ HÌNH DUNG</b><p id="detailExample">Trường tự mua máy chủ, đặt tại phòng máy của trường, tự cài đặt hệ thống quản lý đào tạo và tự vận hành.</p></div>
+    </article>
+
+    <section class="panel diagram-panel">
+      <div class="diagram-top"><h2>Mô phỏng các lớp công nghệ</h2><span class="status">● ĐANG MÔ PHỎNG</span></div>
+      <div class="diagram-sub" id="diagramSub">Đơn vị sử dụng tự quản lý toàn bộ các lớp trong hệ thống.</div>
+      <div class="scene">
+        <div class="orbit"></div>
+        <div class="cloud">☁</div>
+        <div class="node n1"><i>🌐</i><span>Kết nối mạng</span></div>
+        <div class="node n2"><i>🗄️</i><span>Lưu trữ dữ liệu</span></div>
+        <div class="node n3"><i>⚙️</i><span>Xử lý hệ thống</span></div>
+        <div class="node n4"><i>📱</i><span>Người dùng</span></div>
+        <div class="stack-label">CÁC LỚP CÔNG NGHỆ · TỪ DƯỚI LÊN</div>
+        <div class="stack" id="stack">
+          <div class="stack-layer user" data-layer="physical">Vật lý</div>
+          <div class="stack-layer user" data-layer="network">Mạng</div>
+          <div class="stack-layer user" data-layer="storage">Lưu trữ</div>
+          <div class="stack-layer user" data-layer="os">Hệ điều hành</div>
+          <div class="stack-layer user" data-layer="runtime">Nền tảng</div>
+          <div class="stack-layer user" data-layer="app">Ứng dụng</div>
+          <div class="stack-layer user" data-layer="data">Dữ liệu</div>
+        </div>
+      </div>
+      <div class="legend"><span><i class="dot"></i> Nhà cung cấp quản lý</span><span><i class="dot user"></i> Khách hàng quản lý</span></div>
+      <div class="diagram-caption" id="diagramCaption">Màu vàng: khách hàng quản lý · Màu xanh: nhà cung cấp quản lý</div>
+    </section>
+  </section>
+
+  <section class="panel comparison">
+    <div class="panel-head"><div><small>02 · Nhìn tổng thể</small><h2>So sánh trách nhiệm quản lý</h2></div><p>Phân biệt mô hình qua mức độ tự quản lý và mức độ dịch vụ được cung cấp.</p></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Lớp công nghệ / Trách nhiệm</th><th>On-Premises</th><th>IaaS</th><th>PaaS</th><th>SaaS</th></tr></thead>
+        <tbody>
+          <tr><td>Ứng dụng</td><td>Khách hàng</td><td>Khách hàng</td><td>Khách hàng</td><td><span class="yes">Nhà cung cấp</span></td></tr>
+          <tr><td>Dữ liệu & cấu hình sử dụng</td><td>Khách hàng</td><td>Khách hàng</td><td>Khách hàng</td><td><span class="partial">Chia sẻ / khách hàng</span></td></tr>
+          <tr><td>Runtime / Middleware</td><td>Khách hàng</td><td>Khách hàng</td><td><span class="yes">Nhà cung cấp</span></td><td><span class="yes">Nhà cung cấp</span></td></tr>
+          <tr><td>Hệ điều hành</td><td>Khách hàng</td><td>Khách hàng</td><td><span class="yes">Nhà cung cấp</span></td><td><span class="yes">Nhà cung cấp</span></td></tr>
+          <tr><td>Máy chủ, lưu trữ, mạng</td><td>Khách hàng</td><td><span class="yes">Nhà cung cấp</span></td><td><span class="yes">Nhà cung cấp</span></td><td><span class="yes">Nhà cung cấp</span></td></tr>
+          <tr><td>Trung tâm dữ liệu / phần cứng</td><td>Khách hàng</td><td><span class="yes">Nhà cung cấp</span></td><td><span class="yes">Nhà cung cấp</span></td><td><span class="yes">Nhà cung cấp</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="footer-note">Lưu ý: Bảng thể hiện cách phân chia trách nhiệm phổ biến để học tập. Trên thực tế, trách nhiệm về dữ liệu, tài khoản, quyền truy cập, cấu hình và bảo mật có thể được chia sẻ tùy hợp đồng và dịch vụ cụ thể.</div>
+  </section>
+</main>
+<script>
+const models = {
+ onprem:{
+  tag:"MÔ HÌNH TRUYỀN THỐNG",title:"On-Premises (Tại chỗ)",
+  lead:"Doanh nghiệp hoặc tổ chức tự đầu tư, vận hành và bảo trì toàn bộ hệ thống công nghệ thông tin tại cơ sở của mình.",
+  manage:"Đơn vị sử dụng chịu trách nhiệm từ trung tâm dữ liệu, máy chủ, lưu trữ, mạng đến hệ điều hành, phần mềm trung gian, ứng dụng và dữ liệu.",
+  feature:"Toàn quyền kiểm soát và tùy biến, nhưng cần vốn đầu tư ban đầu, đội ngũ kỹ thuật và kế hoạch bảo trì, an toàn thông tin.",
+  example:"Trường tự mua máy chủ, đặt tại phòng máy của trường, tự cài đặt hệ thống quản lý đào tạo và tự vận hành.",
+  sub:"Đơn vị sử dụng tự quản lý toàn bộ các lớp trong hệ thống.",
+  owners:["user","user","user","user","user","user","user"]
+ },
+ iaas:{
+  tag:"INFRASTRUCTURE AS A SERVICE",title:"IaaS – Hạ tầng như một dịch vụ",
+  lead:"Nhà cung cấp cho thuê tài nguyên hạ tầng CNTT như máy chủ ảo, lưu trữ và mạng. Khách hàng chủ động cài đặt, vận hành hệ điều hành và phần mềm của mình.",
+  manage:"Nhà cung cấp quản lý trung tâm dữ liệu, máy chủ vật lý, lưu trữ vật lý, mạng và lớp ảo hóa. Khách hàng quản lý hệ điều hành, nền tảng, ứng dụng và dữ liệu.",
+  feature:"Linh hoạt mở rộng hoặc thu hẹp tài nguyên theo nhu cầu, giảm việc mua sắm phần cứng; tuy nhiên khách hàng vẫn cần năng lực quản trị hệ điều hành và bảo mật phần mềm.",
+  example:"Trường thuê máy chủ ảo trên nền tảng đám mây, sau đó tự cài Linux/Windows Server và triển khai hệ thống quản lý sinh viên.",
+  sub:"Nhà cung cấp lo phần cứng và ảo hóa; khách hàng quản lý phần mềm phía trên.",
+  owners:["managed","managed","managed","user","user","user","user"]
+ },
+ paas:{
+  tag:"PLATFORM AS A SERVICE",title:"PaaS – Nền tảng như một dịch vụ",
+  lead:"Nhà cung cấp cung cấp sẵn môi trường phát triển và triển khai ứng dụng. Người phát triển tập trung xây dựng ứng dụng và quản lý dữ liệu thay vì quản trị máy chủ hay hệ điều hành.",
+  manage:"Nhà cung cấp quản lý hạ tầng, hệ điều hành, middleware và runtime. Khách hàng chủ yếu quản lý mã nguồn/ứng dụng, dữ liệu và cấu hình liên quan.",
+  feature:"Tăng tốc phát triển, triển khai ứng dụng và giảm gánh nặng vận hành nền tảng. Đổi lại, khách hàng phụ thuộc nhiều hơn vào công nghệ và giới hạn của nền tảng cung cấp.",
+  example:"Nhóm sinh viên xây dựng cổng đăng ký học phần và triển khai trực tiếp lên nền tảng PaaS mà không phải tự cài đặt máy chủ.",
+  sub:"Nhà cung cấp quản lý nền tảng chạy ứng dụng; khách hàng tập trung vào ứng dụng và dữ liệu.",
+  owners:["managed","managed","managed","managed","managed","user","user"]
+ },
+ saas:{
+  tag:"SOFTWARE AS A SERVICE",title:"SaaS – Phần mềm như một dịch vụ",
+  lead:"Người dùng truy cập phần mềm hoàn chỉnh qua trình duyệt hoặc ứng dụng. Nhà cung cấp vận hành hạ tầng và phần mềm; khách hàng chủ yếu sử dụng, quản lý nội dung, dữ liệu và thiết lập tài khoản.",
+  manage:"Nhà cung cấp quản lý hạ tầng, hệ điều hành, nền tảng và ứng dụng. Khách hàng vẫn cần sử dụng an toàn, quản lý quyền truy cập, dữ liệu đầu vào và các thiết lập được cấp.",
+  feature:"Dễ bắt đầu, thường không cần cài đặt hay bảo trì máy chủ; chi phí thường theo thuê bao hoặc mức sử dụng. Mức tùy biến kỹ thuật thấp hơn và cần chú ý quyền riêng tư, dữ liệu.",
+  example:"Giảng viên và sinh viên sử dụng email trường, công cụ họp trực tuyến hoặc hệ thống quản lý học tập trực tuyến mà không tự vận hành máy chủ của ứng dụng.",
+  sub:"Nhà cung cấp vận hành gần như toàn bộ hệ thống; người dùng tập trung sử dụng dịch vụ và quản lý dữ liệu/quyền truy cập của mình.",
+  owners:["managed","managed","managed","managed","managed","managed","user"]
+ }
+};
+const buttons=[...document.querySelectorAll(".model-button")];
+function selectModel(key){
+ const m=models[key]; if(!m)return;
+ buttons.forEach(b=>{const active=b.dataset.model===key;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));});
+ document.getElementById("detailTag").textContent=m.tag;
+ document.getElementById("detailTitle").textContent=m.title;
+ document.getElementById("detailLead").textContent=m.lead;
+ document.getElementById("detailManage").textContent=m.manage;
+ document.getElementById("detailFeature").textContent=m.feature;
+ document.getElementById("detailExample").textContent=m.example;
+ document.getElementById("diagramSub").textContent=m.sub;
+ document.querySelectorAll(".stack-layer").forEach((el,i)=>{
+   el.classList.remove("managed","user");
+   el.classList.add(m.owners[i]);
+   el.setAttribute("title",m.owners[i]==="managed"?"Nhà cung cấp quản lý":"Khách hàng quản lý");
+ });
+ document.getElementById("diagramCaption").textContent=
+   key==="onprem"?"Toàn bộ lớp công nghệ do khách hàng quản lý.":
+   key==="iaas"?"Nhà cung cấp quản lý 3 lớp hạ tầng bên dưới; khách hàng quản lý các lớp phía trên.":
+   key==="paas"?"Nhà cung cấp quản lý hạ tầng và nền tảng; khách hàng quản lý ứng dụng và dữ liệu.":
+   "Nhà cung cấp quản lý ứng dụng và các lớp nền; khách hàng vẫn chịu trách nhiệm với dữ liệu, tài khoản và cách sử dụng.";
+}
+buttons.forEach(b=>b.addEventListener("click",()=>selectModel(b.dataset.model)));
+selectModel("onprem");
+</script>
+</body>
+</html>
