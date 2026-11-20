@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bài 5: Thông tin và Dữ liệu | Công nghệ số & Ứng dụng - TVU</title>
+    
+    <!-- Google Fonts: Be Vietnam Pro & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN với cấu hình Dark Mode theo class -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Be Vietnam Pro"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Three.js r128 & OrbitControls CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <style>
+        /* Cỡ chữ gốc linh hoạt điều khiển bằng nút A- / A+ */
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
+        body {
+            overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Scrollbar tùy biến */
+        ::-webkit-scrollbar {
+            width: 7px;
+        }
+        html.dark ::-webkit-scrollbar-track { background: #0f172a; }
+        html.dark ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        html:not(.dark) ::-webkit-scrollbar-track { background: #f1f5f9; }
+        html:not(.dark) ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+
+        /* Editorial Card chuẩn Dark & Light Mode */
+        .editorial-card {
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        html.dark .editorial-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(51, 65, 85, 0.8);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+        }
+        html.dark .editorial-card.active-scene {
+            border-color: #38bdf8;
+            box-shadow: 0 25px 50px -12px rgba(56, 189, 248, 0.18), 0 0 0 1px rgba(56, 189, 248, 0.3);
+        }
+
+        html:not(.dark) .editorial-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.08);
+        }
+        html:not(.dark) .editorial-card.active-scene {
+            border-color: #2563eb;
+            box-shadow: 0 20px 40px -12px rgba(37, 99, 235, 0.15), 0 0 0 2px rgba(37, 99, 235, 0.15);
+        }
+
+        /* Nút điều hướng cảnh trên Header */
+        html.dark .nav-pill.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: #38bdf8;
+            color: #38bdf8;
+        }
+        html:not(.dark) .nav-pill.active {
+            background: #eff6ff;
+            border-color: #2563eb;
+            color: #1d4ed8;
+        }
+
+        /* Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        html.dark input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; background: #334155; border-radius: 999px;
+        }
+        html:not(.dark) input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px; background: #cbd5e1; border-radius: 999px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px; width: 20px; border-radius: 50%;
+            background: #0ea5e9; border: 2px solid #ffffff;
+            cursor: pointer; margin-top: -7px;
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.5);
+            transition: transform 0.15s ease;
+        }
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-[#070b14] dark:text-slate-100 font-sans antialiased selection:bg-sky-500 selection:text-white">
+
+    <!-- HEADER CỐ ĐỊNH + THANH CÔNG CỤ TIỆN ÍCH GIẢNG DẠY -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-white/90 dark:bg-[#070b14]/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/80 transition-colors">
+        <!-- Thanh tiến trình cuộn -->
+        <div class="w-full h-1 bg-slate-200 dark:bg-slate-800">
+            <div id="scroll-progress" class="h-full bg-gradient-to-r from-teal-400 via-sky-500 to-purple-500 w-0 transition-all duration-150"></div>
+        </div>
+
+        <div class="max-w-[1680px] mx-auto px-3 sm:px-6 py-2.5 flex items-center justify-between gap-2 sm:gap-4">
+            <!-- Brand & Tên bài giảng -->
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 to-teal-500 flex items-center justify-center text-white font-extrabold text-sm shadow-lg shadow-sky-500/20 shrink-0">
+                    TVU
+                </div>
+                <div class="truncate">
+                    <div class="flex items-center gap-2">
+                        <span class="text-[11px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400 border border-sky-200 dark:border-sky-500/30">Chương 2 • Bài 5</span>
+                        <span class="hidden md:inline text-xs text-slate-500 dark:text-slate-400">Công nghệ số & Ứng dụng • GV: Trần Anh Thảo</span>
+                    </div>
+                    <h1 class="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate mt-0.5">Thông tin và Dữ liệu trong Môi trường Số</h1>
+                </div>
+            </div>
+
+            <!-- Điều hướng nhanh 4 phân cảnh (Desktop lớn) -->
+            <nav class="hidden 2xl:flex items-center gap-1.5" aria-label="Điều hướng phân cảnh">
+                <button onclick="scrollToScene(0)" id="nav-0" class="nav-pill active px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-sky-500"></span> 1. Dữ liệu → Thông tin
+                </button>
+                <button onclick="scrollToScene(1)" id="nav-1" class="nav-pill px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 2. Tháp Lưu trữ
+                </button>
+                <button onclick="scrollToScene(2)" id="nav-2" class="nav-pill px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-orange-500"></span> 3. Case Study Y tế
+                </button>
+                <button onclick="scrollToScene(3)" id="nav-3" class="nav-pill px-3 py-1.5 rounded-full text-xs font-semibold border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400 transition flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-purple-500"></span> 4. Dòng chảy Số
+                </button>
+            </nav>
+
+            <!-- THANH CÔNG CỤ TIỆN ÍCH: TĂNG/GIẢM CỠ CHỮ (A- / A+) & BẬT/TẮT DARK-LIGHT MODE -->
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <!-- Bộ điều chỉnh cỡ chữ -->
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 rounded-xl p-0.5" title="Điều chỉnh kích thước chữ trình chiếu">
+                    <button onclick="changeFontSize(-1)" id="btn-font-dec" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition" aria-label="Giảm cỡ chữ">
+                        A-
+                    </button>
+                    <span id="font-scale-label" class="px-1.5 text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 select-none">100%</span>
+                    <button onclick="changeFontSize(1)" id="btn-font-inc" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 transition" aria-label="Tăng cỡ chữ">
+                        A+
+                    </button>
+                </div>
+
+                <!-- Nút bật/tắt giao diện Sáng / Tối -->
+                <button onclick="toggleTheme()" id="btn-theme-toggle" class="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800/90 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 transition" title="Chuyển đổi giao diện Sáng / Tối">
+                    <span id="theme-icon">☀️</span>
+                    <span id="theme-text" class="hidden sm:inline">Nền sáng</span>
+                </button>
+
+                <!-- Dropdown chọn cảnh cho màn hình vừa & nhỏ -->
+                <select id="mobile-scene-select" onchange="scrollToScene(parseInt(this.value))" class="2xl:hidden bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs font-semibold rounded-xl px-2.5 py-1.5 text-sky-700 dark:text-sky-400 focus:outline-none">
+                    <option value="0">Cảnh 1: Dữ liệu → Thông tin</option>
+                    <option value="1">Cảnh 2: Tháp Đơn vị</option>
+                    <option value="2">Cảnh 3: Ổ cứng Y tế</option>
+                    <option value="3">Cảnh 4: Dòng chảy Số</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN SPLIT-SCREEN SCROLLYTELLING LAYOUT -->
+    <main class="max-w-[1680px] mx-auto pt-16 sm:pt-18 flex flex-col lg:flex-row relative">
+
+        <!-- ============================================================== -->
+        <!-- CỘT PHẢI TRÊN DESKTOP (56% STICKY 3D VIEWPORT)                 -->
+        <!-- ============================================================== -->
+        <div class="w-full lg:w-[56%] lg:order-2 h-[44vh] sm:h-[50vh] lg:h-[calc(100vh-4.25rem)] sticky top-16 sm:top-[4.25rem] z-30 lg:z-10 border-b lg:border-b-0 lg:border-l border-slate-200 dark:border-slate-800/80 bg-[#eef2f6] dark:bg-[#050811] transition-colors">
+            <div id="canvas-container" class="w-full h-full relative overflow-hidden cursor-grab active:cursor-grabbing">
+                
+                <!-- HUD Góc trên trái -->
+                <div class="absolute top-3.5 left-3.5 z-20 pointer-events-none flex flex-col gap-1 max-w-[72%]">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/90 dark:bg-slate-900/85 backdrop-blur-md border border-slate-300 dark:border-slate-700/80 shadow-sm w-fit">
+                        <span id="hud-dot" class="w-2 h-2 rounded-full bg-sky-500 animate-ping"></span>
+                        <span id="hud-badge" class="text-[11px] font-mono font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400">MÔ HÌNH 3D • CẢNH 01</span>
+                    </div>
+                    <h2 id="hud-title" class="text-sm sm:text-lg font-extrabold text-slate-900 dark:text-white bg-white/75 dark:bg-slate-900/60 backdrop-blur-sm px-2.5 py-0.5 rounded-lg w-fit">Đám mây Dữ liệu Thô & Lõi Xử lý</h2>
+                    <p id="hud-subtitle" class="text-xs text-slate-600 dark:text-slate-300 bg-white/70 dark:bg-slate-900/50 px-2 py-0.5 rounded w-fit hidden sm:block">Kéo chuột xoay 360° • Cuộn con lăn thu phóng</p>
+                </div>
+
+                <!-- HUD Góc trên phải: Nút Reset Camera -->
+                <div class="absolute top-3.5 right-3.5 z-20">
+                    <button onclick="resetCameraView()" title="Đặt lại góc nhìn 3D" class="px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/85 hover:bg-slate-100 dark:hover:bg-slate-800 backdrop-blur-md border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-1.5 transition shadow-md">
+                        <svg class="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                        </svg>
+                        <span class="hidden sm:inline">Góc nhìn chuẩn</span>
+                    </button>
+                </div>
+
+                <!-- HUD Góc dưới: Thẻ giải thích trạng thái 3D -->
+                <div id="hud-floating-card" class="absolute bottom-3.5 left-3.5 right-3.5 sm:left-auto sm:right-3.5 sm:w-[24rem] z-20 bg-white/92 dark:bg-slate-900/90 backdrop-blur-xl border border-sky-300 dark:border-sky-500/40 rounded-2xl p-4 shadow-xl transition-all duration-300">
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <span id="float-tag" class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300 font-bold">TRẠNG THÁI DỮ LIỆU THÔ</span>
+                            <h3 id="float-title" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-1">Các con số rời rạc, chưa có ngữ cảnh</h3>
+                        </div>
+                        <span id="float-icon" class="text-xl">🧊</span>
+                    </div>
+                    <p id="float-desc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed">
+                        Các khối lập phương màu xám mang giá trị <code class="text-sky-700 dark:text-sky-300 font-mono font-bold">25, 28, 29, 30, 26, 25</code> trôi nổi tự do. Đứng riêng lẻ, chúng chưa cho biết đây là nhiệt độ, tuổi tác hay số nhà.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- CỘT TRÁI TRÊN DESKTOP (44% SCROLLYTELLING NỘI DUNG BÀI GIẢNG)  -->
+        <!-- ============================================================== -->
+        <div class="w-full lg:w-[44%] lg:order-1 px-4 sm:px-8 py-8 lg:py-12 space-y-16 lg:space-y-24">
+
+            <!-- GIỚI THIỆU MỞ ĐẦU -->
+            <div class="space-y-3 pt-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-100/80 dark:bg-teal-500/15 border border-teal-300 dark:border-teal-500/30 text-teal-800 dark:text-teal-300 text-xs font-bold">
+                    <span>🎓</span> Bài giảng Tương tác Trực quan • Đại học Trà Vinh
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+                    Từ Nguyên liệu Thô đến <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-teal-500">Tri thức Số</span>
+                </h2>
+                <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Cuộn xuống từng phân cảnh bên dưới để quan sát sự biến đổi của mô hình 3D bên phải và tương tác trực tiếp với các thí nghiệm số ngay trên lớp.
+                </p>
+            </div>
+
+            <!-- ========================================================== -->
+            <!-- PHÂN CẢNH 1: BỘ LỌC DỮ LIỆU -> THÔNG TIN                   -->
+            <!-- ========================================================== -->
+            <section id="scene-0" data-scene="0" class="scene-section scroll-mt-24">
+                <div id="card-0" class="editorial-card active-scene rounded-3xl p-6 sm:p-7 space-y-5">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <span class="text-xs font-mono font-bold uppercase tracking-widest text-sky-600 dark:text-sky-400">PHÂN CẢNH 01 • BẢN CHẤT</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Mục 5.1 & 5.2</span>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Dữ liệu (Data) vs. Thông tin (Information)</h3>
+                        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                            Trong môi trường số, ranh giới cốt lõi giữa dữ liệu và thông tin nằm ở <strong class="text-sky-600 dark:text-sky-400">Ngữ cảnh (Context)</strong> và <strong class="text-orange-600 dark:text-orange-400">Quá trình xử lý</strong>.
+                        </p>
+                    </div>
+
+                    <!-- So sánh 2 cột nhỏ -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div class="p-4 rounded-2xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/70">
+                            <div class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-bold text-xs uppercase tracking-wider">
+                                <span class="w-2.5 h-2.5 rounded-sm bg-slate-400"></span> Dữ liệu (Nguyên liệu thô)
+                            </div>
+                            <ul class="mt-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-1.5 leading-relaxed">
+                                <li>• Ghi nhận khách quan, rời rạc.</li>
+                                <li>• Thiếu ngữ cảnh, tự thân vô nghĩa.</li>
+                                <li>• Mã hóa nhị phân trên máy tính.</li>
+                            </ul>
+                        </div>
+                        <div class="p-4 rounded-2xl bg-sky-50 dark:bg-sky-950/35 border border-sky-200 dark:border-sky-500/30">
+                            <div class="flex items-center gap-2 text-sky-700 dark:text-sky-300 font-bold text-xs uppercase tracking-wider">
+                                <span class="w-2.5 h-2.5 rounded-sm bg-sky-500"></span> Thông tin (Tinh chế)
+                            </div>
+                            <ul class="mt-2 text-xs sm:text-sm text-slate-700 dark:text-slate-200 space-y-1.5 leading-relaxed">
+                                <li>• Đã phân loại, tính toán, tổng hợp.</li>
+                                <li>• Trả lời <strong class="text-orange-600 dark:text-orange-300">4W: Ai, Cái gì, Khi nào, Ở đâu</strong>.</li>
+                                <li>• Hỗ trợ con người <strong>ra quyết định</strong>.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Chọn bộ ví dụ -->
+                    <div class="space-y-2.5">
+                        <label class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">Chọn bộ dữ liệu thí nghiệm trong bài giảng:</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="switchDataset1('weather')" id="btn-ds-weather" class="p-3 rounded-xl border-2 border-sky-500 bg-sky-50 dark:bg-sky-500/15 text-left transition">
+                                <div class="text-sm font-bold text-sky-700 dark:text-sky-300">A. Dự báo Thời tiết</div>
+                                <div class="text-xs font-mono text-slate-600 dark:text-slate-300 mt-0.5 truncate">25, 28, 29, 30, 26, 25</div>
+                            </button>
+                            <button onclick="switchDataset1('medical')" id="btn-ds-medical" class="p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-slate-400 text-left transition">
+                                <div class="text-sm font-bold text-slate-800 dark:text-slate-200">B. Khám Sức khỏe</div>
+                                <div class="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5 truncate">120/80, 5.2, 65kg...</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bảng chi tiết 4W & Kết luận -->
+                    <div id="scene1-context-box" class="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 space-y-2">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Dữ liệu đầu vào:</span>
+                            <span id="s1-raw-badge" class="text-xs font-mono font-bold text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/15 px-2.5 py-0.5 rounded">25, 28, 29, 30, 26, 25</span>
+                        </div>
+                        <div id="s1-4w-details" class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                            Chưa gắn ngữ cảnh 4W. Hãy nhấn nút bên dưới để đưa các khối dữ liệu vào <strong class="text-slate-900 dark:text-white">Lõi Xử Lý 3D</strong>!
+                        </div>
+                    </div>
+
+                    <!-- Nút hành động tương tác 3D -->
+                    <div class="flex flex-wrap gap-3 pt-1">
+                        <button onclick="triggerDataProcessing()" id="btn-process-data" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 hover:from-sky-400 hover:to-teal-400 text-white font-bold text-sm shadow-lg shadow-sky-500/25 transition transform active:scale-95 flex items-center justify-center gap-2">
+                            <span>⚡</span> Kích hoạt Xử lý & Gắn Ngữ Cảnh
+                        </button>
+                        <button onclick="resetDataProcessing()" id="btn-reset-data" class="py-3 px-4 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs border border-slate-300 dark:border-slate-700 transition">
+                            Đặt lại thô
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- PHÂN CẢNH 2: THÁP BẬC THANG ĐƠN VỊ LƯU TRỮ 3D              -->
+            <!-- ========================================================== -->
+            <section id="scene-1" data-scene="1" class="scene-section scroll-mt-24">
+                <div id="card-1" class="editorial-card rounded-3xl p-6 sm:p-7 space-y-5">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <span class="text-xs font-mono font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">PHÂN CẢNH 02 • HỆ NHỊ PHÂN</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Mục 5.3</span>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Tháp Đơn vị Đo lường Dữ liệu Số</h3>
+                        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                            Máy tính biểu diễn mọi dữ liệu bằng hai ký hiệu <code class="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-mono font-bold">0</code> và <code class="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-mono font-bold">1</code>. Các đơn vị lưu trữ tăng theo bội số <strong class="text-emerald-600 dark:text-emerald-400">1024 (2¹⁰)</strong> từ Byte trở lên.
+                        </p>
+                    </div>
+
+                    <!-- Thanh chọn nhanh 7 bậc thang -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                            <span>Chọn bậc thang (hoặc click khối 3D):</span>
+                            <span class="font-mono font-bold text-emerald-600 dark:text-emerald-400">× 1024</span>
+                        </div>
+                        <div class="grid grid-cols-7 gap-1.5" id="unit-buttons-grid">
+                            <!-- Render bằng JS -->
+                        </div>
+                    </div>
+
+                    <!-- Thẻ phân tích chi tiết đơn vị đang chọn -->
+                    <div id="unit-detail-panel" class="p-5 rounded-2xl bg-slate-100/80 dark:bg-slate-900/90 border border-emerald-300 dark:border-emerald-500/30 space-y-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <span id="u-badge" class="text-[11px] font-mono uppercase px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold">BẬC 1 / 7</span>
+                                <h4 id="u-name" class="text-lg font-bold text-slate-900 dark:text-white mt-1">Bit (b) — Đơn vị nhỏ nhất</h4>
+                            </div>
+                            <div id="u-symbol" class="w-12 h-12 rounded-2xl bg-white dark:bg-emerald-500/20 border-2 border-emerald-400 dark:border-emerald-500/40 flex items-center justify-center font-mono font-extrabold text-xl text-emerald-700 dark:text-emerald-300 shrink-0">
+                                b
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                            <div class="p-3 rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/70">
+                                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Quy đổi chuẩn</div>
+                                <div id="u-conversion" class="text-sm font-mono font-bold text-sky-700 dark:text-sky-300 mt-0.5">0 hoặc 1</div>
+                            </div>
+                            <div class="p-3 rounded-xl bg-white dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/70">
+                                <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase">Tương đương thực tế</div>
+                                <div id="u-example" class="text-sm font-semibold text-orange-600 dark:text-orange-300 mt-0.5">Công tắc Bật / Tắt</div>
+                            </div>
+                        </div>
+
+                        <p id="u-desc" class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                            Mỗi Bit chỉ lưu giữ một trong hai trạng thái điện áp: 0 (Tắt) hoặc 1 (Bật). Ghép 8 Bit lại ta được 1 Byte.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- PHÂN CẢNH 3: PHÒNG THÍ NGHIỆM TÍNH TOÁN NGÀNH Y            -->
+            <!-- ========================================================== -->
+            <section id="scene-2" data-scene="2" class="scene-section scroll-mt-24">
+                <div id="card-2" class="editorial-card rounded-3xl p-6 sm:p-7 space-y-5">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <span class="text-xs font-mono font-bold uppercase tracking-widest text-orange-600 dark:text-orange-400">PHÂN CẢNH 03 • CASE STUDY NGÀNH Y</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Bài toán thực hành</span>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Bài toán Lưu trữ Ảnh X-Quang Bệnh viện</h3>
+                        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                            Điều chỉnh các thông số dưới đây để quan sát mô hình ổ cứng 3D tự động tính toán và mô phỏng mức độ lấp đầy dữ liệu.
+                        </p>
+                    </div>
+
+                    <!-- Bảng điều khiển tương tác (Sliders + Nhập số) -->
+                    <div class="space-y-4 p-4 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800">
+                        <div>
+                            <div class="flex justify-between items-center text-sm mb-1.5 gap-2">
+                                <label for="input-img-size" class="text-slate-700 dark:text-slate-300 font-semibold">1. Dung lượng 1 ảnh X-quang:</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="num-img-size" min="1" max="50" value="5" onchange="syncCalcInput('img', this.value)" class="w-16 px-2 py-0.5 text-right font-mono font-bold text-sky-700 dark:text-sky-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none">
+                                    <span class="font-mono text-xs text-slate-500 dark:text-slate-400">MB</span>
+                                </div>
+                            </div>
+                            <input type="range" id="input-img-size" min="1" max="25" value="5" step="1" class="w-full" oninput="syncCalcInput('img', this.value)">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center text-sm mb-1.5 gap-2">
+                                <label for="input-patients" class="text-slate-700 dark:text-slate-300 font-semibold">2. Bệnh nhân chụp / ngày:</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="num-patients" min="10" max="5000" value="250" onchange="syncCalcInput('patients', this.value)" class="w-20 px-2 py-0.5 text-right font-mono font-bold text-orange-600 dark:text-orange-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none">
+                                    <span class="font-mono text-xs text-slate-500 dark:text-slate-400">người</span>
+                                </div>
+                            </div>
+                            <input type="range" id="input-patients" min="50" max="1000" value="250" step="10" class="w-full" oninput="syncCalcInput('patients', this.value)">
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center text-sm mb-1.5 gap-2">
+                                <label for="input-days" class="text-slate-700 dark:text-slate-300 font-semibold">3. Thời gian lưu trữ:</label>
+                                <div class="flex items-center gap-1">
+                                    <input type="number" id="num-days" min="1" max="3650" value="365" onchange="syncCalcInput('days', this.value)" class="w-20 px-2 py-0.5 text-right font-mono font-bold text-purple-600 dark:text-purple-400 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none">
+                                    <span class="font-mono text-xs text-slate-500 dark:text-slate-400">ngày</span>
+                                </div>
+                            </div>
+                            <input type="range" id="input-days" min="30" max="730" value="365" step="5" class="w-full" oninput="syncCalcInput('days', this.value)">
+                        </div>
+                    </div>
+
+                    <!-- Khối kết quả & Lời giải (Mặc định ẩn để giảng viên chủ động bấm mở trên lớp) -->
+                    <div class="space-y-3">
+                        <div class="p-4 rounded-2xl bg-orange-50/70 dark:bg-orange-950/25 border border-orange-200 dark:border-orange-500/30 space-y-2">
+                            <div class="text-xs font-mono uppercase text-orange-700 dark:text-orange-400 font-bold">Đề bài thảo luận trên lớp:</div>
+                            <p class="text-xs sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+                                • <strong>Câu 1:</strong> Ổ cứng dung lượng <code class="font-mono font-bold">1 GB</code> chứa được bao nhiêu ảnh X-quang (<span class="font-mono font-bold" id="prompt-img-size">5</span> MB/ảnh)?<br>
+                                • <strong>Câu 2:</strong> Mỗi ngày chụp cho <span class="font-mono font-bold" id="prompt-patients">250</span> người thì cần mua ổ cứng bao nhiêu <code class="font-mono font-bold">TB</code> để lưu trữ cho <span class="font-mono font-bold" id="prompt-days">365</span> ngày?
+                            </p>
+                            <button onclick="toggleSolution('medical-solution-panel', this)" data-open="false" class="mt-1 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow transition">
+                                <span>👁️</span> Hiện đáp án & Mô phỏng tính toán
+                            </button>
+                        </div>
+
+                        <!-- Panel Đáp án & Phân tích chi tiết (Mặc định hidden) -->
+                        <div id="medical-solution-panel" class="hidden space-y-3 pt-1">
+                            <!-- Câu hỏi 1 -->
+                            <div class="p-4 rounded-2xl bg-sky-50 dark:bg-sky-950/35 border border-sky-200 dark:border-sky-500/30 flex items-center justify-between gap-3">
+                                <div>
+                                    <div class="text-xs font-mono uppercase text-sky-700 dark:text-sky-400 font-bold">Đáp án Câu 1 • 1GB chứa được?</div>
+                                    <div class="text-xs text-slate-600 dark:text-slate-300 mt-0.5">Phép tính: <span class="font-mono font-semibold">1024 MB ÷ <span id="calc-formula-size">5</span> MB</span></div>
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="text-xl font-extrabold font-mono text-slate-900 dark:text-white"><span id="res-1gb-photos">204</span> <span class="text-xs font-normal text-slate-500 dark:text-slate-400">ảnh</span></div>
+                                    <div class="text-[11px] font-mono text-slate-500 dark:text-slate-400">Dư <span id="res-1gb-rem">4</span> MB</div>
+                                </div>
+                            </div>
+
+                            <!-- Câu hỏi 2 -->
+                            <div class="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-orange-300 dark:border-orange-500/30 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs font-mono uppercase text-orange-700 dark:text-orange-400 font-bold">Đáp án Câu 2 • Tổng dung lượng</span>
+                                    <span class="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded"><span id="res-total-photos">91,250</span> ảnh</span>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                                        <div class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Hệ nhị phân (1024)</div>
+                                        <div class="text-lg font-extrabold font-mono text-sky-700 dark:text-sky-400 mt-0.5"><span id="res-gb-bin">445.56</span> GB</div>
+                                        <div class="text-xs font-mono text-slate-600 dark:text-slate-300">≈ <span id="res-tb-bin">0.435</span> TB</div>
+                                    </div>
+                                    <div class="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700">
+                                        <div class="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">Hệ thập phân hãng SX (1000)</div>
+                                        <div class="text-lg font-extrabold font-mono text-orange-600 dark:text-orange-400 mt-0.5"><span id="res-gb-dec">456.25</span> GB</div>
+                                        <div class="text-xs font-mono text-slate-600 dark:text-slate-300">≈ <span id="res-tb-dec">0.456</span> TB</div>
+                                    </div>
+                                </div>
+
+                                <!-- Cảnh báo làm tròn thực tế -->
+                                <div id="hdd-advice-box" class="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-xs sm:text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
+                                    💡 <strong>Khuyến nghị mua sắm thực tế:</strong> Cần <span class="font-mono font-bold">445.56 GB</span>. Ổ cứng <strong>500GB</strong> thực tế chỉ khả dụng ~465GB (rất sát ngưỡng đầy!). Bệnh viện nên mua ổ cứng <strong class="text-sky-700 dark:text-white underline">1 TB</strong> (1024 GB) để đảm bảo an toàn và dự phòng.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ========================================================== -->
+            <!-- PHÂN CẢNH 4: DÒNG CHẢY KHAI THÁC DỮ LIỆU SỐ                -->
+            <!-- ========================================================== -->
+            <section id="scene-3" data-scene="3" class="scene-section scroll-mt-24 pb-16">
+                <div id="card-3" class="editorial-card rounded-3xl p-6 sm:p-7 space-y-5">
+                    <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                        <span class="text-xs font-mono font-bold uppercase tracking-widest text-purple-600 dark:text-purple-400">PHÂN CẢNH 04 • QUY TRÌNH SỐ</span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">Mục 5.4 & Kết luận</span>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white">Chu trình Lưu trữ → Xử lý → Khai thác</h3>
+                        <p class="text-sm sm:text-base text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                            Bấm vào từng trạm dưới đây để điều hướng camera 3D quan sát dòng chảy các hạt bit <code class="text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-500/15 px-1.5 py-0.5 rounded font-mono font-bold">0 & 1</code> chuyển hóa thành tri thức.
+                        </p>
+                    </div>
+
+                    <!-- 3 Trạm tương tác -->
+                    <div class="space-y-2.5">
+                        <button onclick="focusPipelineStation(0)" class="w-full p-3.5 rounded-2xl bg-sky-50/70 dark:bg-slate-900/90 hover:bg-sky-100/70 dark:hover:bg-slate-800 border border-sky-200 dark:border-slate-800 hover:border-sky-400 text-left transition flex items-start gap-3.5 group">
+                            <div class="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-700 dark:text-sky-400 font-mono font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-110 transition">01</div>
+                            <div>
+                                <div class="text-sm font-bold text-sky-800 dark:text-sky-300">Trạm 1: Lưu trữ Đám mây (Cloud Storage)</div>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Không gian an toàn, đồng bộ mọi nơi, chống mất mát: <span class="text-slate-900 dark:text-slate-200 font-semibold">Google Drive, Dropbox, OneDrive</span>.</p>
+                            </div>
+                        </button>
+
+                        <button onclick="focusPipelineStation(1)" class="w-full p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-slate-900/90 hover:bg-emerald-100/70 dark:hover:bg-slate-800 border border-emerald-200 dark:border-slate-800 hover:border-emerald-400 text-left transition flex items-start gap-3.5 group">
+                            <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-mono font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-110 transition">02</div>
+                            <div>
+                                <div class="text-sm font-bold text-emerald-800 dark:text-emerald-300">Trạm 2: Lọc & Xử lý Thông minh</div>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Tinh chế dữ liệu thô từ thống kê cơ bản (<span class="text-slate-900 dark:text-slate-200 font-semibold">Excel</span>) đến phân tích nâng cao (<span class="text-slate-900 dark:text-slate-200 font-semibold">Trí tuệ nhân tạo - AI</span>).</p>
+                            </div>
+                        </button>
+
+                        <button onclick="focusPipelineStation(2)" class="w-full p-3.5 rounded-2xl bg-purple-50/70 dark:bg-slate-900/90 hover:bg-purple-100/70 dark:hover:bg-slate-800 border border-purple-200 dark:border-slate-800 hover:border-purple-400 text-left transition flex items-start gap-3.5 group">
+                            <div class="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-700 dark:text-purple-400 font-mono font-bold text-sm flex items-center justify-center shrink-0 group-hover:scale-110 transition">03</div>
+                            <div>
+                                <div class="text-sm font-bold text-purple-800 dark:text-purple-300">Trạm 3: Khai thác & Xác thực Học thuật</div>
+                                <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-0.5">Tìm kiếm chuẩn xác, đánh giá nguồn tin trên <span class="text-slate-900 dark:text-slate-200 font-semibold">Thư viện số TVU, ProQuest, JSTOR</span> để tạo tri thức mới.</p>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Điều khiển tốc độ dòng chảy bit -->
+                    <div class="flex items-center justify-between p-3.5 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                        <span class="text-xs font-semibold text-slate-700 dark:text-slate-300">Tốc độ luồng dữ liệu nhị phân (0/1):</span>
+                        <div class="flex gap-1.5">
+                            <button onclick="setFlowSpeed(1)" id="speed-1" class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-purple-600 text-white">1x Chuẩn</button>
+                            <button onclick="setFlowSpeed(2.8)" id="speed-2" class="px-3 py-1 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700">3x Tăng tốc</button>
+                        </div>
+                    </div>
+
+                    <!-- Hộp câu hỏi thảo luận trên lớp (Đáp án mặc định ẩn từng câu để giáo viên mở dần) -->
+                    <div class="p-4 sm:p-5 rounded-2xl bg-purple-50/80 dark:bg-gradient-to-br dark:from-purple-950/40 dark:to-slate-900 border border-purple-200 dark:border-purple-500/30 space-y-3.5">
+                        <div class="text-sm font-bold text-purple-800 dark:text-purple-300 flex items-center gap-2">
+                            <span>💬</span> Câu hỏi Thảo luận Lớp học (Slide 9):
+                        </div>
+
+                        <!-- Câu hỏi 1 -->
+                        <div class="p-3 rounded-xl bg-white/80 dark:bg-slate-900/75 border border-purple-200/80 dark:border-slate-800 space-y-2">
+                            <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                                <strong>Câu 1:</strong> <em>"Điểm trung bình môn Toán của năm học lớp 12"</em> là <strong>Dữ liệu</strong> hay <strong>Thông tin</strong>?
+                            </p>
+                            <button onclick="toggleSolution('ans-q1', this)" data-open="false" class="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1">
+                                <span>👁️</span> Hiện đáp án Câu 1
+                            </button>
+                            <div id="ans-q1" class="hidden text-xs sm:text-sm text-slate-700 dark:text-slate-300 bg-sky-50/80 dark:bg-slate-950/90 p-3 rounded-lg border border-sky-200 dark:border-slate-800 leading-relaxed">
+                                ✅ <strong>Là Thông tin</strong> (nếu xét trong phạm vi môn Toán lớp 12): Vì điểm trung bình này là kết quả đã qua tính toán, tổng hợp từ nhiều cột điểm kiểm tra miệng, 15 phút, giữa kỳ và cuối kỳ có gắn ngữ cảnh rõ ràng.
+                            </div>
+                        </div>
+
+                        <!-- Câu hỏi 2 -->
+                        <div class="p-3 rounded-xl bg-white/80 dark:bg-slate-900/75 border border-purple-200/80 dark:border-slate-800 space-y-2">
+                            <p class="text-xs sm:text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                                <strong>Câu 2:</strong> Có trường hợp nào một đối tượng <strong>vừa là Thông tin, vừa là Dữ liệu</strong> để cho ra thông tin khác không?
+                            </p>
+                            <button onclick="toggleSolution('ans-q2', this)" data-open="false" class="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline inline-flex items-center gap-1">
+                                <span>👁️</span> Hiện đáp án Câu 2
+                            </button>
+                            <div id="ans-q2" class="hidden text-xs sm:text-sm text-slate-700 dark:text-slate-300 bg-sky-50/80 dark:bg-slate-950/90 p-3 rounded-lg border border-sky-200 dark:border-slate-800 leading-relaxed">
+                                ✅ <strong>Hoàn toàn có (Tính tương đối giữa Dữ liệu & Thông tin):</strong> Ví dụ điểm TB môn Toán 8.5 là <em>Thông tin</em> đối với giáo viên bộ môn Toán; nhưng khi nộp hồ sơ xét tuyển Đại học, con số 8.5 đó lại trở thành <em>Dữ liệu đầu vào</em> kết hợp cùng điểm Lý, Hóa để Hội đồng tuyển sinh xử lý ra <em>Thông tin mới</em> là "Trúng tuyển" hay "Không trúng tuyển".
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- ================================================================== -->
+    <!-- JAVASCRIPT: THREE.JS ENGINE + THEME/FONT SWITCHER + SCROLLYTELLING -->
+    <!-- ================================================================== -->
+    <script>
+        // ==========================================
+        // 0. QUẢN LÝ GIAO DIỆN SÁNG/TỐI & CỠ CHỮ
+        // ==========================================
+        let isDarkMode = true; // Mặc định Dark Mode tiêu chuẩn
+        let currentFontPx = 16; // Mặc định 16px (100%)
+
+        function changeFontSize(delta) {
+            currentFontPx = Math.min(22, Math.max(13, currentFontPx + delta));
+            document.documentElement.style.fontSize = currentFontPx + 'px';
+            const pct = Math.round((currentFontPx / 16) * 100);
+            document.getElementById('font-scale-label').textContent = pct + '%';
+        }
+
+        function toggleSolution(panelId, btnEl) {
+            const panel = document.getElementById(panelId);
+            if (!panel) return;
+            const isHidden = panel.classList.contains('hidden');
+            if (isHidden) {
+                panel.classList.remove('hidden');
+                btnEl.innerHTML = btnEl.innerHTML.replace('Hiện', 'Ẩn').replace('👁️', '🙈');
+            } else {
+                panel.classList.add('hidden');
+                btnEl.innerHTML = btnEl.innerHTML.replace('Ẩn', 'Hiện').replace('🙈', '👁️');
+            }
+        }
+
+        // ==========================================
+        // 1. DỮ LIỆU HỌC THUẬT CỐT LÕI (BÀI 5 - TVU)
+        // ==========================================
+        const SCENE1_DATASETS = {
+            weather: {
+                rawItems: ['25', '28', '29', '30', '26', '25'],
+                processedItems: [
+                    { label: 'Thứ 2', val: 25, display: '25°C', color: '#0284C7' },
+                    { label: 'Thứ 3', val: 28, display: '28°C', color: '#0D9488' },
+                    { label: 'Thứ 4', val: 29, display: '29°C', color: '#D97706' },
+                    { label: 'Thứ 5', val: 30, display: '30°C', color: '#EA580C' },
+                    { label: 'Thứ 6', val: 26, display: '26°C', color: '#0284C7' },
+                    { label: 'Thứ 7', val: 25, display: '25°C', color: '#2563EB' }
+                ],
+                rawText: '25, 28, 29, 30, 26, 25',
+                rawDesc: 'Các khối lập phương màu xám mang giá trị 25, 28, 29, 30, 26, 25 trôi nổi tự do. Đứng riêng lẻ, chúng chưa có ý nghĩa rõ ràng.',
+                fourW: '<strong>4W:</strong> Nhiệt độ không khí (Cái gì) • Tại TP. Trà Vinh (Ở đâu) • Từ Thứ 2 đến Thứ 7 tuần này (Khi nào) • Phục vụ người dân & sinh viên (Ai).',
+                conclusionTitle: 'Kết luận: Nhiệt độ trung bình tuần 27°C',
+                conclusionDesc: 'Nhiệt độ tăng dần vào giữa tuần (đỉnh 30°C vào Thứ 5) và dịu mát cuối tuần → Quyết định: Chuẩn bị trang phục thoáng mát vào giữa tuần!'
+            },
+            medical: {
+                rawItems: ['120/80', '5.2', '65kg', '36.8°C', '75 bpm', '99%'],
+                processedItems: [
+                    { label: 'Huyết áp', val: 26, display: '120/80 mmHg', color: '#059669' },
+                    { label: 'Đường huyết', val: 22, display: '5.2 mmol/L', color: '#0D9488' },
+                    { label: 'Cân nặng', val: 25, display: '65 kg', color: '#2563EB' },
+                    { label: 'Thân nhiệt', val: 24, display: '36.8 °C', color: '#0284C7' },
+                    { label: 'Nhịp tim', val: 27, display: '75 l/phút', color: '#059669' },
+                    { label: 'SpO2', val: 29, display: '99 %', color: '#0D9488' }
+                ],
+                rawText: '120/80 mmHg, 5.2 mmol/L, 65kg...',
+                rawDesc: 'Y tá ghi nhận các chỉ số đo lường thô: 120/80, 5.2, 65kg. Nếu không đối chiếu chuẩn y khoa, bệnh nhân khó tự đánh giá.',
+                fourW: '<strong>4W:</strong> Chỉ số sinh tồn khám sức khỏe (Cái gì) • Bệnh nhân Nguyễn Văn A (Ai) • Tại Phòng khám ĐK (Ở đâu) • Sáng nay (Khi nào).',
+                conclusionTitle: 'Kết luận Bác sĩ: Sức khỏe hoàn toàn bình thường',
+                conclusionDesc: 'Tất cả chỉ số nằm trong ngưỡng an toàn sinh lý → Quyết định: Duy trì chế độ sinh hoạt hiện tại, không cần dùng thuốc điều trị.'
+            }
+        };
+
+        const STORAGE_UNITS = [
+            {
+                id: 'bit', symbol: 'b', name: 'Bit (Binary Digit)',
+                conversion: '0 hoặc 1 (Đơn vị nhỏ nhất)',
+                example: '1 Công tắc Bật / Tắt',
+                desc: 'Bit là viên gạch nền tảng của thế giới số, chỉ biểu diễn 1 trong 2 trạng thái điện tử: 0 (Tắt) hoặc 1 (Bật).',
+                color: '#10B981'
+            },
+            {
+                id: 'byte', symbol: 'B', name: 'Byte',
+                conversion: '1 Byte = 8 Bit',
+                example: '1 Ký tự chữ cái (VD: "A")',
+                desc: 'Tổ hợp 8 bit tạo thành 1 Byte (256 tổ hợp khác nhau), đủ để mã hóa một ký tự chữ cái, con số hoặc dấu câu cơ bản.',
+                color: '#14B8A6'
+            },
+            {
+                id: 'kb', symbol: 'KB', name: 'Kilobyte',
+                conversion: '1 KB = 1,024 Byte (2¹⁰ B)',
+                example: '1 Đoạn văn bản ngắn (~200 từ)',
+                desc: 'Kilobyte thường dùng đo kích thước các tệp văn bản thuần túy (TXT) hoặc một biểu tượng icon nhỏ trên web.',
+                color: '#06B6D4'
+            },
+            {
+                id: 'mb', symbol: 'MB', name: 'Megabyte',
+                conversion: '1 MB = 1,024 KB (2²⁰ B)',
+                example: '1 Bài hát MP3 (~5MB) / Ảnh X-quang',
+                desc: 'Megabyte là đơn vị quen thuộc cho ảnh chụp kỹ thuật số, ảnh y tế X-quang hoặc một bản nhạc MP3 chất lượng tiêu chuẩn.',
+                color: '#3B82F6'
+            },
+            {
+                id: 'gb', symbol: 'GB', name: 'Gigabyte',
+                conversion: '1 GB = 1,024 MB (2³⁰ B)',
+                example: '1 Bộ phim HD hoặc RAM điện thoại',
+                desc: 'Gigabyte đo dung lượng phim độ nét cao, bộ cài đặt phần mềm, bộ nhớ RAM (8GB, 16GB) và gói cước dữ liệu di động 4G/5G.',
+                color: '#6366F1'
+            },
+            {
+                id: 'tb', symbol: 'TB', name: 'Terabyte',
+                conversion: '1 TB = 1,024 GB (2⁴⁰ B)',
+                example: '1 Ổ cứng máy tính phổ thông',
+                desc: 'Terabyte tương đương hơn 1.000 tỷ Byte, đủ lưu trữ hàng trăm nghìn bức ảnh chất lượng cao hoặc kho dữ liệu của một doanh nghiệp nhỏ.',
+                color: '#8B5CF6'
+            },
+            {
+                id: 'pb', symbol: 'PB', name: 'Petabyte',
+                conversion: '1 PB = 1,024 TB (2⁵⁰ B)',
+                example: 'Trung tâm dữ liệu (Data Center)',
+                desc: 'Petabyte dùng trong kỷ nguyên Big Data & AI: kho lưu trữ của Google, Facebook, dữ liệu vệ tinh hoặc hệ thống bệnh viện tuyến quốc gia.',
+                color: '#A855F7'
+            }
+        ];
+
+        // ==========================================
+        // 2. KHỞI TẠO THREE.JS & MÔI TRƯỜNG 3D
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050811);
+        scene.fog = new THREE.FogExp2(0x050811, 0.018);
+
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(0, 4, 15);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.maxDistance = 32;
+        controls.minDistance = 5;
+
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+        scene.add(ambientLight);
+
+        const dirLight1 = new THREE.DirectionalLight(0x38bdf8, 1.1);
+        dirLight1.position.set(10, 18, 12);
+        scene.add(dirLight1);
+
+        const dirLight2 = new THREE.DirectionalLight(0xa855f7, 0.7);
+        dirLight2.position.set(-12, 8, -10);
+        scene.add(dirLight2);
+
+        let gridHelper = new THREE.GridHelper(36, 36, 0x1e293b, 0x0f172a);
+        gridHelper.position.y = -3.5;
+        scene.add(gridHelper);
+
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 350;
+        const starPos = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i++) {
+            starPos[i] = (Math.random() - 0.5) * 55;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.12, transparent: true, opacity: 0.55 });
+        const starField = new THREE.Points(starGeo, starMat);
+        scene.add(starField);
+
+        // ==========================================
+        // HÀM TẠO TEXTURE CHỮ ĐỘNG THEO DARK / LIGHT MODE
+        // ==========================================
+        function createLabelTexture(text, subtext = '', customBg = null, customText = null, borderColor = '#38BDF8') {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            const bgColor = customBg || (isDarkMode ? '#0F172A' : '#FFFFFF');
+            const textColor = customText || (isDarkMode ? '#F8FAFC' : '#0F172A');
+            const subColor = isDarkMode ? '#94A3B8' : '#475569';
+
+            ctx.fillStyle = bgColor;
+            ctx.beginPath();
+            ctx.roundRect(12, 12, 488, 232, 30);
+            ctx.fill();
+
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = borderColor;
+            ctx.stroke();
+
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = subtext ? 'bold 54px "Be Vietnam Pro", sans-serif' : 'bold 68px "Be Vietnam Pro", sans-serif';
+            ctx.fillText(text, 256, subtext ? 102 : 128);
+
+            if (subtext) {
+                ctx.fillStyle = subColor;
+                ctx.font = 'bold 30px "Be Vietnam Pro", sans-serif';
+                ctx.fillText(subtext, 256, 176);
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        function createCubeFaceTexture(text, bgColor, textColor, borderColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, 256, 256);
+
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 14;
+            ctx.strokeRect(7, 7, 242, 242);
+
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            const fontSize = text.length > 6 ? 40 : 56;
+            ctx.font = `bold ${fontSize}px "JetBrains Mono", monospace`;
+            ctx.fillText(text, 128, 128);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.needsUpdate = true;
+            return tex;
+        }
+
+        // ==========================================
+        // 3. XÂY DỰNG 4 NHÓM MÔ HÌNH 3D (4 SCENES)
+        // ==========================================
+        const sceneGroups = [
+            new THREE.Group(),
+            new THREE.Group(),
+            new THREE.Group(),
+            new THREE.Group()
+        ];
+        sceneGroups.forEach((g, idx) => {
+            g.visible = idx === 0;
+            scene.add(g);
+        });
+
+        // --- CẢNH 1 ---
+        let currentDatasetKey = 'weather';
+        let isDataProcessed = false;
+        let processingAnimPhase = 0;
+        let coreSphere, coreRing1, coreRing2, chartBaseGroup, conclusionBanner3D, xAxisMesh, yAxisMesh;
+        let dataCubes = [];
+
+        function buildScene1() {
+            const group = sceneGroups[0];
+
+            const coreGeo = new THREE.IcosahedronGeometry(1.5, 1);
+            const coreMat = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9,
+                emissive: 0x0284c7,
+                emissiveIntensity: 0.6,
+                wireframe: true
+            });
+            coreSphere = new THREE.Mesh(coreGeo, coreMat);
+            coreSphere.position.set(0, 0.5, 0);
+            group.add(coreSphere);
+
+            const innerCore = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.85, 0),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+            );
+            coreSphere.add(innerCore);
+
+            const ringGeo = new THREE.TorusGeometry(2.1, 0.04, 16, 64);
+            coreRing1 = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0x2dd4bf }));
+            coreRing1.position.copy(coreSphere.position);
+            group.add(coreRing1);
+
+            coreRing2 = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: 0xf97316 }));
+            coreRing2.position.copy(coreSphere.position);
+            coreRing2.rotation.x = Math.PI / 2;
+            group.add(coreRing2);
+
+            chartBaseGroup = new THREE.Group();
+            chartBaseGroup.position.set(0, -2.5, 0);
+            chartBaseGroup.visible = false;
+
+            const axisMat = new THREE.MeshBasicMaterial({ color: 0x475569 });
+            xAxisMesh = new THREE.Mesh(new THREE.BoxGeometry(11.5, 0.08, 0.08), axisMat);
+            chartBaseGroup.add(xAxisMesh);
+
+            yAxisMesh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 6.2, 0.08), axisMat);
+            yAxisMesh.position.set(-5.7, 3.1, 0);
+            chartBaseGroup.add(yAxisMesh);
+
+            const bannerTex = createLabelTexture('KẾT LUẬN THÔNG TIN', 'Đã xử lý & gắn ngữ cảnh 4W', null, null, '#38BDF8');
+            conclusionBanner3D = new THREE.Mesh(
+                new THREE.PlaneGeometry(7.6, 1.9),
+                new THREE.MeshBasicMaterial({ map: bannerTex, transparent: true, side: THREE.DoubleSide })
+            );
+            conclusionBanner3D.position.set(0, 6.5, 0);
+            chartBaseGroup.add(conclusionBanner3D);
+
+            group.add(chartBaseGroup);
+            rebuildScene1Cubes();
+        }
+
+        function rebuildScene1Cubes() {
+            const group = sceneGroups[0];
+            dataCubes.forEach(item => {
+                group.remove(item.mesh);
+                if (item.labelMesh) chartBaseGroup.remove(item.labelMesh);
+            });
+            dataCubes = [];
+
+            const ds = SCENE1_DATASETS[currentDatasetKey];
+            const count = ds.rawItems.length;
+
+            const shortTitle = currentDatasetKey === 'weather' ? 'TB Tuần: 27°C (Tăng giữa tuần)' : 'Kết luận: Sức khỏe bình thường';
+            const shortSub = currentDatasetKey === 'weather' ? '4W: Thời tiết Trà Vinh • Tuần này' : '4W: Hồ sơ Y tế • Đạt chuẩn sinh lý';
+            conclusionBanner3D.material.map = createLabelTexture(shortTitle, shortSub, null, null, '#F97316');
+            conclusionBanner3D.material.needsUpdate = true;
+
+            for (let i = 0; i < count; i++) {
+                const rawStr = ds.rawItems[i];
+                const procObj = ds.processedItems[i];
+
+                const rawTex = isDarkMode
+                    ? createCubeFaceTexture(rawStr, '#334155', '#CBD5E1', '#64748B')
+                    : createCubeFaceTexture(rawStr, '#E2E8F0', '#334155', '#94A3B8');
+                const procTex = createCubeFaceTexture(procObj.display, procObj.color, '#FFFFFF', '#F8FAFC');
+
+                const mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.15, 1.15, 1.15),
+                    new THREE.MeshStandardMaterial({
+                        map: isDataProcessed ? procTex : rawTex,
+                        roughness: 0.35,
+                        metalness: 0.15
+                    })
+                );
+
+                const angle = (i / count) * Math.PI * 2 + 0.4;
+                const radius = 4.2 + (i % 2) * 1.3;
+                const rawPos = new THREE.Vector3(
+                    Math.cos(angle) * radius,
+                    Math.sin(i * 1.7) * 2.2 + 0.6,
+                    Math.sin(angle) * radius
+                );
+                mesh.position.copy(rawPos);
+                group.add(mesh);
+
+                const spacing = 1.75;
+                const startX = -((count - 1) * spacing) / 2;
+                const targetHeight = (procObj.val / 32) * 4.8 + 0.8;
+                const targetPos = new THREE.Vector3(startX + i * spacing, -2.5 + targetHeight / 2, 0);
+
+                const xLabelTex = createLabelTexture(procObj.label, procObj.display, null, procObj.color, '#475569');
+                const labelMesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(1.6, 0.8),
+                    new THREE.MeshBasicMaterial({ map: xLabelTex, transparent: true, side: THREE.DoubleSide })
+                );
+                labelMesh.position.set(startX + i * spacing, -0.65, 0.2);
+                chartBaseGroup.add(labelMesh);
+
+                dataCubes.push({
+                    mesh, labelMesh, rawTex, procTex, rawPos, targetPos, targetHeight,
+                    procObj, phaseOffset: i * 1.1
+                });
+            }
+        }
+
+        // --- CẢNH 2 ---
+        let stairMeshes = [];
+        let selectedUnitIndex = 0;
+
+        function buildScene2() {
+            const group = sceneGroups[1];
+            const total = STORAGE_UNITS.length;
+            const spacing = 1.85;
+            const startX = -((total - 1) * spacing) / 2;
+
+            STORAGE_UNITS.forEach((unit, idx) => {
+                const height = 1.1 + idx * 0.95;
+                const mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(1.4, height, 1.4),
+                    new THREE.MeshStandardMaterial({
+                        color: new THREE.Color(unit.color),
+                        emissive: new THREE.Color(unit.color),
+                        emissiveIntensity: idx === 0 ? 0.5 : 0.12,
+                        roughness: 0.25,
+                        metalness: 0.2
+                    })
+                );
+                const baseY = -3.2 + height / 2;
+                mesh.position.set(startX + idx * spacing, baseY, 0);
+                mesh.userData = { unitIndex: idx, baseY: baseY, isStair: true };
+                group.add(mesh);
+
+                const labelTex = createLabelTexture(unit.symbol, idx === 0 ? 'Cơ sở' : '×1024', null, null, unit.color);
+                const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex, transparent: true }));
+                sprite.scale.set(1.75, 0.88, 1);
+                sprite.position.set(startX + idx * spacing, -3.2 + height + 0.78, 0);
+                group.add(sprite);
+
+                stairMeshes.push({ mesh, sprite, baseY, height, unit, idx });
+            });
+        }
+
+        // --- CẢNH 3 ---
+        let hddFillMesh, hddPlatter, casingWire, hddBannerMesh, xrayPackets = [];
+        let currentFillRatio = 0.445;
+
+        function buildScene3() {
+            const group = sceneGroups[2];
+
+            const casingGeo = new THREE.BoxGeometry(6.4, 1.45, 8.6);
+            casingWire = new THREE.LineSegments(
+                new THREE.EdgesGeometry(casingGeo),
+                new THREE.LineBasicMaterial({ color: 0x38bdf8 })
+            );
+            casingWire.position.set(0, -1.2, 0);
+            group.add(casingWire);
+
+            const casingGlass = new THREE.Mesh(
+                casingGeo,
+                new THREE.MeshPhysicalMaterial({
+                    color: 0x0f172a,
+                    transparent: true,
+                    opacity: 0.25,
+                    roughness: 0.1
+                })
+            );
+            casingGlass.position.copy(casingWire.position);
+            group.add(casingGlass);
+
+            hddPlatter = new THREE.Mesh(
+                new THREE.CylinderGeometry(2.5, 2.5, 0.14, 48),
+                new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 })
+            );
+            hddPlatter.position.set(0, -0.42, -1.2);
+            group.add(hddPlatter);
+
+            hddFillMesh = new THREE.Mesh(
+                new THREE.BoxGeometry(6.1, 1.25, 8.3),
+                new THREE.MeshStandardMaterial({ color: 0x0ea5e9, transparent: true, opacity: 0.78 })
+            );
+            hddFillMesh.position.set(0, -1.2, 0);
+            group.add(hddFillMesh);
+
+            const hddLabelTex = createLabelTexture('Ổ CỨNG LƯU TRỮ 1 TB', 'Mốc chuẩn 1024 GB Bệnh viện', null, null, '#38BDF8');
+            hddBannerMesh = new THREE.Mesh(
+                new THREE.PlaneGeometry(5.8, 1.45),
+                new THREE.MeshBasicMaterial({ map: hddLabelTex, transparent: true, side: THREE.DoubleSide })
+            );
+            hddBannerMesh.position.set(0, 0.65, -4.3);
+            group.add(hddBannerMesh);
+
+            for (let i = 0; i < 14; i++) {
+                const pktTex = createCubeFaceTexture('X-RAY', '#0F172A', '#38BDF8', '#0284C7');
+                const pkt = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.65, 0.85, 0.08),
+                    new THREE.MeshBasicMaterial({ map: pktTex })
+                );
+                pkt.position.set(
+                    (Math.random() - 0.5) * 4.5,
+                    1.5 + Math.random() * 5.5,
+                    (Math.random() - 0.5) * 6
+                );
+                pkt.userData = { speed: 0.03 + Math.random() * 0.03 };
+                group.add(pkt);
+                xrayPackets.push(pkt);
+            }
+        }
+
+        // --- CẢNH 4 ---
+        let bitParticles = [];
+        let stationSprites = [];
+        let flowSpeedMultiplier = 1;
+        const stationCoords = [
+            new THREE.Vector3(-6.2, 0, 0),
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(6.2, 0, 0)
+        ];
+        const stationsInfo = [
+            { title: '1. LƯU TRỮ CLOUD', sub: 'Google Drive • Dropbox', color: '#38BDF8', pos: stationCoords[0] },
+            { title: '2. XỬ LÝ & LỌC AI', sub: 'Excel • Phân tích AI', color: '#10B981', pos: stationCoords[1] },
+            { title: '3. KHAI THÁC TRI THỨC', sub: 'Thư viện số • JSTOR', color: '#A855F7', pos: stationCoords[2] }
+        ];
+
+        function buildScene4() {
+            const group = sceneGroups[3];
+
+            stationsInfo.forEach((st, idx) => {
+                let geo;
+                if (idx === 0) geo = new THREE.DodecahedronGeometry(1.45, 0);
+                else if (idx === 1) geo = new THREE.OctahedronGeometry(1.55, 0);
+                else geo = new THREE.IcosahedronGeometry(1.45, 1);
+
+                const mesh = new THREE.Mesh(
+                    geo,
+                    new THREE.MeshStandardMaterial({
+                        color: new THREE.Color(st.color),
+                        emissive: new THREE.Color(st.color),
+                        emissiveIntensity: 0.3,
+                        wireframe: idx === 1,
+                        roughness: 0.25
+                    })
+                );
+                mesh.position.copy(st.pos);
+                group.add(mesh);
+
+                const baseRing = new THREE.Mesh(
+                    new THREE.TorusGeometry(1.9, 0.06, 16, 48),
+                    new THREE.MeshBasicMaterial({ color: new THREE.Color(st.color) })
+                );
+                baseRing.rotation.x = Math.PI / 2;
+                baseRing.position.set(st.pos.x, -2.0, st.pos.z);
+                group.add(baseRing);
+
+                const tex = createLabelTexture(st.title, st.sub, null, null, st.color);
+                const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+                sprite.scale.set(4.4, 2.2, 1);
+                sprite.position.set(st.pos.x, 2.75, st.pos.z);
+                group.add(sprite);
+                stationSprites.push({ sprite, st });
+            });
+
+            const pipe = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.45, 0.45, 12.4, 24, 1, true),
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+            );
+            pipe.rotation.z = Math.PI / 2;
+            group.add(pipe);
+
+            function makeBitSpriteTex(bitChar, colorHex) {
+                const c = document.createElement('canvas');
+                c.width = 64;
+                c.height = 64;
+                const ctx = c.getContext('2d');
+                ctx.fillStyle = colorHex;
+                ctx.font = 'bold 48px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(bitChar, 32, 32);
+                return new THREE.CanvasTexture(c);
+            }
+
+            const tex0Blue = makeBitSpriteTex('0', '#38BDF8');
+            const tex1Blue = makeBitSpriteTex('1', '#2DD4BF');
+            const tex0Purple = makeBitSpriteTex('0', '#10B981');
+            const tex1Purple = makeBitSpriteTex('1', '#A855F7');
+
+            for (let i = 0; i < 90; i++) {
+                const isOne = i % 2 === 0;
+                const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+                    map: isOne ? tex1Blue : tex0Blue,
+                    transparent: true
+                }));
+                sp.scale.set(0.48, 0.48, 1);
+                const startX = -6.2 + Math.random() * 12.4;
+                const angle = Math.random() * Math.PI * 2;
+                const rad = Math.random() * 0.32;
+                sp.position.set(startX, Math.sin(angle) * rad, Math.cos(angle) * rad);
+                sp.userData = {
+                    isOne,
+                    speed: 0.045 + Math.random() * 0.035,
+                    texRaw: isOne ? tex1Blue : tex0Blue,
+                    texProcessed: isOne ? tex1Purple : tex0Purple
+                };
+                group.add(sp);
+                bitParticles.push(sp);
+            }
+        }
+
+        buildScene1();
+        buildScene2();
+        buildScene3();
+        buildScene4();
+
+        // HÀM CHUYỂN ĐỔI SÁNG / TỐI ĐỒNG BỘ UI & THREE.JS
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            const htmlEl = document.documentElement;
+            const iconEl = document.getElementById('theme-icon');
+            const textEl = document.getElementById('theme-text');
+
+            if (isDarkMode) {
+                htmlEl.classList.add('dark');
+                iconEl.textContent = '☀️';
+                textEl.textContent = 'Nền sáng';
+                scene.background = new THREE.Color(0x050811);
+                scene.fog = new THREE.FogExp2(0x050811, 0.018);
+                starMat.color.setHex(0x38bdf8);
+                starMat.opacity = 0.55;
+                casingWire.material.color.setHex(0x38bdf8);
+                scene.remove(gridHelper);
+                gridHelper = new THREE.GridHelper(36, 36, 0x1e293b, 0x0f172a);
+                gridHelper.position.y = -3.5;
+                scene.add(gridHelper);
+            } else {
+                htmlEl.classList.remove('dark');
+                iconEl.textContent = '🌙';
+                textEl.textContent = 'Nền tối';
+                scene.background = new THREE.Color(0xeef2f6);
+                scene.fog = new THREE.FogExp2(0xeef2f6, 0.015);
+                starMat.color.setHex(0x2563eb);
+                starMat.opacity = 0.3;
+                casingWire.material.color.setHex(0x0f172a);
+                scene.remove(gridHelper);
+                gridHelper = new THREE.GridHelper(36, 36, 0x94a3b8, 0xcbd5e1);
+                gridHelper.position.y = -3.5;
+                scene.add(gridHelper);
+            }
+
+            // Cập nhật lại các texture nhãn 3D theo nền mới
+            rebuildScene1Cubes();
+            stairMeshes.forEach(st => {
+                st.sprite.material.map = createLabelTexture(st.unit.symbol, st.idx === 0 ? 'Cơ sở' : '×1024', null, null, st.unit.color);
+                st.sprite.material.needsUpdate = true;
+            });
+            hddBannerMesh.material.map = createLabelTexture('Ổ CỨNG LƯU TRỮ 1 TB', 'Mốc chuẩn 1024 GB Bệnh viện', null, null, '#38BDF8');
+            hddBannerMesh.material.needsUpdate = true;
+            stationSprites.forEach(({ sprite, st }) => {
+                sprite.material.map = createLabelTexture(st.title, st.sub, null, null, st.color);
+                sprite.material.needsUpdate = true;
+            });
+        }
+
+        // ==========================================
+        // 4. LOGIC TƯƠNG TÁC TỪNG PHÂN CẢNH
+        // ==========================================
+        let activeSceneIndex = 0;
+
+        function switchDataset1(key) {
+            currentDatasetKey = key;
+            const btnW = document.getElementById('btn-ds-weather');
+            const btnM = document.getElementById('btn-ds-medical');
+
+            const activeCls = 'p-3 rounded-xl border-2 border-sky-500 bg-sky-50 dark:bg-sky-500/15 text-left transition';
+            const inactiveCls = 'p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800/50 hover:border-slate-400 text-left transition';
+
+            if (key === 'weather') {
+                btnW.className = activeCls;
+                btnW.querySelector('div').className = 'text-sm font-bold text-sky-700 dark:text-sky-300';
+                btnM.className = inactiveCls;
+                btnM.querySelector('div').className = 'text-sm font-bold text-slate-800 dark:text-slate-200';
+            } else {
+                btnM.className = activeCls;
+                btnM.querySelector('div').className = 'text-sm font-bold text-sky-700 dark:text-sky-300';
+                btnW.className = inactiveCls;
+                btnW.querySelector('div').className = 'text-sm font-bold text-slate-800 dark:text-slate-200';
+            }
+
+            rebuildScene1Cubes();
+            resetDataProcessing();
+        }
+
+        function triggerDataProcessing() {
+            if (isDataProcessed) return;
+            isDataProcessed = true;
+            processingAnimPhase = 1;
+
+            const ds = SCENE1_DATASETS[currentDatasetKey];
+            const btn = document.getElementById('btn-process-data');
+            btn.innerHTML = '<span>⏳</span> Đang xử lý tại Lõi 3D...';
+
+            setTimeout(() => {
+                processingAnimPhase = 2;
+                chartBaseGroup.visible = true;
+                dataCubes.forEach(c => {
+                    c.mesh.material.map = c.procTex;
+                    c.mesh.material.needsUpdate = true;
+                });
+
+                btn.innerHTML = '<span>✅</span> Đã chuyển hóa thành Thông tin!';
+                btn.classList.remove('from-sky-500', 'to-teal-500');
+                btn.classList.add('from-emerald-500', 'to-teal-500');
+
+                document.getElementById('s1-4w-details').innerHTML = `
+                    <div class="text-slate-700 dark:text-slate-200 mb-1.5">${ds.fourW}</div>
+                    <div class="p-2.5 rounded-lg bg-emerald-100/80 dark:bg-emerald-500/15 border border-emerald-300 dark:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 font-semibold">
+                        ${ds.conclusionTitle}
+                    </div>
+                `;
+
+                updateFloatingHUD('TRẠNG THÁI THÔNG TIN (4W)', ds.conclusionTitle, ds.conclusionDesc, '📊', 'border-emerald-400 dark:border-emerald-500/50');
+            }, 650);
+        }
+
+        function resetDataProcessing() {
+            isDataProcessed = false;
+            processingAnimPhase = 0;
+            chartBaseGroup.visible = false;
+
+            const ds = SCENE1_DATASETS[currentDatasetKey];
+            dataCubes.forEach(c => {
+                c.mesh.material.map = c.rawTex;
+                c.mesh.material.needsUpdate = true;
+                c.mesh.scale.set(1, 1, 1);
+            });
+
+            const btn = document.getElementById('btn-process-data');
+            btn.innerHTML = '<span>⚡</span> Kích hoạt Xử lý & Gắn Ngữ Cảnh';
+            btn.classList.remove('from-emerald-500', 'to-teal-500');
+            btn.classList.add('from-sky-500', 'to-teal-500');
+
+            document.getElementById('s1-raw-badge').textContent = ds.rawText;
+            document.getElementById('s1-4w-details').innerHTML = `Chưa gắn ngữ cảnh 4W. Hãy nhấn nút bên dưới để đưa các khối dữ liệu vào <strong class="text-slate-900 dark:text-white">Lõi Xử Lý 3D</strong>!`;
+
+            if (activeSceneIndex === 0) {
+                updateFloatingHUD('TRẠNG THÁI DỮ LIỆU THÔ', 'Các con số rời rạc, chưa có ngữ cảnh', ds.rawDesc, '🧊', 'border-sky-300 dark:border-sky-500/40');
+            }
+        }
+
+        function initUnitButtons() {
+            const grid = document.getElementById('unit-buttons-grid');
+            grid.innerHTML = STORAGE_UNITS.map((u, i) => `
+                <button onclick="selectStorageUnit(${i})" id="ubtn-${i}" 
+                    class="py-2 px-1 rounded-xl font-mono text-xs font-bold border transition ${i === 0 ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400'}">
+                    ${u.symbol}
+                </button>
+            `).join('');
+        }
+
+        function selectStorageUnit(idx) {
+            selectedUnitIndex = idx;
+            const u = STORAGE_UNITS[idx];
+
+            STORAGE_UNITS.forEach((_, i) => {
+                const b = document.getElementById(`ubtn-${i}`);
+                if (i === idx) {
+                    b.className = 'py-2 px-1 rounded-xl font-mono text-xs font-bold border transition bg-emerald-500 border-emerald-500 text-white shadow-md scale-105';
+                } else {
+                    b.className = 'py-2 px-1 rounded-xl font-mono text-xs font-bold border transition bg-white dark:bg-slate-800/80 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:border-slate-400';
+                }
+            });
+
+            document.getElementById('u-badge').textContent = `BẬC ${idx + 1} / 7`;
+            document.getElementById('u-name').textContent = u.name;
+            document.getElementById('u-symbol').textContent = u.symbol;
+            document.getElementById('u-conversion').textContent = u.conversion;
+            document.getElementById('u-example').textContent = u.example;
+            document.getElementById('u-desc').textContent = u.desc;
+
+            stairMeshes.forEach((st, i) => {
+                st.mesh.material.emissiveIntensity = (i === idx) ? 0.55 : 0.1;
+            });
+
+            if (activeSceneIndex === 1) {
+                updateFloatingHUD(`ĐƠN VỊ LƯU TRỮ • BẬC ${idx + 1}/7`, `${u.name} (${u.symbol})`, `${u.conversion} — Ví dụ: ${u.example}. ${u.desc}`, '📶', 'border-emerald-400 dark:border-emerald-500/50');
+            }
+        }
+        initUnitButtons();
+
+        function syncCalcInput(type, rawVal) {
+            const val = parseFloat(rawVal);
+            if (isNaN(val) || val <= 0) return;
+
+            if (type === 'img') {
+                document.getElementById('input-img-size').value = Math.min(25, val);
+                document.getElementById('num-img-size').value = val;
+            } else if (type === 'patients') {
+                document.getElementById('input-patients').value = Math.min(1000, val);
+                document.getElementById('num-patients').value = val;
+            } else if (type === 'days') {
+                document.getElementById('input-days').value = Math.min(730, val);
+                document.getElementById('num-days').value = val;
+            }
+            updateMedicalCalc();
+        }
+
+        function updateMedicalCalc() {
+            const imgSize = parseFloat(document.getElementById('num-img-size').value) || 5;
+            const patients = parseInt(document.getElementById('num-patients').value) || 250;
+            const days = parseInt(document.getElementById('num-days').value) || 365;
+
+            document.getElementById('prompt-img-size').textContent = imgSize;
+            document.getElementById('prompt-patients').textContent = patients;
+            document.getElementById('prompt-days').textContent = days;
+            document.getElementById('calc-formula-size').textContent = imgSize;
+
+            const photosIn1GB = Math.floor(1024 / imgSize);
+            const remMB = 1024 % imgSize;
+            document.getElementById('res-1gb-photos').textContent = photosIn1GB.toLocaleString('vi-VN');
+            document.getElementById('res-1gb-rem').textContent = remMB;
+
+            const totalPhotos = patients * days;
+            const totalMB = totalPhotos * imgSize;
+            const totalGB_Bin = totalMB / 1024;
+            const totalTB_Bin = totalGB_Bin / 1024;
+
+            const totalGB_Dec = totalMB / 1000;
+            const totalTB_Dec = totalGB_Dec / 1000;
+
+            document.getElementById('res-total-photos').textContent = totalPhotos.toLocaleString('vi-VN');
+            document.getElementById('res-gb-bin').textContent = totalGB_Bin.toFixed(2);
+            document.getElementById('res-tb-bin').textContent = totalTB_Bin.toFixed(3);
+            document.getElementById('res-gb-dec').textContent = totalGB_Dec.toFixed(2);
+            document.getElementById('res-tb-dec').textContent = totalTB_Dec.toFixed(3);
+
+            let recommendedLabel = '1 TB';
+            let adviceHTML = '';
+            if (totalGB_Bin <= 465) {
+                recommendedLabel = '500 GB (hoặc 1 TB để an toàn)';
+                adviceHTML = `💡 <strong>Khuyến nghị thực tế:</strong> Cần <span class="font-mono font-bold">${totalGB_Bin.toFixed(1)} GB</span>. Ổ <strong>500GB</strong> thực tế chỉ khả dụng ~465GB (hệ 1000 vs 1024). Nên chọn <strong class="text-sky-700 dark:text-white">1 TB</strong> để dự phòng tăng trưởng bệnh nhân.`;
+            } else if (totalGB_Bin <= 930) {
+                recommendedLabel = '1 TB (1024 GB)';
+                adviceHTML = `⚠️ <strong>Cảnh báo vượt ngưỡng 500GB:</strong> Tổng dung lượng <span class="font-mono font-bold">${totalGB_Bin.toFixed(1)} GB</span> đã vượt mức khả dụng của ổ 500GB (~465GB). Bắt buộc mua tối thiểu ổ cứng <strong class="text-sky-700 dark:text-white">1 TB</strong> (~931GB khả dụng).`;
+            } else {
+                const minTB = Math.ceil(totalGB_Bin / 930);
+                recommendedLabel = `${minTB} TB`;
+                adviceHTML = `🚨 <strong>Cảnh báo dữ liệu lớn:</strong> Cần <span class="font-mono font-bold">${totalTB_Bin.toFixed(2)} TB</span>. Vượt quá 1 ổ cứng 1TB đơn lẻ! Bệnh viện cần trang bị ổ cứng/NAS tối thiểu <strong class="text-orange-700 dark:text-white">${minTB} TB</strong>.`;
+            }
+            document.getElementById('hdd-advice-box').innerHTML = adviceHTML;
+
+            currentFillRatio = Math.min(totalGB_Bin / 1024, 1.0);
+            if (hddFillMesh) {
+                const scaleZ = Math.max(0.05, currentFillRatio);
+                hddFillMesh.scale.z = scaleZ;
+                hddFillMesh.position.z = -4.15 + (8.3 * scaleZ) / 2;
+
+                if (currentFillRatio < 0.5) {
+                    hddFillMesh.material.color.setHex(0x0ea5e9);
+                } else if (currentFillRatio < 0.85) {
+                    hddFillMesh.material.color.setHex(0xf59e0b);
+                } else {
+                    hddFillMesh.material.color.setHex(0xef4444);
+                }
+            }
+
+            if (activeSceneIndex === 2) {
+                updateFloatingHUD(
+                    'MÔ PHỎNG Ổ CỨNG BỆNH VIỆN (MỐC 1 TB)',
+                    `Mức lấp đầy mô hình 3D: ${(currentFillRatio * 100).toFixed(1)}% (${totalGB_Bin.toFixed(1)} GB)`,
+                    `Bấm nút "Hiện đáp án & Mô phỏng tính toán" ở cột bên trái để xem chi tiết lời giải 2 câu hỏi và khuyến nghị mua ổ cứng (${recommendedLabel}).`,
+                    '💾',
+                    'border-orange-300 dark:border-orange-500/40'
+                );
+            }
+        }
+        updateMedicalCalc();
+
+        function focusPipelineStation(idx) {
+            const target = stationCoords[idx];
+            controls.target.set(target.x, target.y, target.z);
+            camera.position.set(target.x, 3.2, 9.5);
+
+            const names = [
+                { tag: 'TRẠM 01 • LƯU TRỮ', title: 'Lưu trữ Đám mây (Cloud Storage)', desc: 'Dữ liệu thô được tải lên Google Drive, Dropbox giúp bảo toàn dữ liệu và truy cập đa thiết bị mọi lúc mọi nơi.' },
+                { tag: 'TRẠM 02 • XỬ LÝ', title: 'Xử lý & Tinh chế Dữ liệu (Excel / AI)', desc: 'Các chuỗi bit 0 & 1 đi qua lõi thuật toán thống kê (Excel) và Trí tuệ nhân tạo (AI) để lọc nhiễu, tìm quy luật.' },
+                { tag: 'TRẠM 03 • KHAI THÁC', title: 'Khai thác Học thuật & Tri thức', desc: 'Tra cứu và xác thực thông tin trên Thư viện số TVU, ProQuest, JSTOR để phục vụ nghiên cứu khoa học.' }
+            ];
+            updateFloatingHUD(names[idx].tag, names[idx].title, names[idx].desc, '🚀', 'border-purple-300 dark:border-purple-500/50');
+        }
+
+        function setFlowSpeed(mult) {
+            flowSpeedMultiplier = mult;
+            document.getElementById('speed-1').className = mult === 1
+                ? 'px-3 py-1 rounded-lg text-xs font-mono font-bold bg-purple-600 text-white'
+                : 'px-3 py-1 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700';
+            document.getElementById('speed-2').className = mult > 1
+                ? 'px-3 py-1 rounded-lg text-xs font-mono font-bold bg-purple-600 text-white'
+                : 'px-3 py-1 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700';
+        }
+
+        // ==========================================
+        // 5. HỆ THỐNG SCROLLYTELLING & CHUYỂN CẢNH 3D
+        // ==========================================
+        function updateFloatingHUD(tag, title, desc, icon, borderClass) {
+            const card = document.getElementById('hud-floating-card');
+            card.className = `absolute bottom-3.5 left-3.5 right-3.5 sm:left-auto sm:right-3.5 sm:w-[24rem] z-20 bg-white/92 dark:bg-slate-900/90 backdrop-blur-xl border ${borderClass} rounded-2xl p-4 shadow-xl transition-all duration-300`;
+            document.getElementById('float-tag').textContent = tag;
+            document.getElementById('float-title').textContent = title;
+            document.getElementById('float-desc').textContent = desc;
+            document.getElementById('float-icon').textContent = icon;
+        }
+
+        function activateScene(index) {
+            if (activeSceneIndex === index && sceneGroups[index].visible) return;
+            activeSceneIndex = index;
+
+            sceneGroups.forEach((g, i) => {
+                g.visible = (i === index);
+            });
+
+            for (let i = 0; i < 4; i++) {
+                const card = document.getElementById(`card-${i}`);
+                const nav = document.getElementById(`nav-${i}`);
+                if (card) card.classList.toggle('active-scene', i === index);
+                if (nav) nav.classList.toggle('active', i === index);
+            }
+            document.getElementById('mobile-scene-select').value = index.toString();
+
+            resetCameraView();
+
+            if (index === 0) {
+                document.getElementById('hud-badge').textContent = 'MÔ HÌNH 3D • CẢNH 01';
+                document.getElementById('hud-title').textContent = 'Bộ lọc Chuyển hóa Dữ liệu → Thông tin';
+                if (!isDataProcessed) resetDataProcessing();
+                else {
+                    const ds = SCENE1_DATASETS[currentDatasetKey];
+                    updateFloatingHUD('TRẠNG THÁI THÔNG TIN (4W)', ds.conclusionTitle, ds.conclusionDesc, '📊', 'border-emerald-400 dark:border-emerald-500/50');
+                }
+            } else if (index === 1) {
+                document.getElementById('hud-badge').textContent = 'MÔ HÌNH 3D • CẢNH 02';
+                document.getElementById('hud-title').textContent = 'Tháp Bậc thang Đơn vị Lưu trữ (Bit → PB)';
+                selectStorageUnit(selectedUnitIndex);
+            } else if (index === 2) {
+                document.getElementById('hud-badge').textContent = 'MÔ HÌNH 3D • CẢNH 03';
+                document.getElementById('hud-title').textContent = 'Phòng thí nghiệm Lưu trữ Ảnh X-Quang Y tế';
+                updateMedicalCalc();
+            } else if (index === 3) {
+                document.getElementById('hud-badge').textContent = 'MÔ HÌNH 3D • CẢNH 04';
+                document.getElementById('hud-title').textContent = 'Dòng chảy Khai thác Dữ liệu Số (0 & 1)';
+                updateFloatingHUD(
+                    'CHU TRÌNH KHAI THÁC SỐ',
+                    'Lưu trữ Đám mây → Xử lý AI → Tri thức',
+                    'Quan sát các hạt bit 0 và 1 chảy từ Cloud (Trạm 1) qua Bộ lọc AI (Trạm 2) và tỏa sáng thành tri thức tại Thư viện số (Trạm 3).',
+                    '🌐',
+                    'border-purple-300 dark:border-purple-500/40'
+                );
+            }
+        }
+
+        function resetCameraView() {
+            controls.target.set(0, 0, 0);
+            if (activeSceneIndex === 0) camera.position.set(0, 3.2, 14.5);
+            else if (activeSceneIndex === 1) camera.position.set(0, 4.2, 15.5);
+            else if (activeSceneIndex === 2) camera.position.set(6.5, 5.2, 11.5);
+            else if (activeSceneIndex === 3) camera.position.set(0, 3.8, 16.0);
+        }
+
+        function scrollToScene(index) {
+            const el = document.getElementById(`scene-${index}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                activateScene(index);
+            }
+        }
+
+        window.addEventListener('scroll', () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const progress = docHeight > 0 ? Math.min(100, Math.max(0, (scrollTop / docHeight) * 100)) : 0;
+            document.getElementById('scroll-progress').style.width = `${progress}%`;
+
+            const sections = document.querySelectorAll('.scene-section');
+            const triggerPoint = window.innerHeight * 0.48;
+
+            sections.forEach((sec, idx) => {
+                const rect = sec.getBoundingClientRect();
+                if (rect.top <= triggerPoint && rect.bottom >= triggerPoint) {
+                    activateScene(idx);
+                }
+            });
+        }, { passive: true });
+
+        // ==========================================
+        // 6. RAYCASTING CLICK TRỰC TIẾP VÀO VẬT THỂ 3D
+        // ==========================================
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        renderer.domElement.addEventListener('pointerdown', (event) => {
+            if (activeSceneIndex !== 1) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const stairObjects = stairMeshes.map(s => s.mesh);
+            const intersects = raycaster.intersectObjects(stairObjects);
+
+            if (intersects.length > 0) {
+                const clickedIdx = intersects[0].object.userData.unitIndex;
+                if (typeof clickedIdx === 'number') {
+                    selectStorageUnit(clickedIdx);
+                }
+            }
+        });
+
+        // ==========================================
+        // 7. VÒNG LẶP ANIMATION 60FPS & RESIZE
+        // ==========================================
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const elapsed = clock.getElapsedTime();
+
+            starField.rotation.y = elapsed * 0.02;
+
+            if (activeSceneIndex === 0) {
+                coreSphere.rotation.y = elapsed * 0.8;
+                coreSphere.rotation.x = elapsed * 0.4;
+                coreRing1.rotation.z = elapsed * 1.1;
+                coreRing2.rotation.y = -elapsed * 0.9;
+
+                const targetCoreScale = processingAnimPhase === 2 ? 0.35 : (processingAnimPhase === 1 ? 1.45 : 1.0);
+                coreSphere.scale.lerp(new THREE.Vector3(targetCoreScale, targetCoreScale, targetCoreScale), 0.1);
+                coreRing1.scale.copy(coreSphere.scale);
+                coreRing2.scale.copy(coreSphere.scale);
+
+                dataCubes.forEach((item, idx) => {
+                    if (processingAnimPhase === 0) {
+                        const floatY = Math.sin(elapsed * 1.6 + item.phaseOffset) * 0.35;
+                        const desired = item.rawPos.clone().add(new THREE.Vector3(0, floatY, 0));
+                        item.mesh.position.lerp(desired, 0.08);
+                        item.mesh.rotation.x = Math.sin(elapsed * 0.7 + idx) * 0.35;
+                        item.mesh.rotation.y = elapsed * 0.5 + idx;
+                        item.mesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.1);
+                    } else if (processingAnimPhase === 1) {
+                        item.mesh.position.lerp(coreSphere.position, 0.14);
+                        item.mesh.rotation.y += 0.25;
+                        item.mesh.scale.lerp(new THREE.Vector3(0.4, 0.4, 0.4), 0.14);
+                    } else if (processingAnimPhase === 2) {
+                        item.mesh.position.lerp(item.targetPos, 0.1);
+                        item.mesh.rotation.set(0, 0, 0);
+                        item.mesh.scale.lerp(new THREE.Vector3(1, item.targetHeight / 1.15, 1), 0.1);
+                    }
+                });
+            }
+
+            if (activeSceneIndex === 1) {
+                stairMeshes.forEach((st, idx) => {
+                    const lift = (idx === selectedUnitIndex) ? 0.45 + Math.sin(elapsed * 4) * 0.12 : 0;
+                    st.mesh.position.y += ((st.baseY + lift) - st.mesh.position.y) * 0.12;
+                    st.sprite.position.y = st.mesh.position.y + st.height / 2 + 0.78;
+                });
+            }
+
+            if (activeSceneIndex === 2) {
+                hddPlatter.rotation.y = elapsed * 4.5;
+                xrayPackets.forEach(pkt => {
+                    pkt.position.y -= pkt.userData.speed;
+                    pkt.rotation.y += 0.03;
+                    if (pkt.position.y < -0.5) {
+                        pkt.position.y = 5.5 + Math.random() * 2;
+                        pkt.position.x = (Math.random() - 0.5) * 4.5;
+                        pkt.position.z = (Math.random() - 0.5) * 6;
+                    }
+                });
+            }
+
+            if (activeSceneIndex === 3) {
+                sceneGroups[3].children.forEach((child, i) => {
+                    if (child.geometry && (child.geometry.type === 'DodecahedronGeometry' || child.geometry.type === 'OctahedronGeometry' || child.geometry.type === 'IcosahedronGeometry')) {
+                        child.rotation.y = elapsed * (0.6 + i * 0.2);
+                        child.rotation.x = elapsed * 0.3;
+                    }
+                });
+
+                bitParticles.forEach(sp => {
+                    sp.position.x += sp.userData.speed * flowSpeedMultiplier;
+                    if (sp.position.x > 6.2) sp.position.x = -6.2;
+                    if (sp.position.x > 0 && sp.material.map !== sp.userData.texProcessed) {
+                        sp.material.map = sp.userData.texProcessed;
+                        sp.scale.set(0.58, 0.58, 1);
+                    } else if (sp.position.x <= 0 && sp.material.map !== sp.userData.texRaw) {
+                        sp.material.map = sp.userData.texRaw;
+                        sp.scale.set(0.46, 0.46, 1);
+                    }
+                });
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            if (!container) return;
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        });
+
+        window.onload = function () {
+            activateScene(0);
+            animate();
+        };
+    </script>
+</body>
+</html>
